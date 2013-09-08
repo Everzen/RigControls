@@ -1,0 +1,16 @@
+DragItemButton
+{
+    image: url(:/images/GuideMarker.png);
+}
+
+
+DragItemButton:pressed
+{
+    image: url(:/images/GuideMarker_Pressed.png);
+}
+
+
+DragItemButton:hover
+{
+    image: url(:/images/GuideMarker_Hover.png);
+}

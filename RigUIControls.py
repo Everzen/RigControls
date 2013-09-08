@@ -5,8 +5,9 @@ import math
 from PyQt4 import QtCore, QtGui
 import numpy as np
 import socket #for sending out UPD signals
+import os
 
-#######
+#######STANDARD LIBRARY FUNCTIONS THAT SHOULD PROBABLY BE IN A MAIN LIBRARY SOMEWHERE##############################
 
 
 def norm(vec):
@@ -23,6 +24,7 @@ def QPVec(npVec):
     """Converts an np array into a QPoint"""
     return QtCore.QPointF(npVec[0], npVec[1])
 
+#################################COLOUR CODE#############################################################################
 
 class ColourBroadcaster():
     def __init__(self, iP, port):
@@ -276,6 +278,240 @@ class RigCurveInfo():
         return self.perpSwing
 
 
+#################################UI CLASSES & FUNCTIONS##################################################################################
+def buildGuideItem(itemName):
+    """A function to build the correct Rig Graphics Item from an input string"""
+    itemstring = str(itemName) + "()"
+    item = eval(itemstring)
+    return item
+
+
+
+
+
+
+
+#################################PROMOTED WIDGETS#############################################################################
+
+
+class DragItemButton(QtGui.QPushButton):
+
+    def __init__(self, itemName, parent=None):
+        super(DragItemButton, self).__init__(parent)
+        self.setMouseTracking(True)
+        self.itemName = itemName
+        print "drag button built"
+        self.initUI()
+
+    def initUI(self):
+        """Check the images folder to see if there is an appropirate image to load""" 
+        self.pixmap = self.validImageFile()
+        self.setStyleSheet('image: url(:/images/' + self.itemName + '.png);')
+
+    # def enterEvent(self,event):
+    #     print("Enter")
+    #     self.pixmap = self.validImageFile(state = "hover")
+    #     # self.setStyleSheet("background-color:#45b545;")
+
+    def leaveEvent(self,event):
+        # self.setStyleSheet("background-color:yellow;")
+        # self.pixmap = self.validImageFile()
+        self.setDown(False)
+        self.setStyleSheet('image: url(:/images/' + self.itemName + '.png);')
+        print("Leave")
+
+    def mousePressEvent(self,event):
+        # self.setStyleSheet("background-color:yellow;")
+        # self.pixmap = self.validImageFile("pressed")
+        # self.paintEvent(event)
+        self.setDown(True)
+        self.setStyleSheet('image: url(:/images/' + self.itemName + '_Pressed.png);')
+        print("pressed")
+
+
+    def validImageFile(self,state=""):
+        imageFile = ""
+        if state == "hover":
+            imageFile = "images/" + self.itemName + "_hover.png"
+        elif state == "pressed":
+            imageFile = "images/" + self.itemName + "_pressed.png"
+        else:
+            imageFile = "images/" + self.itemName + ".png"
+
+        if os.path.exists(imageFile): #create icon and add to button
+            print imageFile
+            return QtGui.QPixmap(imageFile)
+        else:
+            print "No valid image file has been found"
+
+    # def paintEvent(self, event):
+    #     # self.pixmap = self.validImageFile()
+    #     painter = QtGui.QPainter(self)
+    #     painter.drawPixmap(event.rect(), self.pixmap)
+
+    def sizeHint(self):
+        return self.pixmap.size()
+
+
+    def mouseMoveEvent(self, e):
+        if e.buttons() != QtCore.Qt.LeftButton:
+            return
+
+        mimeData = QtCore.QMimeData()
+        mimeData.setData("text/plain", str(self.itemName))
+        drag = QtGui.QDrag(self)
+        drag.setMimeData(mimeData)
+        drag.setHotSpot(e.pos() - self.rect().topLeft())
+        print "start drag text : " + str(self.itemName)
+        dropAction = drag.start(QtCore.Qt.MoveAction)
+
+
+# class dragItemButton(QtGui.QAbstractButton):
+#     def __init__(self, itemName, parent=None):
+#         super(dragItemButton, self).__init__(parent)
+#         self.itemName = itemName
+#         print "drag button built"
+#         self.initUI()
+
+#     def paintEvent(self, event):
+#         # if self.isDown:
+#         #     print "button is down"
+#         #     self.pixmap = self.validImageFile(state = "pressed")
+#         # else:
+#         #     self.pixmap = self.validImageFile()
+#         #     print "Button up"
+#         self.pixmap = self.validImageFile()
+#         painter = QtGui.QPainter(self)
+#         painter.drawPixmap(event.rect(), self.pixmap)
+
+#     def sizeHint(self):
+#         return self.pixmap.size()
+
+#     def validImageFile(self,state=""):
+#         imageFile = ""
+#         if state == "hover":
+#             imageFile = "images/" + self.itemName + "_hover.png"
+#         elif state == "pressed":
+#             imageFile = "images/" + self.itemName + "_pressed.png"
+#         else:
+#             imageFile = "images/" + self.itemName + ".png"
+
+#         if os.path.exists(imageFile): #create icon and add to button
+#             print imageFile
+#             return QtGui.QPixmap(imageFile)
+#         else:
+#             print "No valid image file has been found"
+
+#     def initUI(self):
+#         """Check the images folder to see if there is an appropirate image to load""" 
+#         self.pixmap = self.validImageFile()
+
+#     def mouseMoveEvent(self, e):
+#         if e.buttons() != QtCore.Qt.LeftButton:
+#             return
+
+#         mimeData = QtCore.QMimeData()
+#         mimeData.setData("text/plain", str(self.itemName))
+#         drag = QtGui.QDrag(self)
+#         drag.setMimeData(mimeData)
+#         drag.setHotSpot(e.pos() - self.rect().topLeft())
+#         print "start drag text : " + str(self.itemName)
+#         dropAction = drag.start(QtCore.Qt.MoveAction)
+
+#     def buttonPressed(self):
+#         self.pixmap = self.validImageFile(state="pressed")
+
+
+
+
+
+
+
+# class dragItemButton(QtGui.QPushButton):
+#     def __init__(self,itemName, parent = None):
+#         super(dragItemButton, self).__init__(itemName, parent)
+#         self.itemName = itemName
+#         print "drag button built"
+#         # self.setAcceptDrag(True)
+#         # self.setDragEnabled(True)
+#         # help(self)
+
+#     def initUI(self):
+#         """Check the images folder to see if there is an appropirate image to load"""
+#         imageFile = "images/" + itemName + ".png" 
+#         print "imageFileName : " + imageFile 
+#         if os.path.exists(imageFile): #create icon and add to button
+#             Icon = QtGui.QIcon(imageFile)
+
+
+#     def mouseMoveEvent(self, e):
+#         if e.buttons() != QtCore.Qt.LeftButton:
+#             return
+
+#         mimeData = QtCore.QMimeData()
+#         mimeData.setData("text/plain", str(self.itemName))
+#         drag = QtGui.QDrag(self)
+#         drag.setMimeData(mimeData)
+#         drag.setHotSpot(e.pos() - self.rect().topLeft())
+#         print "start drag text : " + str(self.itemName)
+#         dropAction = drag.start(QtCore.Qt.MoveAction)
+
+#################################RIGGER GRAPHICS ITEMS#############################################################################
+
+
+class GuideMarker(QtGui.QGraphicsItem):
+    def __init__(self):
+        super(GuideMarker, self).__init__()
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        self.setCacheMode(self.DeviceCoordinateCache)
+        ####MARKER IDENTIFIERS####################################
+        self.index = None        
+        self.guideIndex =None
+        self.guideName = None
+        self.active = True
+        # self.setPos(QtCore.QPointF(50,50))
+        # self.move_restrict_rect = QtGui.QGraphicsRectItem(50,50,,410)
+        # self.colourBroadcaster = colourBroadcaster #Pass the slider a Broadcaster
+
+    def boundingRect(self):
+        adjust = 0.0
+        return QtCore.QRectF(-18 - adjust, -18 - adjust,
+                             36 + adjust, 36 + adjust)
+
+    def paint(self, painter, option, widget):
+        # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
+        painter.setPen(QtCore.Qt.NoPen)
+        painter.setPen(QtGui.QPen(QtCore.Qt.lightGray, 0))
+        painter.drawRect(-8, -8, 16, 16)
+        painter.setPen(QtGui.QPen(QtCore.Qt.black, 0.25, QtCore.Qt.SolidLine))
+        painter.drawRect(-4, -4, 8, 8)
+        # painter.drawRect(-12.5, -2.75, 25, 5)
+        pen = QtGui.QPen(QtCore.Qt.red, 0.5, QtCore.Qt.SolidLine)
+        if option.state & QtGui.QStyle.State_Sunken or self.isSelected(): # selected
+            gradient = QtGui.QRadialGradient(0, 0, 4)
+            gradient.setColorAt(1, QtGui.QColor(255,0,0,150))
+            gradient.setColorAt(0, QtGui.QColor(255,255,255,20))
+            painter.setBrush(QtGui.QBrush(gradient))
+            painter.drawRect(-4, -4, 8, 8)
+            pen = QtGui.QPen(QtCore.Qt.red, 1, QtCore.Qt.SolidLine)
+
+        painter.setPen(pen)
+        painter.drawLine(-12,-12,12,12)
+        painter.drawLine(-12,12,12,-12)
+
+
+    def itemChange(self, change, value):
+        if change == QtGui.QGraphicsItem.ItemPositionChange:
+            pass
+            # print "Marker Move pos : " + str(self.scenePos())  
+        return QtGui.QGraphicsItem.itemChange(self, change, value)
+
+    # def mouseMoveEvent(self, event):
+    #     QtGui.QGraphicsItem.mouseMoveEvent(self, event)
+
+
 
 class RigCurve(QtGui.QGraphicsItem):
     def __init__(self, color, controlNodes, parent=None, scene=None):
@@ -392,8 +628,9 @@ class Node(QtGui.QGraphicsItem):
         if self.circleDefinition:
             self.move_restrict_circle = QtGui.QGraphicsEllipseItem(2*self.circleDefinition["centerOffset"][0],2*self.circleDefinition["centerOffset"][1], 2*self.circleDefinition["radius"],2*self.circleDefinition["radius"])
         offsetPos = self.pos() - QPVec(self.circleDefinition["center"])
-        self.operatorClass.setPos([offsetPos.x(),offsetPos.y()]) #Set colourGrabber position
-        self.operatorClass.mouseMoveExecute() # Set the initial colour
+        if self.operatorClass:
+            self.operatorClass.setPos([offsetPos.x(),offsetPos.y()]) #Set colourGrabber position
+            self.operatorClass.mouseMoveExecute() # Set the initial colour
 
     def setIndex(self,value):
         self.index = value
@@ -401,8 +638,8 @@ class Node(QtGui.QGraphicsItem):
     def getIndex(self):
         return self.index
 
-    def type(self):
-        return Node.Type
+    # def type(self):
+    #     return Node.Type
 
     def addRigCurve(self, rigCurve):
         self.rigCurveList.append(weakref.ref(rigCurve))
@@ -469,18 +706,18 @@ class Node(QtGui.QGraphicsItem):
 
 ###
 class RigGraphicsView(QtGui.QGraphicsView):
-    def __init__(self, iP, port, circleDefinition):
+    def __init__(self, circleDefinition):
         QtGui.QGraphicsView.__init__(self) 
-        self.size = (0, 0, 600, 500)
+        self.size = (0, 0, 500, 500)
         self.img = None
         self.circleDefinition = circleDefinition
-        self.iP = iP
-        self.port = port
-        self.colourBroadCaster = ColourBroadcaster(self.iP,self.port)
+        self.setAcceptDrops(True)
+        # self.colourBroadCaster = ColourBroadcaster(self.iP,self.port)
         #
         policy = QtCore.Qt.ScrollBarAlwaysOff
         self.setVerticalScrollBarPolicy(policy)
         self.setHorizontalScrollBarPolicy(policy)
+        self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
 
         scene = QtGui.QGraphicsScene(self)
         scene.setItemIndexMethod(QtGui.QGraphicsScene.NoIndex)
@@ -506,15 +743,13 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.addRigControl([[290,80],[384,137],[424,237],[381,354]])
 
         #Value Slider
-        self.valueSliderBackground = colourValueSliderBackGround()
-        scene.addItem(self.valueSliderBackground)
+        # testMarker = GuideMarker()
+        # scene.addItem(testMarker)
+        # self.valueSliderBackground = colourValueSliderBackGround()
+        # scene.addItem(self.valueSliderBackground)
 
-        self.colourValueSliderControl = colourValueSliderControl(self.colourBroadCaster )
-        scene.addItem(self.colourValueSliderControl)
-
-
-
-
+        # self.colourValueSliderControl = colourValueSliderControl(self.colourBroadCaster )
+        # scene.addItem(self.colourValueSliderControl)
 
     def setBackgroundImage(self,imagepath):
         self.img = imagepath
@@ -528,14 +763,24 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def add_node(self,xPos,yPos, marker=False):
         scene = self.scene()
         # Insert Node into scene
-        colourGrabber = colourGrab(self.colourBroadCaster, radius = self.circleDefinition["radius"])
-        node = Node(self, xPos, yPos, circleDefinition =  self.circleDefinition, operatorClass = colourGrabber)
+        # colourGrabber = colourGrab(self.colourBroadCaster, radius = self.circleDefinition["radius"])
+        node = Node(self, xPos, yPos, circleDefinition =  self.circleDefinition)
         node.setIndex(self.nodecount)
-        colourGrabber.setIndex(self.nodecount) #Make sure that the Node and the ColourGrabber have neatly setup indexes
-        self.colourBroadCaster.addColourGrab(colourGrabber) #Make sure that the colour grabber is past to the broadcaster
+        # colourGrabber.setIndex(self.nodecount) #Make sure that the Node and the ColourGrabber have neatly setup indexes
+        # self.colourBroadCaster.addColourGrab(colourGrabber) #Make sure that the colour grabber is past to the broadcaster
         scene.addItem(node)
         self.nodecount += 1
         return node
+
+    def add_guideMarker(self,pos):
+        """Function to add a new node at the specified position!"""
+        newMarker = GuideMarker()
+        newMarker.setPos(self.mapToScene(pos))
+        self.scene().addItem(newMarker)
+        # print "Marker scene Pos : " + str(newMarker.scenePos())
+        # print "Marker View pos : " + str(self.mapToScene(pos))
+        return newMarker
+
 
     def get_ordered_nodes(self):
         nodes = [item for item in self.scene().items() if isinstance(item, Node)]
@@ -548,12 +793,20 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.scaleView(1.2)
         elif key == QtCore.Qt.Key_Minus:
             self.scaleView(1 / 1.2)
+        elif key == QtCore.Qt.Key_Delete:
+            print "Delete whacked"
         else:
             QtGui.QGraphicsView.keyPressEvent(self, event)
 
-    def mousePressEvent(self, event):
-        # print "GraphWidget mouse"
-        QtGui.QGraphicsView.mousePressEvent(self, event)
+    # def mousePressEvent(self, event):
+    #     # print "GraphWidget mouse"
+    #     # print "Mouse clicked - Maybe add a marker?"
+    #     modifiers = QtGui.QApplication.keyboardModifiers()
+    #     if modifiers == QtCore.Qt.ControlModifier:
+    #         #ctrl is pressed so add a marker
+    #         mousePos = event.pos()
+    #         self.add_guideMarker(mousePos)
+    #     QtGui.QGraphicsView.mousePressEvent(self, event)
 
     def wheelEvent(self, event):
         self.scaleView(math.pow(2.0, -event.delta() / 240.0))
@@ -585,3 +838,33 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # for n in rigCurveNodes: print "Node Pos : " + str(n.pos())
         curve = RigCurve(color, rigCurveNodes)
         scene.addItem(curve)
+
+    def dragEnterEvent(self, event):
+        """Function to overider dragEnterEvent to check that text is being used"""
+        if (event.mimeData().hasFormat('text/plain')):
+            data = QtCore.QString(event.mimeData().data('text/plain'))
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        """Function to overider dragMoveEvent to check that text is being used"""
+        if event.mimeData().hasFormat("text/plain"):
+            event.setDropAction(QtCore.Qt.CopyAction)
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event): 
+        """Function to overider dropEvent to check text has arrived and add it to the graphicsView as appropriate"""
+        if (event.mimeData().hasFormat('text/plain')):
+            event.acceptProposedAction()
+            #Create a new QGraphicsItem and transfer the text across so we have the correct name
+            data = QtCore.QString(event.mimeData().data("text/plain"))
+            item = buildGuideItem(data)
+            item.setPos(self.mapToScene(event.pos()))
+            self.scene().addItem(item)
+            print "Scene Item List : " + str(len(self.scene().items()))
+            print "Item Class Check : "  + str(type(item) == GuideMarker)
+        else:
+            event.ignore() 

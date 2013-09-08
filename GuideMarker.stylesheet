@@ -1,0 +1,15 @@
+QToolButton
+{
+    image: url(:/images/GuideMarker.png);
+}
+
+QToolButton:pressed
+{
+    image: url(:/images/GuideMarker_pressed.png);
+}
+
+
+QToolButton:hover
+{
+    image: url(:/images/GuideMarker_hover.png);
+}

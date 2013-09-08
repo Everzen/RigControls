@@ -27,14 +27,14 @@ class RigFaceSetup(QtGui.QWidget):
         self.view = RigUIControls.RigGraphicsView(self.ColourPickerCircle)
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
         self.markerSpawn = RigUIControls.DragItemButton("GuideMarker")
-        self.testButton = QtGui.QPushButton("Test\nTest\nTest")
+        # self.showReflectionLineButton = QtGui.QCheckButton("Toggle Reflection Line")
 
         self.testCheckBox = QtGui.QCheckBox("Check me Out")
 
         hBox = QtGui.QHBoxLayout()
         vButtonBox = QtGui.QVBoxLayout()
         vButtonBox.addWidget(self.markerSpawn)
-        vButtonBox.addWidget(self.testButton)
+        # vButtonBox.addWidget(self.testButton)
         vButtonBox.addWidget(self.testCheckBox)
         vButtonBox.addStretch(1)
 

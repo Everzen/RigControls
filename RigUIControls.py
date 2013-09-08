@@ -292,6 +292,32 @@ def buildGuideItem(itemName):
 
 
 #################################PROMOTED WIDGETS#############################################################################
+class ReflectionLine(QtGui.QGraphicsItem):
+    def __init__(self,gViewWidth, gViewHeight):
+        super(ReflectionLine, self).__init__()
+        self.width = gViewWidth
+        self.height = gViewHeight
+        self.inset = 10
+        self.drawStart = []
+        self.drawEnd = []
+        # self.visible = True #Use default isVisble method etc
+        self.initUI()
+
+    def initUI(self):
+        self.drawStart = [self.width/2, self.inset]
+        self.drawEnd = [self.width/2, self.height - 2*self.inset]
+
+    def paint(self, painter, option, widget):
+        # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
+        self.prepareGeometryChange()
+        pen = QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.DotLine)
+        painter.setPen(pen)
+        painter.drawLine(self.drawStart[0],self.drawStart[1],self.drawEnd[0],self.drawEnd[1])
+
+    def boundingRect(self):
+        adjust = 1.0
+        return QtCore.QRectF(self.width - adjust, self.inset - adjust,
+                             2*adjust, self.height -2*self.inset + adjust)
 
 
 class DragItemButton(QtGui.QPushButton):
@@ -300,13 +326,16 @@ class DragItemButton(QtGui.QPushButton):
         super(DragItemButton, self).__init__(parent)
         self.setMouseTracking(True)
         self.itemName = itemName
+        self.imageFile = None
+        self.imageCSS = None
         print "drag button built"
         self.initUI()
 
     def initUI(self):
         """Check the images folder to see if there is an appropirate image to load""" 
-        self.pixmap = self.validImageFile()
-        self.setStyleSheet('image: url(:/images/' + self.itemName + '.png);')
+        self.setStyleSheet(self.validImageFile())
+        self.pixmap = QtGui.QPixmap(self.imageFile)
+
 
     # def enterEvent(self,event):
     #     print("Enter")
@@ -317,7 +346,7 @@ class DragItemButton(QtGui.QPushButton):
         # self.setStyleSheet("background-color:yellow;")
         # self.pixmap = self.validImageFile()
         self.setDown(False)
-        self.setStyleSheet('image: url(:/images/' + self.itemName + '.png);')
+        self.setStyleSheet(self.validImageFile())
         print("Leave")
 
     def mousePressEvent(self,event):
@@ -325,29 +354,29 @@ class DragItemButton(QtGui.QPushButton):
         # self.pixmap = self.validImageFile("pressed")
         # self.paintEvent(event)
         self.setDown(True)
-        self.setStyleSheet('image: url(:/images/' + self.itemName + '_Pressed.png);')
+        self.setStyleSheet(self.validImageFile(state = "pressed"))
         print("pressed")
 
 
     def validImageFile(self,state=""):
         imageFile = ""
+        imageFileCss = ""
         if state == "hover":
-            imageFile = "images/" + self.itemName + "_hover.png"
+            imageFile = 'images/' + self.itemName + '_Hover.png'
+            imageFileCss = 'image: url(:/' + imageFile + ');'
         elif state == "pressed":
-            imageFile = "images/" + self.itemName + "_pressed.png"
+            imageFile = 'images/' + self.itemName + '_Pressed.png'
+            imageFileCss = 'image: url(:/' + imageFile + ');'
         else:
-            imageFile = "images/" + self.itemName + ".png"
+            imageFile = 'images/' + self.itemName + '.png'
+            imageFileCss = 'image: url(:/' + imageFile + ');'
 
         if os.path.exists(imageFile): #create icon and add to button
-            print imageFile
-            return QtGui.QPixmap(imageFile)
+            self.imageFile = imageFile
+            return imageFileCss
         else:
-            print "No valid image file has been found"
+            print "WARNING : No valid image file has been found"
 
-    # def paintEvent(self, event):
-    #     # self.pixmap = self.validImageFile()
-    #     painter = QtGui.QPainter(self)
-    #     painter.drawPixmap(event.rect(), self.pixmap)
 
     def sizeHint(self):
         return self.pixmap.size()
@@ -366,95 +395,7 @@ class DragItemButton(QtGui.QPushButton):
         dropAction = drag.start(QtCore.Qt.MoveAction)
 
 
-# class dragItemButton(QtGui.QAbstractButton):
-#     def __init__(self, itemName, parent=None):
-#         super(dragItemButton, self).__init__(parent)
-#         self.itemName = itemName
-#         print "drag button built"
-#         self.initUI()
 
-#     def paintEvent(self, event):
-#         # if self.isDown:
-#         #     print "button is down"
-#         #     self.pixmap = self.validImageFile(state = "pressed")
-#         # else:
-#         #     self.pixmap = self.validImageFile()
-#         #     print "Button up"
-#         self.pixmap = self.validImageFile()
-#         painter = QtGui.QPainter(self)
-#         painter.drawPixmap(event.rect(), self.pixmap)
-
-#     def sizeHint(self):
-#         return self.pixmap.size()
-
-#     def validImageFile(self,state=""):
-#         imageFile = ""
-#         if state == "hover":
-#             imageFile = "images/" + self.itemName + "_hover.png"
-#         elif state == "pressed":
-#             imageFile = "images/" + self.itemName + "_pressed.png"
-#         else:
-#             imageFile = "images/" + self.itemName + ".png"
-
-#         if os.path.exists(imageFile): #create icon and add to button
-#             print imageFile
-#             return QtGui.QPixmap(imageFile)
-#         else:
-#             print "No valid image file has been found"
-
-#     def initUI(self):
-#         """Check the images folder to see if there is an appropirate image to load""" 
-#         self.pixmap = self.validImageFile()
-
-#     def mouseMoveEvent(self, e):
-#         if e.buttons() != QtCore.Qt.LeftButton:
-#             return
-
-#         mimeData = QtCore.QMimeData()
-#         mimeData.setData("text/plain", str(self.itemName))
-#         drag = QtGui.QDrag(self)
-#         drag.setMimeData(mimeData)
-#         drag.setHotSpot(e.pos() - self.rect().topLeft())
-#         print "start drag text : " + str(self.itemName)
-#         dropAction = drag.start(QtCore.Qt.MoveAction)
-
-#     def buttonPressed(self):
-#         self.pixmap = self.validImageFile(state="pressed")
-
-
-
-
-
-
-
-# class dragItemButton(QtGui.QPushButton):
-#     def __init__(self,itemName, parent = None):
-#         super(dragItemButton, self).__init__(itemName, parent)
-#         self.itemName = itemName
-#         print "drag button built"
-#         # self.setAcceptDrag(True)
-#         # self.setDragEnabled(True)
-#         # help(self)
-
-#     def initUI(self):
-#         """Check the images folder to see if there is an appropirate image to load"""
-#         imageFile = "images/" + itemName + ".png" 
-#         print "imageFileName : " + imageFile 
-#         if os.path.exists(imageFile): #create icon and add to button
-#             Icon = QtGui.QIcon(imageFile)
-
-
-#     def mouseMoveEvent(self, e):
-#         if e.buttons() != QtCore.Qt.LeftButton:
-#             return
-
-#         mimeData = QtCore.QMimeData()
-#         mimeData.setData("text/plain", str(self.itemName))
-#         drag = QtGui.QDrag(self)
-#         drag.setMimeData(mimeData)
-#         drag.setHotSpot(e.pos() - self.rect().topLeft())
-#         print "start drag text : " + str(self.itemName)
-#         dropAction = drag.start(QtCore.Qt.MoveAction)
 
 #################################RIGGER GRAPHICS ITEMS#############################################################################
 
@@ -708,7 +649,9 @@ class Node(QtGui.QGraphicsItem):
 class RigGraphicsView(QtGui.QGraphicsView):
     def __init__(self, circleDefinition):
         QtGui.QGraphicsView.__init__(self) 
-        self.size = (0, 0, 500, 500)
+        self.width = 500
+        self.height = 500
+        self.size = (0, 0, self.width, self.height)
         self.img = None
         self.circleDefinition = circleDefinition
         self.setAcceptDrops(True)
@@ -738,8 +681,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.setWindowTitle(self.tr("Elastic Nodes"))
         self.inhibit_edit = False
         self.setBackgroundImage(self.circleDefinition["filename"])
-        # self.add_curve()
-        # self.addRigControl([[20,20],[265,66],[325,205],[200,400],[100,200],[250,400],[650,300]])
+        #Add in Reflection Line
+        self.reflectionLine = self.addReflectionLine()
         self.addRigControl([[290,80],[384,137],[424,237],[381,354]])
 
         #Value Slider
@@ -753,6 +696,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
     def setBackgroundImage(self,imagepath):
         self.img = imagepath
+
+    def addReflectionLine(self):
+        scene = self.scene()
+        refLine = ReflectionLine(self.width,self.height)
+        scene.addItem(refLine)
+        return refLine
 
     def calc_upper_limits(self):
         self.toptemp = (self.maxtemp / 100 + 1) * 100
@@ -788,6 +737,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         return nodes
 
     def keyPressEvent(self, event):
+        scene = self.scene()
         key = event.key()
         if key == QtCore.Qt.Key_Plus:
             self.scaleView(1.2)
@@ -795,6 +745,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.scaleView(1 / 1.2)
         elif key == QtCore.Qt.Key_Delete:
             print "Delete whacked"
+            for item in scene .items():
+                if type(item) == GuideMarker and item.isSelected() == True: #Delete out any GuideMarkers that are selection and need to be removed
+                    scene.removeItem(item)
+                    del item
         else:
             QtGui.QGraphicsView.keyPressEvent(self, event)
 

@@ -319,6 +319,9 @@ class ReflectionLine(QtGui.QGraphicsItem):
         return QtCore.QRectF(self.width - adjust, self.inset - adjust,
                              2*adjust, self.height -2*self.inset + adjust)
 
+    def getReflectionPoint(self):
+        return self.drawStart[0]
+
 
 class DragItemButton(QtGui.QPushButton):
 
@@ -409,17 +412,54 @@ class GuideMarker(QtGui.QGraphicsItem):
         self.setCacheMode(self.DeviceCoordinateCache)
         ####MARKER IDENTIFIERS####################################
         self.index = None        
-        self.guideIndex =None
+        self.guideIndex = None
         self.guideName = None
+        self.showID = True
         self.active = True
         # self.setPos(QtCore.QPointF(50,50))
         # self.move_restrict_rect = QtGui.QGraphicsRectItem(50,50,,410)
         # self.colourBroadcaster = colourBroadcaster #Pass the slider a Broadcaster
 
+    def getShowID(self):
+        self.showID = state
+
+    def setShowID(self):
+        return self.showID
+
+    def getIndex(self):
+        return self.index
+
+    def setIndex(self,index):
+        self.index = index
+
+    def getguideIndex(self):
+        return self.guideIndex
+
+    def setguideIndex(self,gIndex):
+        self.guideIndex = gIndex
+
+    def getguideName(self):
+        return self.guideName
+
+    def setguideName(self,gName):
+        self.guideName = gName
+
     def boundingRect(self):
-        adjust = 0.0
+        adjust = 5
+        numberstretch = 5
         return QtCore.QRectF(-18 - adjust, -18 - adjust,
-                             36 + adjust, 36 + adjust)
+                             36 + adjust, 36 + adjust + numberstretch)
+
+    def drawID(self, painter):
+        # print "Marker Index : " + str(self.index)
+        # print "Marker guideIndex : " + str(self.guideIndex)
+        # print "Marker showID : " + str(self.showID)
+        if self.showID and self.index and self.guideIndex: #Conditions met to disply numbers on corners
+            pen = QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.SolidLine)
+            painter.setPen(pen)
+            painter.setFont(QtGui.QFont('Arial', 9))
+            painter.drawText(12,-12, str(self.guideIndex))
+            painter.drawText(12,21,str(self.index))
 
     def paint(self, painter, option, widget):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
@@ -441,6 +481,7 @@ class GuideMarker(QtGui.QGraphicsItem):
         painter.setPen(pen)
         painter.drawLine(-12,-12,12,12)
         painter.drawLine(-12,12,12,-12)
+        self.drawID(painter) #Now add in the Marker ID if relevant
 
 
     def itemChange(self, change, value):
@@ -671,13 +712,14 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.setTransformationAnchor(QtGui.QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QtGui.QGraphicsView.AnchorViewCenter)
         #
-        self.maxtemp = 300
-        self.maxtime = 160
-        self.nodecount = 0
-        self.calc_upper_limits()
+        # self.maxtemp = 300
+        # self.maxtime = 160
+        self.nodeCount = 0
+        self.markerCount = 1
+        # self.calc_upper_limits()
         #
         self.scale(1,1)
-        self.setMinimumSize(600, 400)
+        self.setMinimumSize(500, 500)
         self.setWindowTitle(self.tr("Elastic Nodes"))
         self.inhibit_edit = False
         self.setBackgroundImage(self.circleDefinition["filename"])
@@ -703,22 +745,22 @@ class RigGraphicsView(QtGui.QGraphicsView):
         scene.addItem(refLine)
         return refLine
 
-    def calc_upper_limits(self):
-        self.toptemp = (self.maxtemp / 100 + 1) * 100
-        self.toptime = (int(self.maxtime) / 30 + 1) * 30
-        self.graph_width_ratio = float(self.size[2]) /self.toptime
-        self.graph_height_ratio = float(self.size[3]) / self.toptemp
+    # def calc_upper_limits(self):
+    #     self.toptemp = (self.maxtemp / 100 + 1) * 100
+    #     self.toptime = (int(self.maxtime) / 30 + 1) * 30
+    #     self.graph_width_ratio = float(self.size[2]) /self.toptime
+    #     self.graph_height_ratio = float(self.size[3]) / self.toptemp
 
     def add_node(self,xPos,yPos, marker=False):
         scene = self.scene()
         # Insert Node into scene
         # colourGrabber = colourGrab(self.colourBroadCaster, radius = self.circleDefinition["radius"])
         node = Node(self, xPos, yPos, circleDefinition =  self.circleDefinition)
-        node.setIndex(self.nodecount)
+        node.setIndex(self.nodeCount)
         # colourGrabber.setIndex(self.nodecount) #Make sure that the Node and the ColourGrabber have neatly setup indexes
         # self.colourBroadCaster.addColourGrab(colourGrabber) #Make sure that the colour grabber is past to the broadcaster
         scene.addItem(node)
-        self.nodecount += 1
+        self.nodeCount += 1
         return node
 
     def add_guideMarker(self,pos):
@@ -730,11 +772,50 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # print "Marker View pos : " + str(self.mapToScene(pos))
         return newMarker
 
-
     def get_ordered_nodes(self):
         nodes = [item for item in self.scene().items() if isinstance(item, Node)]
         nodes.sort(key=lambda n: n.index)
         return nodes
+
+    def addRigControl(self, controlPosList, color = QtGui.QColor(0, 0, 0)):
+        scene = self.scene()
+        rigCurveNodes = []
+        for p in controlPosList:
+            newNode = self.add_node(p[0],p[1])
+            # ctrlPoint = QtCore.QPointF(p[0], p[1])
+            rigCurveNodes.append(newNode)
+            # rigCurveNodes.append(ctrlPoint)
+        # print "Node List : " + str(rigCurveNodes)
+        # for n in rigCurveNodes: print "Node Pos : " + str(n.pos())
+        curve = RigCurve(color, rigCurveNodes)
+        scene.addItem(curve)
+
+    def drawBackground(self, painter, rect):
+        if self.img != None:
+            backImage = QtGui.QPixmap(self.img)
+            backImage.scaled(500,500, QtCore.Qt.KeepAspectRatio)
+            painter.drawPixmap(rect, backImage, rect)
+            # print "This was drawn"
+        sceneRect = self.sceneRect()
+        # print "Back image is: " + str(self.img)
+
+    def reflectPos(self, pos):
+        """Function to find the reflected position of a guide"""
+        refLine = self.reflectionLine.getReflectionPoint()
+        return QtCore.QPointF(refLine - (pos.x() - refLine), pos.y())
+
+    def reflectGuides(self):
+        scene = self.scene()
+        """Function to find the list of selected Guide Markers and reflect them around the Reflection Line"""
+        for item in scene.items():
+            if type(item) == GuideMarker and item.isSelected() == True: #Find our selected GuideMarkers
+                print "This is the Item : " + str(item)
+                itemPos = item.pos() #Now build a marker at the reflected position
+                newGuidePos = self.reflectPos(itemPos)
+                newMarker = GuideMarker()
+                # newMarker.setPos(self.mapToScene(newGuidePos.x(),newGuidePos.y()))
+                newMarker.setPos(newGuidePos.x(),newGuidePos.y())
+                scene.addItem(newMarker)
 
     def keyPressEvent(self, event):
         scene = self.scene()
@@ -771,28 +852,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
             return
         self.scale(scaleFactor, scaleFactor)
 
-    def drawBackground(self, painter, rect):
-        if self.img != None:
-            backImage = QtGui.QPixmap(self.img)
-            backImage.scaled(600,600, QtCore.Qt.KeepAspectRatio)
-            painter.drawPixmap(rect, backImage, rect)
-            # print "This was drawn"
-        sceneRect = self.sceneRect()
-        # print "Back image is: " + str(self.img)
-
-    def addRigControl(self, controlPosList, color = QtGui.QColor(0, 0, 0)):
-        scene = self.scene()
-        rigCurveNodes = []
-        for p in controlPosList:
-            newNode = self.add_node(p[0],p[1])
-            # ctrlPoint = QtCore.QPointF(p[0], p[1])
-            rigCurveNodes.append(newNode)
-            # rigCurveNodes.append(ctrlPoint)
-        # print "Node List : " + str(rigCurveNodes)
-        # for n in rigCurveNodes: print "Node Pos : " + str(n.pos())
-        curve = RigCurve(color, rigCurveNodes)
-        scene.addItem(curve)
-
     def dragEnterEvent(self, event):
         """Function to overider dragEnterEvent to check that text is being used"""
         if (event.mimeData().hasFormat('text/plain')):
@@ -816,9 +875,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
             #Create a new QGraphicsItem and transfer the text across so we have the correct name
             data = QtCore.QString(event.mimeData().data("text/plain"))
             item = buildGuideItem(data)
+            item.setIndex(self.markerCount)
+            item.setguideIndex(1) 
             item.setPos(self.mapToScene(event.pos()))
             self.scene().addItem(item)
             print "Scene Item List : " + str(len(self.scene().items()))
             print "Item Class Check : "  + str(type(item) == GuideMarker)
+            self.markerCount += 1
         else:
             event.ignore() 

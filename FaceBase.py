@@ -29,12 +29,14 @@ class RigFaceSetup(QtGui.QWidget):
         self.markerSpawn = RigUIControls.DragItemButton("GuideMarker")
         # self.showReflectionLineButton = QtGui.QCheckButton("Toggle Reflection Line")
 
+        self.reflectGuides = QtGui.QPushButton("Reflect Markers")
+        self.reflectGuides.clicked.connect(self.view.reflectGuides)
         self.testCheckBox = QtGui.QCheckBox("Check me Out")
 
         hBox = QtGui.QHBoxLayout()
         vButtonBox = QtGui.QVBoxLayout()
         vButtonBox.addWidget(self.markerSpawn)
-        # vButtonBox.addWidget(self.testButton)
+        vButtonBox.addWidget(self.reflectGuides)
         vButtonBox.addWidget(self.testCheckBox)
         vButtonBox.addStretch(1)
 

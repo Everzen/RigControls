@@ -14,7 +14,6 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.ColourPickerCircle = {"center" : [245, 245], "centerOffset": [20,16] , "radius": 210 , "filename": "images/ColorWheelSat_500.png"}
         self.initUI()
        
-       
     def initUI(self):   
         self.mainWidget = QtGui.QWidget(self)
         #Setup Style Sheet information
@@ -53,16 +52,22 @@ class RigFaceSetup(QtGui.QMainWindow):
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(QtGui.qApp.quit)
 
+        viewMarkerIDs = QtGui.QAction('&Show Marker IDs', self)  
+        viewMarkerIDs.setCheckable(True)
+        viewMarkerIDs.setChecked(True)
+        viewMarkerIDs.toggled.connect(lambda: self.view.setShowMarkerID(viewReflectionLine.isChecked())) #Adjust this to add hide Reflection Line Functionality
+
         viewReflectionLine = QtGui.QAction('&Show Reflection Line', self)  
         viewReflectionLine.setCheckable(True)
         viewReflectionLine.setChecked(True)
-        viewReflectionLine.toggled.connect(QtGui.qApp.quit) #Adjust this to add hide Reflection Line Functionality
+        viewReflectionLine.toggled.connect(lambda: self.view.setShowMarkerID(viewReflectionLine.isChecked()))
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAction)
 
         viewMenu = menubar.addMenu('&View')
+        viewMenu.addAction(viewMarkerIDs)
         viewMenu.addAction(viewReflectionLine)
 
         self.statusBar()

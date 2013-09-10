@@ -421,10 +421,10 @@ class GuideMarker(QtGui.QGraphicsItem):
         # self.colourBroadcaster = colourBroadcaster #Pass the slider a Broadcaster
 
     def getShowID(self):
-        self.showID = state
-
-    def setShowID(self):
         return self.showID
+
+    def setShowID(self,state):
+        self.showID = state
 
     def getIndex(self):
         return self.index
@@ -716,6 +716,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # self.maxtime = 160
         self.nodeCount = 0
         self.markerCount = 1
+        self.showMarkerID = 1
         # self.calc_upper_limits()
         #
         self.scale(1,1)
@@ -817,6 +818,15 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 newMarker.setPos(newGuidePos.x(),newGuidePos.y())
                 scene.addItem(newMarker)
 
+
+    def setShowMarkerID(self, state):
+        """Function to show/hide the Guide Index, and index on Guide Markers"""
+        scene = self.scene()
+        for item in scene.items():
+            if type(item) == GuideMarker: #change the state of its show ID
+                item.setShowID(state)
+                item.update()
+
     def keyPressEvent(self, event):
         scene = self.scene()
         key = event.key()
@@ -826,7 +836,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.scaleView(1 / 1.2)
         elif key == QtCore.Qt.Key_Delete:
             print "Delete whacked"
-            for item in scene .items():
+            for item in scene.items():
                 if type(item) == GuideMarker and item.isSelected() == True: #Delete out any GuideMarkers that are selection and need to be removed
                     scene.removeItem(item)
                     del item

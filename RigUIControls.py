@@ -416,9 +416,13 @@ class GuideMarker(QtGui.QGraphicsItem):
         self.guideName = None
         self.showID = True
         self.active = True
+        self.scale = 1.0
         # self.setPos(QtCore.QPointF(50,50))
         # self.move_restrict_rect = QtGui.QGraphicsRectItem(50,50,,410)
         # self.colourBroadcaster = colourBroadcaster #Pass the slider a Broadcaster
+
+    def setScale(self, scale):
+        self.scale = scale
 
     def getShowID(self):
         return self.showID
@@ -447,40 +451,45 @@ class GuideMarker(QtGui.QGraphicsItem):
     def boundingRect(self):
         adjust = 5
         numberstretch = 5
-        return QtCore.QRectF(-18 - adjust, -18 - adjust,
-                             36 + adjust, 36 + adjust + numberstretch)
+        return QtCore.QRectF(self.scale*(-18 - adjust), self.scale*(-18 - adjust),
+                             self.scale*(36 + adjust), self.scale*(36 + adjust + numberstretch))
 
     def drawID(self, painter):
         # print "Marker Index : " + str(self.index)
         # print "Marker guideIndex : " + str(self.guideIndex)
         # print "Marker showID : " + str(self.showID)
-        if self.showID and self.index and self.guideIndex: #Conditions met to disply numbers on corners
+        if self.showID and self.index: #Conditions met to disply numbers on corners
             pen = QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.SolidLine)
             painter.setPen(pen)
-            painter.setFont(QtGui.QFont('Arial', 9))
-            painter.drawText(12,-12, str(self.guideIndex))
-            painter.drawText(12,21,str(self.index))
+            fontsize = 9
+            if self.scale < 1.0:
+                fontsize = int(9*self.scale)
+            painter.setFont(QtGui.QFont('Arial', fontsize))
+            if self.guideIndex != 0: 
+                print "guide index : " + str(self.guideIndex)
+                painter.drawText(self.scale*12,self.scale*-12, str(self.guideIndex)) #Add in the guide Index if it is not 0
+            painter.drawText(self.scale*12,self.scale*21,str(self.index))
 
     def paint(self, painter, option, widget):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
         painter.setPen(QtCore.Qt.NoPen)
         painter.setPen(QtGui.QPen(QtCore.Qt.lightGray, 0))
-        painter.drawRect(-8, -8, 16, 16)
+        painter.drawRect(self.scale*-8, self.scale*-8, self.scale*16, self.scale*16)
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 0.25, QtCore.Qt.SolidLine))
-        painter.drawRect(-4, -4, 8, 8)
+        painter.drawRect(self.scale*-4, self.scale*-4, self.scale*8, self.scale*8)
         # painter.drawRect(-12.5, -2.75, 25, 5)
         pen = QtGui.QPen(QtCore.Qt.red, 0.5, QtCore.Qt.SolidLine)
         if option.state & QtGui.QStyle.State_Sunken or self.isSelected(): # selected
-            gradient = QtGui.QRadialGradient(0, 0, 4)
+            gradient = QtGui.QRadialGradient(0, 0, self.scale*4)
             gradient.setColorAt(1, QtGui.QColor(255,0,0,150))
             gradient.setColorAt(0, QtGui.QColor(255,255,255,20))
             painter.setBrush(QtGui.QBrush(gradient))
-            painter.drawRect(-4, -4, 8, 8)
+            painter.drawRect(self.scale*-4, self.scale*-4, self.scale*8, self.scale*8)
             pen = QtGui.QPen(QtCore.Qt.red, 1, QtCore.Qt.SolidLine)
 
         painter.setPen(pen)
-        painter.drawLine(-12,-12,12,12)
-        painter.drawLine(-12,12,12,-12)
+        painter.drawLine(self.scale*-12,self.scale*-12,self.scale*12,self.scale*12)
+        painter.drawLine(self.scale*-12,self.scale*12,self.scale*12,self.scale*-12)
         self.drawID(painter) #Now add in the Marker ID if relevant
 
 
@@ -716,7 +725,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # self.maxtime = 160
         self.nodeCount = 0
         self.markerCount = 1
-        self.showMarkerID = 1
+        self.markerGuideCount = 0
+        self.showMarkerID = True
+        self.markerScale = 1.0
         # self.calc_upper_limits()
         #
         self.scale(1,1)
@@ -745,6 +756,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
         refLine = ReflectionLine(self.width,self.height)
         scene.addItem(refLine)
         return refLine
+
+    def findMarkerGuideCount(self):
+        """Run through the markers and find the next Guide Index"""
+        markerCount = 1
 
     # def calc_upper_limits(self):
     #     self.toptemp = (self.maxtemp / 100 + 1) * 100
@@ -814,6 +829,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 itemPos = item.pos() #Now build a marker at the reflected position
                 newGuidePos = self.reflectPos(itemPos)
                 newMarker = GuideMarker()
+                newMarker.setguideIndex(self.markerGuideCount)
+                newMarker.setIndex(item.getIndex())
+                newMarker.setScale(self.markerScale)
+                newMarker.setShowID(self.showMarkerID)
                 # newMarker.setPos(self.mapToScene(newGuidePos.x(),newGuidePos.y()))
                 newMarker.setPos(newGuidePos.x(),newGuidePos.y())
                 scene.addItem(newMarker)
@@ -826,6 +845,16 @@ class RigGraphicsView(QtGui.QGraphicsView):
             if type(item) == GuideMarker: #change the state of its show ID
                 item.setShowID(state)
                 item.update()
+        self.showMarkerID = state
+
+    def setMarkerScale(self, scale):
+        """Function to cycle through markers and scale"""
+        scene = self.scene()
+        for item in scene.items():
+            if type(item) == GuideMarker: #change the state of its show ID
+                item.setScale(float(scale/100.0))
+                item.update()
+        self.markerScale = float(scale/100.0)  
 
     def keyPressEvent(self, event):
         scene = self.scene()
@@ -886,8 +915,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
             data = QtCore.QString(event.mimeData().data("text/plain"))
             item = buildGuideItem(data)
             item.setIndex(self.markerCount)
-            item.setguideIndex(1) 
+            item.setguideIndex(self.markerGuideCount) 
             item.setPos(self.mapToScene(event.pos()))
+            item.setScale(self.markerScale)
+            item.setShowID(self.showMarkerID)
             self.scene().addItem(item)
             print "Scene Item List : " + str(len(self.scene().items()))
             print "Item Class Check : "  + str(type(item) == GuideMarker)

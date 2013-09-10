@@ -28,14 +28,24 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
         self.markerSpawn = RigUIControls.DragItemButton("GuideMarker")
         # self.showReflectionLineButton = QtGui.QCheckButton("Toggle Reflection Line")
+        self.markerScale = QtGui.QSlider(QtCore.Qt.Horizontal)
+        # self.markerScale.setTickPosition(1.0)
+        self.markerScale.setRange(10, 300)
+        self.markerScale.setValue(100)
+        self.markerScale.valueChanged.connect(lambda: self.view.setMarkerScale(self.markerScale.value()))
 
+        # self.connect(self.markerScale , QtCore.SIGNAL( ' valueChanged ( int ) ' ), self.changeValue)
+        
         self.reflectGuides = QtGui.QPushButton("Reflect Markers")
         self.reflectGuides.clicked.connect(self.view.reflectGuides)
         self.testCheckBox = QtGui.QCheckBox("Check me Out")
 
+
+
         hBox = QtGui.QHBoxLayout()
         vButtonBox = QtGui.QVBoxLayout()
         vButtonBox.addWidget(self.markerSpawn)
+        vButtonBox.addWidget(self.markerScale)
         vButtonBox.addWidget(self.reflectGuides)
         vButtonBox.addWidget(self.testCheckBox)
         vButtonBox.addStretch(1)
@@ -70,10 +80,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         viewMenu.addAction(viewMarkerIDs)
         viewMenu.addAction(viewReflectionLine)
 
-        self.statusBar()
-
-    def changeValue(self, value):
-        self.view.rect.doRotate(value)     
+        self.statusBar()  
 
 
 app = QtGui.QApplication([])

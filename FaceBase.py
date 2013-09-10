@@ -65,12 +65,12 @@ class RigFaceSetup(QtGui.QMainWindow):
         viewMarkerIDs = QtGui.QAction('&Show Marker IDs', self)  
         viewMarkerIDs.setCheckable(True)
         viewMarkerIDs.setChecked(True)
-        viewMarkerIDs.toggled.connect(lambda: self.view.setShowMarkerID(viewReflectionLine.isChecked())) #Adjust this to add hide Reflection Line Functionality
+        viewMarkerIDs.toggled.connect(lambda: self.view.setShowMarkerID(viewMarkerIDs.isChecked())) #Adjust this to add hide Reflection Line Functionality
 
         viewReflectionLine = QtGui.QAction('&Show Reflection Line', self)  
         viewReflectionLine.setCheckable(True)
         viewReflectionLine.setChecked(True)
-        viewReflectionLine.toggled.connect(lambda: self.view.setShowMarkerID(viewReflectionLine.isChecked()))
+        viewReflectionLine.toggled.connect(lambda: self.view.setShowReflectionLine(viewReflectionLine.isChecked()))
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')

@@ -417,6 +417,8 @@ class GuideMarker(QtGui.QGraphicsItem):
         self.showID = True
         self.active = True
         self.scale = 1.0
+        self.colourList = [QtGui.QColor(255,0,0), QtGui.QColor(0,255,0), QtGui.QColor(0,0,255), QtGui.QColor(0,255,255), QtGui.QColor(255,0,255), QtGui.QColor(255,255,0), QtGui.QColor(255,125,0), QtGui.QColor(125,255,0),QtGui.QColor(255,0,125),QtGui.QColor(125,0,255),QtGui.QColor(0,255,125),QtGui.QColor(0,125,255),QtGui.QColor(255,125,125),QtGui.QColor(125,255,125),QtGui.QColor(125,125,255),QtGui.QColor(255,255,125),QtGui.QColor(255,125,255),QtGui.QColor(125,255,255)]
+        self.guideColour = self.colourList[1]
         # self.setPos(QtCore.QPointF(50,50))
         # self.move_restrict_rect = QtGui.QGraphicsRectItem(50,50,,410)
         # self.colourBroadcaster = colourBroadcaster #Pass the slider a Broadcaster
@@ -441,12 +443,19 @@ class GuideMarker(QtGui.QGraphicsItem):
 
     def setguideIndex(self,gIndex):
         self.guideIndex = gIndex
+        self.setGuideColour()
 
     def getguideName(self):
         return self.guideName
 
     def setguideName(self,gName):
         self.guideName = gName
+
+    def setGuideColour(self):
+        if self.guideIndex < len(self.colourList):
+            self.guideColour = self.colourList[self.guideIndex]
+        else:
+            self.guideColour = QtGui.QColor.red
 
     def boundingRect(self):
         adjust = 5
@@ -478,14 +487,14 @@ class GuideMarker(QtGui.QGraphicsItem):
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 0.25, QtCore.Qt.SolidLine))
         painter.drawRect(self.scale*-4, self.scale*-4, self.scale*8, self.scale*8)
         # painter.drawRect(-12.5, -2.75, 25, 5)
-        pen = QtGui.QPen(QtCore.Qt.red, 0.5, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(self.guideColour, 0.5, QtCore.Qt.SolidLine)
         if option.state & QtGui.QStyle.State_Sunken or self.isSelected(): # selected
             gradient = QtGui.QRadialGradient(0, 0, self.scale*4)
-            gradient.setColorAt(1, QtGui.QColor(255,0,0,150))
-            gradient.setColorAt(0, QtGui.QColor(255,255,255,20))
+            gradient.setColorAt(1, QtGui.QColor(self.guideColour.red(),0,0,150))
+            gradient.setColorAt(0, QtGui.QColor(self.guideColour.red(),self.guideColour.green(),self.guideColour.blue(),20))
             painter.setBrush(QtGui.QBrush(gradient))
             painter.drawRect(self.scale*-4, self.scale*-4, self.scale*8, self.scale*8)
-            pen = QtGui.QPen(QtCore.Qt.red, 1, QtCore.Qt.SolidLine)
+            pen = QtGui.QPen(self.guideColour, 1, QtCore.Qt.SolidLine)
 
         painter.setPen(pen)
         painter.drawLine(self.scale*-12,self.scale*-12,self.scale*12,self.scale*12)
@@ -737,6 +746,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.setBackgroundImage(self.circleDefinition["filename"])
         #Add in Reflection Line
         self.reflectionLine = self.addReflectionLine()
+        self.showReflectionLine = True
         self.addRigControl([[290,80],[384,137],[424,237],[381,354]])
 
         #Value Slider
@@ -756,6 +766,11 @@ class RigGraphicsView(QtGui.QGraphicsView):
         refLine = ReflectionLine(self.width,self.height)
         scene.addItem(refLine)
         return refLine
+
+    def setShowReflectionLine(self, state):
+        """Function to show/hide the central reflection line"""
+        self.reflectionLine.setVisible(state)
+        self.reflectionLine.update()
 
     def findMarkerGuideCount(self):
         """Run through the markers and find the next Guide Index"""
@@ -825,7 +840,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
         """Function to find the list of selected Guide Markers and reflect them around the Reflection Line"""
         for item in scene.items():
             if type(item) == GuideMarker and item.isSelected() == True: #Find our selected GuideMarkers
-                print "This is the Item : " + str(item)
                 itemPos = item.pos() #Now build a marker at the reflected position
                 newGuidePos = self.reflectPos(itemPos)
                 newMarker = GuideMarker()
@@ -836,7 +850,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 # newMarker.setPos(self.mapToScene(newGuidePos.x(),newGuidePos.y()))
                 newMarker.setPos(newGuidePos.x(),newGuidePos.y())
                 scene.addItem(newMarker)
-
 
     def setShowMarkerID(self, state):
         """Function to show/hide the Guide Index, and index on Guide Markers"""
@@ -864,7 +877,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
         elif key == QtCore.Qt.Key_Minus:
             self.scaleView(1 / 1.2)
         elif key == QtCore.Qt.Key_Delete:
-            print "Delete whacked"
             for item in scene.items():
                 if type(item) == GuideMarker and item.isSelected() == True: #Delete out any GuideMarkers that are selection and need to be removed
                     scene.removeItem(item)
@@ -920,8 +932,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
             item.setScale(self.markerScale)
             item.setShowID(self.showMarkerID)
             self.scene().addItem(item)
-            print "Scene Item List : " + str(len(self.scene().items()))
-            print "Item Class Check : "  + str(type(item) == GuideMarker)
             self.markerCount += 1
         else:
             event.ignore() 

@@ -5,17 +5,18 @@ import math
 import sys
 import Icons
 
-class RigFaceSetup(QtGui.QWidget):
+class RigFaceSetup(QtGui.QMainWindow):
 # class RigFaceSetup(QtGui.QMainWindow):
     def __init__(self):
         super(RigFaceSetup, self).__init__()
-        self.setWindowTitle("LED Light Line Colour Picker")
+        self.setWindowTitle("Facial Rig Builder v1.0")
         self.setGeometry(50,50, 600, 600)
         self.ColourPickerCircle = {"center" : [245, 245], "centerOffset": [20,16] , "radius": 210 , "filename": "images/ColorWheelSat_500.png"}
         self.initUI()
        
        
     def initUI(self):   
+        self.mainWidget = QtGui.QWidget(self)
         #Setup Style Sheet information
         # f=open('css/darkorange.stylesheet', 'r')
         f=open('darkorange.stylesheet', 'r')
@@ -43,7 +44,28 @@ class RigFaceSetup(QtGui.QWidget):
         hBox.addWidget(self.view)
         hBox.addLayout(vButtonBox)
 
-        self.setLayout(hBox)
+        self.mainWidget.setLayout(hBox)
+        self.setCentralWidget(self.mainWidget)
+
+        #Setup UI Menu Actions
+        exitAction = QtGui.QAction(QtGui.QIcon('exit.png'), '&Exit', self)        
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(QtGui.qApp.quit)
+
+        viewReflectionLine = QtGui.QAction('&Show Reflection Line', self)  
+        viewReflectionLine.setCheckable(True)
+        viewReflectionLine.setChecked(True)
+        viewReflectionLine.toggled.connect(QtGui.qApp.quit) #Adjust this to add hide Reflection Line Functionality
+
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(exitAction)
+
+        viewMenu = menubar.addMenu('&View')
+        viewMenu.addAction(viewReflectionLine)
+
+        self.statusBar()
 
     def changeValue(self, value):
         self.view.rect.doRotate(value)     

@@ -139,7 +139,7 @@ class colourValueSliderControl(QtGui.QGraphicsItem):
         super(colourValueSliderControl, self).__init__()
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
-        self.setCacheMode(self.DeviceCoordinateCache)
+        # self.setCacheMode(self.DeviceCoordinateCache)
         self.maxLevel = 447.7
         self.minLevel = 40.7  
         self.currentValue = 1
@@ -301,11 +301,16 @@ class ReflectionLine(QtGui.QGraphicsItem):
         self.drawStart = []
         self.drawEnd = []
         # self.visible = True #Use default isVisble method etc
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
+
         self.initUI()
 
     def initUI(self):
-        self.drawStart = [self.width/2, self.inset]
-        self.drawEnd = [self.width/2, self.height - 2*self.inset]
+        # self.drawStart = [self.width/2, self.inset]
+        # self.drawEnd = [self.width/2, self.height - 2*self.inset]
+        self.drawStart = [0, -self.height/2 + self.inset]
+        self.drawEnd = [0, self.height/2 - self.inset]
+        self.setPos(QtCore.QPointF(self.width/2, self.height/2))
 
     def paint(self, painter, option, widget):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
@@ -315,9 +320,9 @@ class ReflectionLine(QtGui.QGraphicsItem):
         painter.drawLine(self.drawStart[0],self.drawStart[1],self.drawEnd[0],self.drawEnd[1])
 
     def boundingRect(self):
-        adjust = 1.0
-        return QtCore.QRectF(self.width - adjust, self.inset - adjust,
-                             2*adjust, self.height -2*self.inset + adjust)
+        adjust = 5.0
+        return QtCore.QRectF( -adjust, -self.height/2 + self.inset - adjust,
+                             2*adjust, self.height - 2*self.inset + 2*adjust)
 
     def getReflectionPoint(self):
         return self.drawStart[0]
@@ -331,7 +336,6 @@ class DragItemButton(QtGui.QPushButton):
         self.itemName = itemName
         self.imageFile = None
         self.imageCSS = None
-        print "drag button built"
         self.initUI()
 
     def initUI(self):
@@ -350,7 +354,6 @@ class DragItemButton(QtGui.QPushButton):
         # self.pixmap = self.validImageFile()
         self.setDown(False)
         self.setStyleSheet(self.validImageFile())
-        print("Leave")
 
     def mousePressEvent(self,event):
         # self.setStyleSheet("background-color:yellow;")
@@ -358,7 +361,6 @@ class DragItemButton(QtGui.QPushButton):
         # self.paintEvent(event)
         self.setDown(True)
         self.setStyleSheet(self.validImageFile(state = "pressed"))
-        print("pressed")
 
 
     def validImageFile(self,state=""):
@@ -394,7 +396,7 @@ class DragItemButton(QtGui.QPushButton):
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
         drag.setHotSpot(e.pos() - self.rect().topLeft())
-        print "start drag text : " + str(self.itemName)
+        # print "start drag text : " + str(self.itemName)
         dropAction = drag.start(QtCore.Qt.MoveAction)
 
 
@@ -409,7 +411,7 @@ class GuideMarker(QtGui.QGraphicsItem):
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
-        self.setCacheMode(self.DeviceCoordinateCache)
+        # self.setCacheMode(self.DeviceCoordinateCache)
         ####MARKER IDENTIFIERS####################################
         self.index = None        
         self.guideIndex = None
@@ -618,7 +620,7 @@ class Node(QtGui.QGraphicsItem):
         self.newPos = QtCore.QPointF()
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
-        self.setCacheMode(self.DeviceCoordinateCache)
+        # self.setCacheMode(self.DeviceCoordinateCache)
         self.setZValue(-1)
         self.circleDefinition = circleDefinition
         self.move_restrict_circle = None
@@ -711,7 +713,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.width = 500
         self.height = 500
         self.size = (0, 0, self.width, self.height)
-        self.img = None
+        self.characterImageFile = None
         self.circleDefinition = circleDefinition
         self.setAcceptDrops(True)
         # self.colourBroadCaster = ColourBroadcaster(self.iP,self.port)
@@ -725,7 +727,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         scene.setItemIndexMethod(QtGui.QGraphicsScene.NoIndex)
         scene.setSceneRect(self.size[0],self.size[1],self.size[2],self.size[3])
         self.setScene(scene)
-        self.setCacheMode(QtGui.QGraphicsView.CacheBackground)
+        # self.setCacheMode(QtGui.QGraphicsView.CacheBackground)
         self.setRenderHint(QtGui.QPainter.Antialiasing)
         self.setTransformationAnchor(QtGui.QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QtGui.QGraphicsView.AnchorViewCenter)
@@ -743,7 +745,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.setMinimumSize(500, 500)
         self.setWindowTitle(self.tr("Elastic Nodes"))
         self.inhibit_edit = False
-        self.setBackgroundImage(self.circleDefinition["filename"])
+
+        # self.setBackgroundImage() #Add the character image to the background
+        
         #Add in Reflection Line
         self.reflectionLine = self.addReflectionLine()
         self.showReflectionLine = True
@@ -758,8 +762,16 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # self.colourValueSliderControl = colourValueSliderControl(self.colourBroadCaster )
         # scene.addItem(self.colourValueSliderControl)
 
-    def setBackgroundImage(self,imagepath):
-        self.img = imagepath
+    def setBackgroundImage(self):
+        """Function to set the validity of a file path, and if it is good then pass it to the Graphics View for drawing"""
+        imagePath = QtGui.QFileDialog.getOpenFileName(caption = "Please choose front character face image ~ 500px x 500px", directory="./images" , filter = "*.png")
+        if os.path.exists(imagePath):
+            self.characterImageFile = imagePath
+            print "characterImageFile : " + str(self.characterImageFile)
+            self.scene().update()
+        else:
+            self.characterImageFile = None
+            print "WARNING: NOW VALID IMAGE SELECTED FOR CHARACTER BACKGROUND"
 
     def addReflectionLine(self):
         scene = self.scene()
@@ -822,13 +834,13 @@ class RigGraphicsView(QtGui.QGraphicsView):
         scene.addItem(curve)
 
     def drawBackground(self, painter, rect):
-        if self.img != None:
-            backImage = QtGui.QPixmap(self.img)
-            backImage.scaled(500,500, QtCore.Qt.KeepAspectRatio)
+        if self.characterImageFile != None:
+            backImage = QtGui.QPixmap(self.characterImageFile)
+            # backImage.scaled(500,500, QtCore.Qt.KeepAspectRatio)
             painter.drawPixmap(rect, backImage, rect)
             # print "This was drawn"
         sceneRect = self.sceneRect()
-        # print "Back image is: " + str(self.img)
+        # print "Back image is: " + str(self.characterImageFile)
 
     def reflectPos(self, pos):
         """Function to find the reflected position of a guide"""

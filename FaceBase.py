@@ -26,6 +26,14 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.setStyleSheet(self.styleData)
         self.view = RigUIControls.RigGraphicsView(self.ColourPickerCircle)
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
+        
+        #File Dialogue to load background image 
+        self.imgFileLineEdit = QtGui.QLineEdit('Image File path...')
+        self.imgFileLineEdit.setMinimumWidth(200)
+        self.imgFileLineEdit.setReadOnly(True)
+        self.imgFileSetButton = QtGui.QPushButton("Image")
+        self.imgFileSetButton.pressed.connect(lambda: self.view.setBackgroundImage())
+
         self.markerSpawn = RigUIControls.DragItemButton("GuideMarker")
         # self.showReflectionLineButton = QtGui.QCheckButton("Toggle Reflection Line")
         self.markerScale = QtGui.QSlider(QtCore.Qt.Horizontal)
@@ -44,6 +52,11 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         hBox = QtGui.QHBoxLayout()
         vButtonBox = QtGui.QVBoxLayout()
+        hImageBox = QtGui.QHBoxLayout()
+        hImageBox.addWidget(self.imgFileLineEdit)
+        hImageBox.addWidget(self.imgFileSetButton)
+
+        vButtonBox.addLayout(hImageBox)
         vButtonBox.addWidget(self.markerSpawn)
         vButtonBox.addWidget(self.markerScale)
         vButtonBox.addWidget(self.reflectGuides)
@@ -80,7 +93,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         viewMenu.addAction(viewMarkerIDs)
         viewMenu.addAction(viewReflectionLine)
 
-        self.statusBar()  
+        self.statusBar()
 
 
 app = QtGui.QApplication([])

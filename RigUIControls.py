@@ -324,8 +324,8 @@ class ReflectionLine(QtGui.QGraphicsItem):
         return QtCore.QRectF( -adjust, -self.height/2 + self.inset - adjust,
                              2*adjust, self.height - 2*self.inset + 2*adjust)
 
-    def getReflectionPoint(self):
-        return self.drawStart[0]
+    # def (self):
+    #     return self.drawStart[0]
 
 
 class DragItemButton(QtGui.QPushButton):
@@ -339,7 +339,7 @@ class DragItemButton(QtGui.QPushButton):
         self.initUI()
 
     def initUI(self):
-        """Check the images folder to see if there is an appropirate image to load""" 
+        """Check the images folder to see if there is an appropriate image to load""" 
         self.setStyleSheet(self.validImageFile())
         self.pixmap = QtGui.QPixmap(self.imageFile)
 
@@ -768,7 +768,16 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if os.path.exists(imagePath):
             self.characterImageFile = imagePath
             print "characterImageFile : " + str(self.characterImageFile)
+            characterImage = QtGui.QPixmap(self.characterImageFile)
+            self.width = characterImage.width()
+            self.height = characterImage.height()
+            self.size = [self.size[0],self.size[1], self.width,self.height]
+            self.scene().setSceneRect(self.size[0],self.size[1],self.size[2],self.size[3])
+            self.updateSceneRect(QtCore.QRectF(self.size[0],self.size[1],self.size[2],self.size[3]))
+            self.reflectionLine.setPos(QtCore.QPointF(self.width/2, self.height/2)) # Adjust the Positing of the reflection line
+            self.setMinimumSize(self.width,self.height)
             self.scene().update()
+            self.sizeHint()
         else:
             self.characterImageFile = None
             print "WARNING: NOW VALID IMAGE SELECTED FOR CHARACTER BACKGROUND"
@@ -844,7 +853,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
     def reflectPos(self, pos):
         """Function to find the reflected position of a guide"""
-        refLine = self.reflectionLine.getReflectionPoint()
+        refLine = self.reflectionLine.pos().x()
         return QtCore.QPointF(refLine - (pos.x() - refLine), pos.y())
 
     def reflectGuides(self):

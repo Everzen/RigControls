@@ -10,7 +10,7 @@ class RigFaceSetup(QtGui.QMainWindow):
     def __init__(self):
         super(RigFaceSetup, self).__init__()
         self.setWindowTitle("Facial Rig Builder v1.0")
-        self.setGeometry(50,50, 600, 600)
+        # self.setGeometry(50,50, 600, 600)
         self.ColourPickerCircle = {"center" : [245, 245], "centerOffset": [20,16] , "radius": 210 , "filename": "images/ColorWheelSat_500.png"}
         self.initUI()
        

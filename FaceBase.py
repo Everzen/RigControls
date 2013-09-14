@@ -11,7 +11,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         super(RigFaceSetup, self).__init__()
         self.setWindowTitle("Facial Rig Builder v1.0")
         # self.setGeometry(50,50, 600, 600)
-        self.ColourPickerCircle = {"center" : [245, 245], "centerOffset": [20,16] , "radius": 210 , "filename": "images/ColorWheelSat_500.png"}
+        # self.ColourPickerCircle = {"center" : [245, 245], "centerOffset": [20,16] , "radius": 210 , "filename": "images/ColorWheelSat_500.png"}
         self.initUI()
        
     def initUI(self):   
@@ -24,7 +24,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         # print str(self.styleData)
 
         self.setStyleSheet(self.styleData)
-        self.view = RigUIControls.RigGraphicsView(self.ColourPickerCircle)
+        self.view = RigUIControls.RigGraphicsView()
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
         
         #File Dialogue to load background image 

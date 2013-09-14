@@ -24,201 +24,7 @@ def QPVec(npVec):
     """Converts an np array into a QPoint"""
     return QtCore.QPointF(npVec[0], npVec[1])
 
-#################################COLOUR CODE#############################################################################
-
-class ColourBroadcaster():
-    def __init__(self, iP, port):
-        self.colourGrabberList = []
-        self.broadcastColourStr = ""
-        self.host = "192.168.1."
-        if iP == "localhost": self.host = iP     #Catch the condition where we are working with a local host
-        else: self.host += str(iP)
-        self.port = port
-        #create new socket from the socket library - with IP address system (IPv4),  protocol (UDP)
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-    def addColourGrab(self,colourGrabber):
-        self.colourGrabberList.append(colourGrabber)
-
-    def setValue(self , value):
-        for c in self.colourGrabberList:
-            c.setValue(round(value,2))
-
-    def broadcast(self):
-        self.broadcastColourStr = ""
-        for index,c in enumerate(self.colourGrabberList):
-            if c != self.colourGrabberList[-1]: self.broadcastColourStr += str(c.getColour()) + "|" #not dealing with last element
-            else: self.broadcastColourStr += str(c.getColour()) # dealing with last element
-        # print "HOST : %s PORT : %s" % (str(self.host), str(self.port))
-        if len(self.colourGrabberList) == 4:
-            print "BroadCast String is : " + self.broadcastColourStr
-            self.socket.sendto(self.broadcastColourStr, (self.host, int(self.port)))
-        return self.broadcastColourStr
-
-
-class colourGrab():
-    """Class to return a colour value from an x,y coordinate. Assumes circle of radius 1"""
-    def __init__(self,colourBroadcaster, radius=1, hThreshold = 0.01, sThreshold = 0.03):
-        self.x = None
-        self.y = None
-        self.radius = radius
-        self.sThreshold = sThreshold
-        self.hThreshold = hThreshold
-        self.colour = [0,0,1]
-        self.currentColour = [0,0,1]
-        self.colourBroadcaster = colourBroadcaster
-        self.index = 0
-
-    def setIndex(self, value):
-        self.index = value
-
-    def getIndex(self):
-        return self.index
-
-    def setPos(self,nodePos):
-        self.x = nodePos[0]
-        self.y = nodePos[1]
-        print "Node Pos " + str(self.index) + ": " + str(self.x) + "," + str(self.y)
-
-    def setRadius(self,Rad):
-        self.radius = Rad
-
-    def setThreshold(self,threshold):
-        self.threshold = threshold
-
-    def getH(self):
-        """Function to find and return distance which is Hue"""
-        hAngle = (math.atan2(self.y,self.x))/(2*math.pi)
-        if self.y < 0:
-            hAngle = 1 + hAngle 
-        return round(hAngle,2)
-
-    def getS(self):
-        """Function to find and return distance which is Saturation"""
-        sValue = math.sqrt((math.pow(self.x,2)) + (math.pow(self.y,2)))/self.radius
-        return round(sValue,2)
-
-    def getV(self):
-        pass
-
-    def setValue(self,value):
-        self.colour[2] = value
-
-    def getHSV(self):
-        """Function to get the HSV value this value will always have a value of 1"""
-        colour = [self.getH(), self.getS(), self.colour[2]]
-        return colour
-
-    def getDifference(self,colour):
-        if math.fabs(colour[0] - self.colour[0]) > self.hThreshold or math.fabs(colour[1] - self.colour[1]) > self.sThreshold:
-            return True
-        else: False
-
-    def getColour(self):
-        return self.colour
-
-    def mouseMoveExecute(self):
-        """This is the class to broadcast UDP data out"""
-        newColour = self.getHSV()
-        if self.getDifference(newColour):
-            self.colour = newColour
-            self.currentColour = newColour
-            self.colourBroadcaster.broadcast()
-            print "New colour returning : " + str(self.currentColour) 
-            return self.colour
-            # print " The colour has been updated to : " + str(self.colour)
-        else:
-            # print "Difference is not enough to change colour"
-            print "Current colour returning : " + str(self.currentColour)  
-            return self.currentColour
-
-
-
-class colourValueSliderControl(QtGui.QGraphicsItem):
-    def __init__(self,colourBroadcaster):
-        super(colourValueSliderControl, self).__init__()
-        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
-        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
-        # self.setCacheMode(self.DeviceCoordinateCache)
-        self.maxLevel = 447.7
-        self.minLevel = 40.7  
-        self.currentValue = 1
-        self.threshold = 0.02  
-        self.setPos(QtCore.QPointF(509.75,40.7))
-        self.move_restrict_rect = QtGui.QGraphicsRectItem(509,40,2,410)
-        self.colourBroadcaster = colourBroadcaster #Pass the slider a Broadcaster
-
-    def boundingRect(self):
-        adjust = 0.0
-        return QtCore.QRectF(-18 - adjust, -4 - adjust,
-                             36 + adjust, 8 + adjust)
-
-    def paint(self, painter, option, widget):
-        # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
-        painter.setPen(QtCore.Qt.NoPen)
-        painter.setPen(QtGui.QPen(QtCore.Qt.lightGray, 0))
-        painter.drawRect(-16, -4, 33, 8)
-        painter.setPen(QtGui.QPen(QtCore.Qt.black, 0))
-        painter.drawRect(-12.5, -2.75, 25, 5)
-        pen = QtGui.QPen(QtCore.Qt.red, 0.5, QtCore.Qt.SolidLine)
-        painter.setPen(pen)
-        painter.drawLine(-21.5,0,43,0)
-
-    def getValue(self, yPos):
-        """A function to return the """
-        range = self.minLevel - self.maxLevel
-        portion = yPos - self.minLevel
-        value = float(1- math.fabs(portion/range))
-        if math.fabs(self.currentValue - value) > self.threshold: #check to see if there has been a big enough change
-            self.currentValue = value
-            return value
-        # else:
-            # print "Value difference is not enough"
-
-    def itemChange(self, change, value):
-        if change == QtGui.QGraphicsItem.ItemPositionChange:
-            # print "Item new position :" + str(self.pos().x()) + ", " + str(self.pos().y())
-            # print "Max Level : " + str(self.maxLevel)
-            yPos = value.toPointF().y()
-            if yPos > self.maxLevel : yPos = self.maxLevel
-            elif yPos < self.minLevel : yPos = self.minLevel
-            vValue = self.getValue(yPos)
-            # print "VValue %s" % str(vValue)
-            if vValue:       
-                self.colourBroadcaster.setValue(vValue)
-                self.colourBroadcaster.broadcast()
-                # print "Colour Value is : " + str(self.getValue(yPos))
-            return QtCore.QPointF(509.75,yPos)
-        return QtGui.QGraphicsItem.itemChange(self, change, value)
-
-    def mouseMoveEvent(self, event):
-        QtGui.QGraphicsItem.mouseMoveEvent(self, event)
-
-        
-
-class colourValueSliderBackGround(QtGui.QGraphicsItem):
-    def __init__(self):
-        super(colourValueSliderBackGround, self).__init__()
-        #VALUE SLIDER
-        self.brush = None
-        self.createSlider()
-        # self.slider.setBrush(g)
-
-    def createSlider(self):
-        self.gradStart = QtCore.QPointF(500,40)
-        self.gradEnd = QtCore.QPointF(500,450)
-        self.gradient = QtGui.QLinearGradient(self.gradStart, self.gradEnd)
-        self.gradient.setColorAt(1.0, QtGui.QColor(0,0,0))
-        self.gradient.setColorAt(0.0, QtGui.QColor(255,255,255))
-
-    def paint(self, painter, option, widget):
-        painter.drawRect(500,40,20,410)
-        painter.fillRect(500,40,20,410,self.gradient)
-        # painter.setBrush(self.gradient)
-
-    def boundingRect(self):
-        return QtCore.QRectF(500,40,20,410)
-
+#################################RIG CODE#############################################################################
 
 class RigCurveInfo():
     """A Class to capture how the """
@@ -284,11 +90,6 @@ def buildGuideItem(itemName):
     itemstring = str(itemName) + "()"
     item = eval(itemstring)
     return item
-
-
-
-
-
 
 
 #################################PROMOTED WIDGETS#############################################################################
@@ -618,7 +419,7 @@ class RigCurve(QtGui.QGraphicsItem):
 
 ###Nodes for selection in the Graphics View
 class Node(QtGui.QGraphicsItem):
-    def __init__(self, graphWidget, xPos, yPos, circleDefinition=None, moveThreshold=5, operatorClass = None):
+    def __init__(self, graphWidget, xPos, yPos, restraintDef=None, moveThreshold=5, operatorClass = None):
         QtGui.QGraphicsItem.__init__(self)
         self.index = 0
         self.graph = weakref.ref(graphWidget)
@@ -629,14 +430,14 @@ class Node(QtGui.QGraphicsItem):
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
         # self.setCacheMode(self.DeviceCoordinateCache)
         self.setZValue(-1)
-        self.circleDefinition = circleDefinition
+        self.restraintDef = restraintDef
         self.move_restrict_circle = None
         self.operatorClass = operatorClass
         self.setPos(xPos,yPos)
         self.marker = False
-        if self.circleDefinition:
-            self.move_restrict_circle = QtGui.QGraphicsEllipseItem(2*self.circleDefinition["centerOffset"][0],2*self.circleDefinition["centerOffset"][1], 2*self.circleDefinition["radius"],2*self.circleDefinition["radius"])
-        offsetPos = self.pos() - QPVec(self.circleDefinition["center"])
+        # if self.restraintDef:
+        #     self.move_restrict_circle = QtGui.QGraphicsEllipseItem(2*self.restraintDef["centerOffset"][0],2*self.restraintDef["centerOffset"][1], 2*self.restraintDef["radius"],2*self.restraintDef["radius"])
+        # offsetPos = self.pos() - QPVec(self.restraintDef["center"])
         if self.operatorClass:
             self.operatorClass.setPos([offsetPos.x(),offsetPos.y()]) #Set colourGrabber position
             self.operatorClass.mouseMoveExecute() # Set the initial colour
@@ -703,25 +504,26 @@ class Node(QtGui.QGraphicsItem):
 
     def mouseMoveEvent(self, event):
         # check of mouse moved within the restricted area for the item 
-        if self.circleDefinition:
+        if self.restraintDef:
             if self.move_restrict_circle.contains(event.scenePos()):
                 QtGui.QGraphicsItem.mouseMoveEvent(self, event)
                 if self.operatorClass:
-                    nodePos = self.pos() - QPVec(self.circleDefinition["center"])
-                    # print "Node Pos " + str(self.index) + ": " + str(nodePos.x()) + "," + str(nodePos.y())
-                    self.operatorClass.setPos(npVec(nodePos))
-                    self.operatorClass.mouseMoveExecute() #Execute our defined operator class through the move event
+                    pass
+                    # nodePos = self.pos() - QPVec(self.restraintDef["center"])
+                    # # print "Node Pos " + str(self.index) + ": " + str(nodePos.x()) + "," + str(nodePos.y())
+                    # self.operatorClass.setPos(npVec(nodePos))
+                    # self.operatorClass.mouseMoveExecute() #Execute our defined operator class through the move event
         else: QtGui.QGraphicsItem.mouseMoveEvent(self, event)
 
 ###
 class RigGraphicsView(QtGui.QGraphicsView):
-    def __init__(self, circleDefinition):
+    def __init__(self):
         QtGui.QGraphicsView.__init__(self) 
         self.width = 500
         self.height = 500
         self.size = (0, 0, self.width, self.height)
         self.characterImageFile = None
-        self.circleDefinition = circleDefinition
+        # self.restraintDef = restraintDef
         self.setAcceptDrops(True)
         # self.colourBroadCaster = ColourBroadcaster(self.iP,self.port)
         #
@@ -813,8 +615,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def add_node(self,xPos,yPos, marker=False):
         scene = self.scene()
         # Insert Node into scene
-        # colourGrabber = colourGrab(self.colourBroadCaster, radius = self.circleDefinition["radius"])
-        node = Node(self, xPos, yPos, circleDefinition =  self.circleDefinition)
+        # colourGrabber = colourGrab(self.colourBroadCaster, radius = self.restraintDef["radius"])
+        node = Node(self, xPos, yPos)
         node.setIndex(self.nodeCount)
         # colourGrabber.setIndex(self.nodecount) #Make sure that the Node and the ColourGrabber have neatly setup indexes
         # self.colourBroadCaster.addColourGrab(colourGrabber) #Make sure that the colour grabber is past to the broadcaster

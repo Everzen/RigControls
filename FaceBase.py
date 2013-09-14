@@ -47,7 +47,8 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.reflectGuides = QtGui.QPushButton("Reflect Markers")
         self.reflectGuides.clicked.connect(self.view.reflectGuides)
         self.testCheckBox = QtGui.QCheckBox("Check me Out")
-
+        self.selectionButton = QtGui.QPushButton("Test Selection")
+        self.selectionButton.pressed.connect(lambda: self.view.printSelection()) #Adjust this to add hide Reflection Line Functionality
 
 
         hBox = QtGui.QHBoxLayout()
@@ -61,6 +62,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         vButtonBox.addWidget(self.markerScale)
         vButtonBox.addWidget(self.reflectGuides)
         vButtonBox.addWidget(self.testCheckBox)
+        vButtonBox.addWidget(self.selectionButton)
         vButtonBox.addStretch(1)
 
         hBox.addWidget(self.view)
@@ -94,6 +96,8 @@ class RigFaceSetup(QtGui.QMainWindow):
         viewMenu.addAction(viewReflectionLine)
 
         self.statusBar()
+
+
 
 
 app = QtGui.QApplication([])

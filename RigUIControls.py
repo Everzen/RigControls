@@ -324,6 +324,13 @@ class ReflectionLine(QtGui.QGraphicsItem):
         return QtCore.QRectF( -adjust, -self.height/2 + self.inset - adjust,
                              2*adjust, self.height - 2*self.inset + 2*adjust)
 
+    def remap(self,gViewWidth, gViewHeight):
+        self.width = gViewWidth
+        self.height = gViewHeight
+        self.drawStart = [0, -self.height/2 + self.inset]
+        self.drawEnd = [0, self.height/2 - self.inset]
+        self.setPos(QtCore.QPointF(self.width/2, self.height/2))
+        self.update()
     # def (self):
     #     return self.drawStart[0]
 
@@ -774,7 +781,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.size = [self.size[0],self.size[1], self.width,self.height]
             self.scene().setSceneRect(self.size[0],self.size[1],self.size[2],self.size[3])
             self.updateSceneRect(QtCore.QRectF(self.size[0],self.size[1],self.size[2],self.size[3]))
-            self.reflectionLine.setPos(QtCore.QPointF(self.width/2, self.height/2)) # Adjust the Positing of the reflection line
+            self.reflectionLine.remap(self.width, self.height) # Adjust the Positing and height of the reflection line
             self.setMinimumSize(self.width,self.height)
             self.scene().update()
             self.sizeHint()
@@ -890,6 +897,16 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.update()
         self.markerScale = float(scale/100.0)  
 
+
+    def printSelection(self):
+        selIndexes = []
+        print "This was called"
+        selItems = self.scene().selectedItems()
+        for item in selItems:
+            selIndexes.append(item.getIndex())
+        print "Selection Items : " + str(selIndexes)
+
+
     def keyPressEvent(self, event):
         scene = self.scene()
         key = event.key()
@@ -956,3 +973,13 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.markerCount += 1
         else:
             event.ignore() 
+
+    def mousePressEvent(self, mouseEvent):
+        scene = self.scene()
+        selIndexes = []
+        if mouseEvent.button() == QtCore.Qt.LeftButton:
+            possibleItems = self.items(mouseEvent.pos())
+            for item in possibleItems:
+               if type(item) == GuideMarker: selIndexes.append(item.getIndex())
+        print "Selected Items : " + str(selIndexes) 
+        return QtGui.QGraphicsView.mousePressEvent(self, mouseEvent)

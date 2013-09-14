@@ -531,6 +531,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.setVerticalScrollBarPolicy(policy)
         self.setHorizontalScrollBarPolicy(policy)
         self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
+        # self.rubberband = QtGui.QRubberBand(QtGui.QRubberBand.Rectangle, self)
 
         scene = QtGui.QGraphicsScene(self)
         scene.setItemIndexMethod(QtGui.QGraphicsScene.NoIndex)
@@ -548,6 +549,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.markerGuideCount = 0
         self.showMarkerID = True
         self.markerScale = 1.0
+        self.markerSelectionList = []
         # self.calc_upper_limits()
         #
         self.scale(1,1)
@@ -699,15 +701,20 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.update()
         self.markerScale = float(scale/100.0)  
 
+    def processMarkerSelection(self, marker, ctrl):
+        itemPresent = False
+        for item in self.markerSelectionList:
+            if marker == item: #the interacted item is in the list, so check if ctrl is pressed
+                itemPresent = True
 
-    def printSelection(self):
-        selIndexes = []
-        print "This was called"
-        selItems = self.scene().selectedItems()
-        for item in selItems:
-            selIndexes.append(item.getIndex())
-        print "Selection Items : " + str(selIndexes)
-
+        if itemPresent:
+            if ctrl: #ctrl is pressed so  we are deselecting the item and removing from the list
+                self.markerSelectionList.remove(marker)
+            else: self.markerSelectionList = [marker] #ctrl not pressed, so we are starting a new clean list with the marker
+        else: #the item is not present in the list
+            if ctrl: self.markerSelectionList.append(marker) #append the 
+            else: self.markerSelectionList = [marker] #ctrl not pressed, so we are starting a new clean list with the marker
+        # print str(self.markerSelectionList)
 
     def keyPressEvent(self, event):
         scene = self.scene()
@@ -721,6 +728,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 if type(item) == GuideMarker and item.isSelected() == True: #Delete out any GuideMarkers that are selection and need to be removed
                     scene.removeItem(item)
                     del item
+                    self.markerSelectionList = []
         else:
             QtGui.QGraphicsView.keyPressEvent(self, event)
 
@@ -778,10 +786,27 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
     def mousePressEvent(self, mouseEvent):
         scene = self.scene()
-        selIndexes = []
+        selGuides = []
         if mouseEvent.button() == QtCore.Qt.LeftButton:
             possibleItems = self.items(mouseEvent.pos())
             for item in possibleItems:
-               if type(item) == GuideMarker: selIndexes.append(item.getIndex())
-        print "Selected Items : " + str(selIndexes) 
+               if type(item) == GuideMarker: selGuides.append(item) #The first item in this list is the top layer item, and always the one that is interacted with
+        
+        modifiers = QtGui.QApplication.keyboardModifiers()
+        ctrlPressed = (modifiers == QtCore.Qt.ControlModifier) #detect if ctrl is being pressed
+        if len(selGuides) != 0: self.processMarkerSelection(selGuides[0], ctrlPressed) #Check there is an item selected
+        else: self.markerSelectionList = [] # No item Marker has been selected so the selection list is cleared.
+        # markerIndexes = []
+        # for item in self.markerSelectionList: markerIndexes.append(item.getIndex())
+        # print str(markerIndexes)
         return QtGui.QGraphicsView.mousePressEvent(self, mouseEvent)
+
+    def mouseReleaseEvent(self, mouseEvent):
+        if len(self.scene().selectedItems()) > 0 and len(self.markerSelectionList) == 0: #A drag selection has occured. reset Marker list to selection
+            for marker in self.scene().selectedItems():
+                self.markerSelectionList.append(marker)
+
+        markerIndexes = []
+        for item in self.markerSelectionList: markerIndexes.append(item.getIndex())
+        print str(markerIndexes)
+        return QtGui.QGraphicsView.mouseReleaseEvent(self, mouseEvent)

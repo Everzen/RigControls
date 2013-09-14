@@ -48,7 +48,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.reflectGuides.clicked.connect(self.view.reflectGuides)
         self.testCheckBox = QtGui.QCheckBox("Check me Out")
         self.selectionButton = QtGui.QPushButton("Test Selection")
-        self.selectionButton.pressed.connect(lambda: self.view.printSelection()) #Adjust this to add hide Reflection Line Functionality
+        # self.selectionButton.pressed.connect(lambda: self.view.printSelection()) #Adjust this to add hide Reflection Line Functionality
 
 
         hBox = QtGui.QHBoxLayout()

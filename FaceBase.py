@@ -1,3 +1,4 @@
+#HAPPY FACE
 
 from PyQt4 import QtGui, QtCore
 import RigUIControls

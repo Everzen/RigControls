@@ -225,7 +225,8 @@ class GuideMarker(QtGui.QGraphicsItem):
         self.guideIndex = None
         self.guideName = None
         self.showID = True
-        self.active = True
+        self.active = False
+        self.activeIndex = 0
         self.scale = 1.0
         self.colourList = [QtGui.QColor(255,0,0), QtGui.QColor(0,255,0), QtGui.QColor(0,0,255), QtGui.QColor(0,255,255), QtGui.QColor(255,0,255), QtGui.QColor(255,255,0), QtGui.QColor(255,125,0), QtGui.QColor(125,255,0),QtGui.QColor(255,0,125),QtGui.QColor(125,0,255),QtGui.QColor(0,255,125),QtGui.QColor(0,125,255),QtGui.QColor(255,125,125),QtGui.QColor(125,255,125),QtGui.QColor(125,125,255),QtGui.QColor(255,255,125),QtGui.QColor(255,125,255),QtGui.QColor(125,255,255)]
         self.guideColour = self.colourList[1]
@@ -267,11 +268,35 @@ class GuideMarker(QtGui.QGraphicsItem):
         else:
             self.guideColour = QtGui.QColor.red
 
+    def getActive(self):
+        return self.active
+
+    def setActive(self, state):
+        self.active = state
+        self.update()
+
+    def getActiveIndex(self):
+        return self.activeIndex
+
+    def setActiveIndex(self, index):
+        self.activeIndex = index
+        self.update()
+
     def boundingRect(self):
         adjust = 5
         numberstretch = 5
         return QtCore.QRectF(self.scale*(-18 - adjust), self.scale*(-18 - adjust),
                              self.scale*(36 + adjust), self.scale*(36 + adjust + numberstretch))
+
+    def drawActive(self, painter):
+        """A function to draw an active glow around the marker when activated"""
+        if self.active:
+            pen = QtGui.QPen(self.guideColour, 0.5, QtCore.Qt.SolidLine)
+            gradient = QtGui.QRadialGradient(0, 0, self.scale*18)
+            gradient.setColorAt(0, QtGui.QColor(self.guideColour.red(),0,0,100))
+            gradient.setColorAt(1, QtGui.QColor(self.guideColour.red(),self.guideColour.green(),self.guideColour.blue(),20))
+            painter.setBrush(QtGui.QBrush(gradient))
+            painter.drawEllipse(self.scale*-18, self.scale*-18, self.scale*36, self.scale*36)        
 
     def drawID(self, painter):
         # print "Marker Index : " + str(self.index)
@@ -289,8 +314,19 @@ class GuideMarker(QtGui.QGraphicsItem):
                 painter.drawText(self.scale*12,self.scale*-12, str(self.guideIndex)) #Add in the guide Index if it is not 0
             painter.drawText(self.scale*12,self.scale*21,str(self.index))
 
+    def drawActiveIndex(self,painter):
+        if self.active: #Conditions met to disply numbers on corners
+            pen = QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.SolidLine)
+            painter.setPen(pen)
+            fontsize = 9
+            if self.scale < 1.0:
+                fontsize = int(9*self.scale)
+            painter.setFont(QtGui.QFont('Arial', fontsize))
+            painter.drawText(self.scale*12,self.scale*21,str(self.activeIndex))
+
     def paint(self, painter, option, widget):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
+        self.drawActive(painter)
         painter.setPen(QtCore.Qt.NoPen)
         painter.setPen(QtGui.QPen(QtCore.Qt.lightGray, 0))
         painter.drawRect(self.scale*-8, self.scale*-8, self.scale*16, self.scale*16)
@@ -309,7 +345,8 @@ class GuideMarker(QtGui.QGraphicsItem):
         painter.setPen(pen)
         painter.drawLine(self.scale*-12,self.scale*-12,self.scale*12,self.scale*12)
         painter.drawLine(self.scale*-12,self.scale*12,self.scale*12,self.scale*-12)
-        self.drawID(painter) #Now add in the Marker ID if relevant
+        # self.drawID(painter) #Now add in the Marker ID if relevant
+        self.drawActiveIndex(painter)
 
 
     def itemChange(self, change, value):
@@ -701,26 +738,41 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.update()
         self.markerScale = float(scale/100.0)  
 
-    def processMarkerSelection(self, marker, ctrl):
+    def processMarkerActiceIndex(self):
+        itemPresent = False
+        for index, item in enumerate(self.markerSelectionList):
+            item.setActiveIndex(index)
+
+    def processMarkerSelection(self, marker):
         itemPresent = False
         for item in self.markerSelectionList:
             if marker == item: #the interacted item is in the list, so check if ctrl is pressed
                 itemPresent = True
 
         if itemPresent:
-            if ctrl: #ctrl is pressed so  we are deselecting the item and removing from the list
-                print "length : " + str(len(self.markerSelectionList))
-                if len(self.markerSelectionList) > 1 : 
-                    self.markerSelectionList.remove(marker)
-                    print "ran if"
-                else: 
-                    self.markerSelectionList = ["ctrlCase"] # Special Case where we are deselecting the only selected marker with a ctrl click
-                    print "ran else"
-            else: self.markerSelectionList = [marker] #ctrl not pressed, so we are starting a new clean list with the marker
-        else: #the item is not present in the list
-            if ctrl: self.markerSelectionList.append(marker) #append the 
-            else: self.markerSelectionList = [marker] #ctrl not pressed, so we are starting a new clean list with the marker
-        # print str(self.markerSelectionList)
+            if len(self.markerSelectionList) > 1 :
+                self.markerSelectionList.remove(marker)
+                marker.setActive(False) 
+            elif len(self.markerSelectionList) == 1: #The list only contains this master so clear the list to be empty and deactivate the marker
+                self.markerSelectionList = []
+                marker.setActive(False)
+        else: #the item is not present so we we just need to add it to the list
+            self.markerSelectionList.append(marker)
+            marker.setActive(True)
+
+        #     if ctrl: #ctrl is pressed so  we are deselecting the item and removing from the list
+        #         print "length : " + str(len(self.markerSelectionList))
+        #         if len(self.markerSelectionList) > 1 : 
+        #             self.markerSelectionList.remove(marker)
+        #             print "ran if"
+        #         else: 
+        #             self.markerSelectionList = ["ctrlCase"] # Special Case where we are deselecting the only selected marker with a ctrl click
+        #             print "ran else"
+        #     else: self.markerSelectionList = [marker] #ctrl not pressed, so we are starting a new clean list with the marker
+        # else: #the item is not present in the list
+        #     if ctrl: self.markerSelectionList.append(marker) #append the 
+        #     else: self.markerSelectionList = [marker] #ctrl not pressed, so we are starting a new clean list with the marker
+        # # print str(self.markerSelectionList)
 
     def keyPressEvent(self, event):
         scene = self.scene()
@@ -790,22 +842,22 @@ class RigGraphicsView(QtGui.QGraphicsView):
         else:
             event.ignore() 
 
-    def mousePressEvent(self, mouseEvent):
-        scene = self.scene()
-        selGuides = []
-        if mouseEvent.button() == QtCore.Qt.LeftButton:
-            possibleItems = self.items(mouseEvent.pos())
-            for item in possibleItems:
-               if type(item) == GuideMarker: selGuides.append(item) #The first item in this list is the top layer item, and always the one that is interacted with
+    # def mousePressEvent(self, mouseEvent):
+    #     scene = self.scene()
+    #     selGuides = []
+    #     if mouseEvent.button() == QtCore.Qt.LeftButton:
+    #         possibleItems = self.items(mouseEvent.pos())
+    #         for item in possibleItems:
+    #            if type(item) == GuideMarker: selGuides.append(item) #The first item in this list is the top layer item, and always the one that is interacted with
         
-        modifiers = QtGui.QApplication.keyboardModifiers()
-        ctrlPressed = (modifiers == QtCore.Qt.ControlModifier) #detect if ctrl is being pressed
-        if len(selGuides) != 0: self.processMarkerSelection(selGuides[0], ctrlPressed) #Check there is an item selected
-        else: self.markerSelectionList = [] # No item Marker has been selected so the selection list is cleared.
-        # markerIndexes = []
-        # for item in self.markerSelectionList: markerIndexes.append(item.getIndex())
-        # print str(markerIndexes)
-        return QtGui.QGraphicsView.mousePressEvent(self, mouseEvent)
+    #     modifiers = QtGui.QApplication.keyboardModifiers()
+    #     ctrlPressed = (modifiers == QtCore.Qt.ControlModifier) #detect if ctrl is being pressed
+    #     if len(selGuides) != 0: self.processMarkerSelection(selGuides[0], ctrlPressed) #Check there is an item selected
+    #     else: self.markerSelectionList = [] # No item Marker has been selected so the selection list is cleared.
+    #     # markerIndexes = []
+    #     # for item in self.markerSelectionList: markerIndexes.append(item.getIndex())
+    #     # print str(markerIndexes)
+    #     return QtGui.QGraphicsView.mousePressEvent(self, mouseEvent)
 
     def mouseDoubleClickEvent(self, mouseEvent):
         scene = self.scene()
@@ -817,20 +869,21 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
         print "Double"
         if len(selGuides) > 0 :
-            self.markerSelectionList.append(selGuides[0])
+            self.processMarkerSelection(selGuides[0])
+            self.processMarkerActiceIndex()
             return QtGui.QGraphicsView.mouseDoubleClickEvent(self, mouseEvent)
         else: 
             return QtGui.QGraphicsView.mouseDoubleClickEvent(self, mouseEvent)
 
 
-    def mouseReleaseEvent(self, mouseEvent):
-        if len(self.scene().selectedItems()) > 0 and len(self.markerSelectionList) == 0: #A drag selection has occured. reset Marker list to selection
-            for marker in self.scene().selectedItems():
-                self.markerSelectionList.append(marker)
+    # def mouseReleaseEvent(self, mouseEvent):
+    #     if len(self.scene().selectedItems()) > 0 and len(self.markerSelectionList) == 0: #A drag selection has occured. reset Marker list to selection
+    #         for marker in self.scene().selectedItems():
+    #             self.markerSelectionList.append(marker)
 
-        if self.markerSelectionList[0] == "ctrlCase": self.markerSelectionList = [] #Sepcial case where last selected item has been deselected with a ctrl click
+    #     if self.markerSelectionList[0] == "ctrlCase": self.markerSelectionList = [] #Sepcial case where last selected item has been deselected with a ctrl click
 
-        markerIndexes = []
-        for item in self.markerSelectionList: markerIndexes.append(item.getIndex())
-        print str(markerIndexes)
-        return QtGui.QGraphicsView.mouseReleaseEvent(self, mouseEvent)
+    #     markerIndexes = []
+    #     for item in self.markerSelectionList: markerIndexes.append(item.getIndex())
+    #     print str(markerIndexes)
+    #     return QtGui.QGraphicsView.mouseReleaseEvent(self, mouseEvent)

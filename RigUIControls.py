@@ -709,7 +709,13 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
         if itemPresent:
             if ctrl: #ctrl is pressed so  we are deselecting the item and removing from the list
-                self.markerSelectionList.remove(marker)
+                print "length : " + str(len(self.markerSelectionList))
+                if len(self.markerSelectionList) > 1 : 
+                    self.markerSelectionList.remove(marker)
+                    print "ran if"
+                else: 
+                    self.markerSelectionList = ["ctrlCase"] # Special Case where we are deselecting the only selected marker with a ctrl click
+                    print "ran else"
             else: self.markerSelectionList = [marker] #ctrl not pressed, so we are starting a new clean list with the marker
         else: #the item is not present in the list
             if ctrl: self.markerSelectionList.append(marker) #append the 
@@ -801,10 +807,28 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # print str(markerIndexes)
         return QtGui.QGraphicsView.mousePressEvent(self, mouseEvent)
 
+    def mouseDoubleClickEvent(self, mouseEvent):
+        scene = self.scene()
+        selGuides = []
+        if mouseEvent.button() == QtCore.Qt.LeftButton:
+            possibleItems = self.items(mouseEvent.pos())
+            for item in possibleItems:
+               if type(item) == GuideMarker: selGuides.append(item)
+
+        print "Double"
+        if len(selGuides) > 0 :
+            self.markerSelectionList.append(selGuides[0])
+            return QtGui.QGraphicsView.mouseDoubleClickEvent(self, mouseEvent)
+        else: 
+            return QtGui.QGraphicsView.mouseDoubleClickEvent(self, mouseEvent)
+
+
     def mouseReleaseEvent(self, mouseEvent):
         if len(self.scene().selectedItems()) > 0 and len(self.markerSelectionList) == 0: #A drag selection has occured. reset Marker list to selection
             for marker in self.scene().selectedItems():
                 self.markerSelectionList.append(marker)
+
+        if self.markerSelectionList[0] == "ctrlCase": self.markerSelectionList = [] #Sepcial case where last selected item has been deselected with a ctrl click
 
         markerIndexes = []
         for item in self.markerSelectionList: markerIndexes.append(item.getIndex())

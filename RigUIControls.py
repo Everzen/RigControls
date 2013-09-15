@@ -743,7 +743,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         for index, item in enumerate(self.markerSelectionList):
             item.setActiveIndex(index)
 
-    def processMarkerSelection(self, marker):
+    def processMarkerSelection(self, marker): #Delete Condition Needed! 
         itemPresent = False
         for item in self.markerSelectionList:
             if marker == item: #the interacted item is in the list, so check if ctrl is pressed
@@ -784,9 +784,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
         elif key == QtCore.Qt.Key_Delete:
             for item in scene.items():
                 if type(item) == GuideMarker and item.isSelected() == True: #Delete out any GuideMarkers that are selection and need to be removed
+                    
                     scene.removeItem(item)
                     del item
-                    self.markerSelectionList = []
+            self.processMarkerActiceIndex()
         else:
             QtGui.QGraphicsView.keyPressEvent(self, event)
 

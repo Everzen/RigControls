@@ -210,8 +210,29 @@ class DragItemButton(QtGui.QPushButton):
 
 
 
-#################################RIGGER GRAPHICS ITEMS#############################################################################
+#################################RIGGER CONTROL GROUPS#############################################################################
 
+class ControlPin(QtGui.QGraphicsItem):
+    def __init__(self):
+        super(ControlPin, self).__init__()
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
+        self.scale = 1
+
+    def paint(self, painter, option, widget):
+        # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
+        pen = QtGui.QPen(QtCore.Qt.black, 0.5, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        # painter.drawLine(self.scale*-3,self.scale*-3,self.scale*3,self.scale*3)
+        # painter.drawLine(self.scale*-3,self.scale*3,self.scale*3,self.scale*-3)
+        painter.drawLine(0,self.scale*3,0,self.scale*-3)
+        painter.drawLine(self.scale*-3,0,self.scale*3,0)
+
+    def boundingRect(self):
+        adjust = 5
+        return QtCore.QRectF(self.scale*(-3 - adjust), self.scale*(-3 - adjust),
+                             self.scale*(6 + adjust), self.scale*(6 + adjust))
+
+#################################RIGGER GRAPHICS ITEMS#############################################################################
 
 class GuideMarker(QtGui.QGraphicsItem):
     def __init__(self):
@@ -601,14 +622,24 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.showReflectionLine = True
         self.addRigControl([[290,80],[384,137],[424,237],[381,354]])
 
-        #Value Slider
-        # testMarker = GuideMarker()
-        # scene.addItem(testMarker)
-        # self.valueSliderBackground = colourValueSliderBackGround()
-        # scene.addItem(self.valueSliderBackground)
+        #Test Parenting 
+        cP1 = ControlPin()   
+        cP1.setPos(QtCore.QPointF(20,20))
 
-        # self.colourValueSliderControl = colourValueSliderControl(self.colourBroadCaster )
-        # scene.addItem(self.colourValueSliderControl)
+        cP2 = ControlPin()   
+        cP2.setPos(QtCore.QPointF(60,20))
+
+        m1 = GuideMarker()
+        m1.setPos(QtCore.QPointF(20,20))
+
+        m2 = GuideMarker()
+        m2.setPos(QtCore.QPointF(60,20))
+
+        m2.setParentItem(m1)
+        self.scene().addItem(m1)
+        self.scene().addItem(m2)
+        self.scene().addItem(cP1)
+        self.scene().addItem(cP2)
 
     def setBackgroundImage(self):
         """Function to set the validity of a file path, and if it is good then pass it to the Graphics View for drawing"""

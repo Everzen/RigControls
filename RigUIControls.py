@@ -340,7 +340,7 @@ class GuideMarker(QtGui.QGraphicsItem):
             gradient.setColorAt(0, QtGui.QColor(self.guideColour.red(),self.guideColour.green(),self.guideColour.blue(),20))
             painter.setBrush(QtGui.QBrush(gradient))
             painter.drawRect(self.scale*-4, self.scale*-4, self.scale*8, self.scale*8)
-            pen = QtGui.QPen(self.guideColour, 1, QtCore.Qt.SolidLine)
+            pen = QtGui.QPen(self.guideColour, 2, QtCore.Qt.SolidLine)
 
         painter.setPen(pen)
         painter.drawLine(self.scale*-12,self.scale*-12,self.scale*12,self.scale*12)
@@ -743,10 +743,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
         for index, item in enumerate(self.markerSelectionList):
             item.setActiveIndex(index)
 
-    def processMarkerSelection(self, marker): #Delete Condition Needed! 
+    def processMarkerSelection(self, marker):
         itemPresent = False
         for item in self.markerSelectionList:
-            if marker == item: #the interacted item is in the list, so check if ctrl is pressed
+            if marker == item: 
                 itemPresent = True
 
         if itemPresent:
@@ -759,6 +759,22 @@ class RigGraphicsView(QtGui.QGraphicsView):
         else: #the item is not present so we we just need to add it to the list
             self.markerSelectionList.append(marker)
             marker.setActive(True)
+        self.processMarkerActiceIndex()
+
+    def processMarkerDelete(self, marker):
+        itemPresent = False
+        for item in self.markerSelectionList:
+            if marker == item: #the interacted item is in the list, so check if ctrl is pressed
+                itemPresent = True
+
+        if itemPresent: #the item is in the list so we need to remove it or, reset the list to empty
+            if len(self.markerSelectionList) > 1 :
+                self.markerSelectionList.remove(marker)
+                marker.setActive(False)
+            else: 
+                self.markerSelectionList = []
+                marker.setActive(False)
+
 
         #     if ctrl: #ctrl is pressed so  we are deselecting the item and removing from the list
         #         print "length : " + str(len(self.markerSelectionList))
@@ -784,7 +800,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         elif key == QtCore.Qt.Key_Delete:
             for item in scene.items():
                 if type(item) == GuideMarker and item.isSelected() == True: #Delete out any GuideMarkers that are selection and need to be removed
-                    
+                    self.processMarkerDelete(item)
                     scene.removeItem(item)
                     del item
             self.processMarkerActiceIndex()

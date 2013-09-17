@@ -213,10 +213,45 @@ class DragItemButton(QtGui.QPushButton):
 #################################RIGGER CONTROL GROUPS#############################################################################
 
 class ControlPin(QtGui.QGraphicsItem):
-    def __init__(self):
+    def __init__(self, control = None):
         super(ControlPin, self).__init__()
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
-        self.scale = 1
+        self.scale = 3
+
+    def drawWireControl(self, painter):
+        wCurve1 = QtGui.QPainterPath()
+
+        locAx = -1.6 * self.scale
+        locAy = 2.78 * self.scale
+
+        locBx = -0.556 * self.scale
+        locBy = 3.25 * self.scale
+
+        pen = QtGui.QPen(QtCore.Qt.black, 0.25, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+
+        wCurve1 = QtGui.QPainterPath()
+        wCurve1.moveTo(QtCore.QPointF(locAx,locAy))
+        wCurve1.cubicTo(QtCore.QPointF(locBx,locBy),QtCore.QPointF(-locBx,locBy),QtCore.QPointF(-locAx,locAy))
+
+        wCurve2 = QtGui.QPainterPath()
+        wCurve2.moveTo(QtCore.QPointF(locAy,locAx))
+        wCurve2.cubicTo(QtCore.QPointF(locBy,locBx),QtCore.QPointF(locBy,-locBx),QtCore.QPointF(locAy,-locAx))
+        
+        wCurve3 = QtGui.QPainterPath()
+        wCurve3.moveTo(QtCore.QPointF(locAx,-locAy))
+        wCurve3.cubicTo(QtCore.QPointF(locBx,-locBy),QtCore.QPointF(-locBx,-locBy),QtCore.QPointF(-locAx,-locAy))
+
+        wCurve4 = QtGui.QPainterPath()
+        wCurve4.moveTo(QtCore.QPointF(-locAy,locAx))
+        wCurve4.cubicTo(QtCore.QPointF(-locBy,locBx),QtCore.QPointF(-locBy,-locBx),QtCore.QPointF(-locAy,-locAx))
+        
+        # painter.setBrush(self.color)
+        painter.strokePath(wCurve1, painter.pen())
+        painter.strokePath(wCurve2, painter.pen())
+        painter.strokePath(wCurve3, painter.pen())
+        painter.strokePath(wCurve4, painter.pen())
+
 
     def paint(self, painter, option, widget):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
@@ -226,6 +261,9 @@ class ControlPin(QtGui.QGraphicsItem):
         # painter.drawLine(self.scale*-3,self.scale*3,self.scale*3,self.scale*-3)
         painter.drawLine(0,self.scale*3,0,self.scale*-3)
         painter.drawLine(self.scale*-3,0,self.scale*3,0)
+
+        #Now add wire details if needed
+        self.drawWireControl(painter)
 
     def boundingRect(self):
         adjust = 5

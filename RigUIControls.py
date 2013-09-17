@@ -212,6 +212,32 @@ class DragItemButton(QtGui.QPushButton):
 
 #################################RIGGER CONTROL GROUPS#############################################################################
 
+class WireControlGroup()
+    def __init__(self, pinPosArr, rigGView):
+        #LIST OF ATTRIBUTES
+        self.name = ""
+        self.colour = QtCore.Qt.black
+        self.pinPositions = []
+        self.pin = []
+        self.nodes = []
+        self.scene = rigGView.scene()
+
+        def getName(self):
+            return self.name
+
+        def setName(self, newName):
+            self.name = str(newName)
+
+        def createPins(self):
+            pass
+
+        def createNodes(self):
+            pass
+
+        def createCurve(self):
+            pass
+
+
 class ControlPin(QtGui.QGraphicsItem):
     def __init__(self, control = None):
         super(ControlPin, self).__init__()

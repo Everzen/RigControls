@@ -220,12 +220,17 @@ class WireControlGroup():
         self.pinPositions = pinPosArr
         self.pins = []
         self.nodes = []
+        self.pinTies = []
+        self.curve = None
+        self.colour = QtGui.QColor(0,0,0)
         self.scene = rigGView.scene()
         self.initBuild()
 
     def initBuild(self):
         self.createPins()
         self.createNodes()
+        self.createPintTies()
+        self.createCurve()
 
     def getName(self):
         return self.name
@@ -244,6 +249,7 @@ class WireControlGroup():
             self.scene.addItem(cP)
 
     def createNodes(self):
+        self.nodes = []
         for index, p in enumerate(self.pinPositions):
             node = Node(QPVec(p))
             node.setIndex(index)
@@ -251,8 +257,22 @@ class WireControlGroup():
             self.nodes.append(node)
             self.scene.addItem(node)
 
+    def createPintTies(self):
+        self.pinTies = []
+        if len(self.pins) > 1 and len(self.pins) == len(self.nodes):
+            for index, n in enumerate(self.nodes):
+                pT = PinTie(n, self.pins[index])
+                pT.setIndex(index)
+                self.pinTies.append(pT)
+                n.setPinTie(pT)
+                self.scene.addItem(pT)
+        else:
+            print "WARNING : NO PIN TIES DRAWN SINCE THERE WERE INSUFFICIENT NODES OR UNEQUAL NODES AND PINS"
+
     def createCurve(self):
-        pass
+        if len(self.nodes) > 2:
+            self.curve = RigCurve(self.colour, self.nodes)
+            self.scene.addItem(self.curve)
 
 
 class ControlPin(QtGui.QGraphicsItem):
@@ -312,7 +332,6 @@ class ControlPin(QtGui.QGraphicsItem):
         painter.strokePath(wCurve3, painter.pen())
         painter.strokePath(wCurve4, painter.pen())
 
-
     def paint(self, painter, option, widget):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
         pen = QtGui.QPen(QtCore.Qt.black, 0.5, QtCore.Qt.SolidLine)
@@ -330,7 +349,69 @@ class ControlPin(QtGui.QGraphicsItem):
         return QtCore.QRectF(self.scale*self.scaleOffset*(-3 - adjust), self.scale*self.scaleOffset*(-3 - adjust),
                              self.scale*self.scaleOffset*(6 + adjust), self.scale*self.scaleOffset*(6 + adjust))
 
-#################################RIGGER GRAPHICS ITEMS#############################################################################
+
+class PinTie(QtGui.QGraphicsItem):
+    def __init__(self, startNode, endNode):
+        super(PinTie, self).__init__()
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
+        self.thickness = 0.5
+        self.index = 0 
+        self.groupName = 1
+        self.startNode = weakref.ref(startNode)
+        self.endNode = weakref.ref(endNode)
+        self.startPoint = None
+        self.endPoint = None
+        self.midPoint = None
+        self.drawTie()
+
+    def getIndex(self):
+        return self.index
+
+    def setIndex(self,index):
+        self.index = index
+
+    def getGroupName(self):
+        return str(self.groupName)
+
+    def setGroupName(self, groupName):
+        self.groupName = groupName
+
+    def getThickness(self):
+        return self.thickness
+
+    def setThickness(self, thickness):
+        self.thickness = thickness
+
+    def linePoints(self):
+        """Function to calulate the start mid and end points of the line"""
+        self.midPoint =  (self.startNode().pos() + self.endNode().pos())/2
+        self.startPoint = self.startNode().pos() - self.midPoint 
+        self.endPoint = self.endNode().pos() - self.midPoint #+ QtCore.QPointF(20,20)
+
+
+    def boundingRect(self):
+        return self.line.boundingRect()
+    # def boundingRect(self):
+    #     adjust = 5
+    #     return QtCore.QRectF(self.startPoint, self.endPoint)
+
+    def drawTie(self):
+        self.line = QtGui.QPainterPath()
+        # self.prepareGeometryChange()
+        self.linePoints()
+        if self.startNode != None and self.endNode != None: 
+            self.setPos(self.midPoint)
+            self.line.moveTo(self.startPoint)
+            self.line.lineTo(self.endPoint) 
+            
+
+    def paint(self, painter, option, widget):
+        # self.prepareGeometryChange()
+        pen = QtGui.QPen(QtGui.QColor(255,255,0), self.thickness, QtCore.Qt.DotLine)
+        painter.setPen(pen)
+        painter.strokePath(self.line, painter.pen())
+
+
 
 class GuideMarker(QtGui.QGraphicsItem):
     def __init__(self):
@@ -573,6 +654,9 @@ class RigCurve(QtGui.QGraphicsItem):
             self.path.cubicTo(QPVec(cP1),QPVec(cP2),QPVec(startPoint))
 
 
+
+
+
 ###Nodes for selection in the Graphics View
 class Node(QtGui.QGraphicsItem):
     def __init__(self, nPos, restraintDef=None, moveThreshold=5, operatorClass = None):
@@ -588,14 +672,16 @@ class Node(QtGui.QGraphicsItem):
         self.restraintDef = restraintDef
         self.move_restrict_circle = None
         self.operatorClass = operatorClass
-        self.setPos(nPos)
+        
         self.marker = False
         self.radius = 8
         # self.pin.append(weakref.ref(pin))
         self.pin = None
+        self.pinTie = None
         # if self.restraintDef:
         #     self.move_restrict_circle = QtGui.QGraphicsEllipseItem(2*self.restraintDef["centerOffset"][0],2*self.restraintDef["centerOffset"][1], 2*self.restraintDef["radius"],2*self.restraintDef["radius"])
         # offsetPos = self.pos() - QPVec(self.restraintDef["center"])
+        self.setPos(nPos)
         if self.operatorClass:
             self.operatorClass.setPos([offsetPos.x(),offsetPos.y()]) #Set colourGrabber position
             self.operatorClass.mouseMoveExecute() # Set the initial colour
@@ -630,18 +716,19 @@ class Node(QtGui.QGraphicsItem):
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PIN ALLOCATION"
 
+    def getPinTie(self):
+        return self.pinTie
+
+    def setPinTie(self, pinTie):
+        if type(pinTie) == PinTie:
+            self.pinTie = weakref.ref(pinTie)
+        else: 
+            print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PINTIE ALLOCATION"
+
     def boundingRect(self):
         adjust = 0.0
         return QtCore.QRectF(-self.radius - adjust, -self.radius - adjust,
                              2*self.radius + adjust, 2*self.radius + adjust)
-
-    def drawPinLink(self, painter):
-        if self.pin != None: 
-            pen = QtGui.QPen(QtCore.Qt.black, 10, QtCore.Qt.SolidLine)
-            painter.setPen(pen)
-            lineEnd = self.pin.pos() - self.pos()
-            painter.drawLine(0,0, lineEnd.x(), lineEnd.y())
-            print "drawing from/to : " + str(self.pos()) + " " + str(self.pin.pos())
 
     def paint(self, painter, option, widget):
         self.prepareGeometryChange()
@@ -656,14 +743,11 @@ class Node(QtGui.QGraphicsItem):
         painter.setBrush(QtGui.QBrush(gradient))
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 0))
         painter.drawEllipse(-self.radius/2, -self.radius/2, self.radius, self.radius)
-        self.drawPinLink(painter)
-        # pen = QtGui.QPen(QtCore.Qt.black, 10, QtCore.Qt.SolidLine)
-        # painter.setPen(pen)
-        # painter.drawLine(self.pos().x(), self.pos().y(), self.pin.pos().x(), self.pin.pos().y())
-
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
+            if self.pinTie != None:
+                self.pinTie().drawTie()
             for rigCurve in self.rigCurveList:
                 rigCurve().buildCurve()
         # print "Item new position :" + str(self.pos().x()) + ", " + str(self.pos().y())

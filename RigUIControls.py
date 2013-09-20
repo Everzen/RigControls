@@ -212,46 +212,80 @@ class DragItemButton(QtGui.QPushButton):
 
 #################################RIGGER CONTROL GROUPS#############################################################################
 
-class WireControlGroup()
+class WireControlGroup():
     def __init__(self, pinPosArr, rigGView):
         #LIST OF ATTRIBUTES
         self.name = ""
         self.colour = QtCore.Qt.black
-        self.pinPositions = []
-        self.pin = []
+        self.pinPositions = pinPosArr
+        self.pins = []
         self.nodes = []
         self.scene = rigGView.scene()
+        self.initBuild()
 
-        def getName(self):
-            return self.name
+    def initBuild(self):
+        self.createPins()
+        self.createNodes()
 
-        def setName(self, newName):
-            self.name = str(newName)
+    def getName(self):
+        return self.name
 
-        def createPins(self):
-            pass
+    def setName(self, newName):
+        self.name = str(newName)
 
-        def createNodes(self):
-            pass
+    def createPins(self):
+        """Initially place the pins according to markers given, and fill out self.pins"""
+        self.pins = []
+        for index,p in enumerate(self.pinPositions):
+            cP = ControlPin(QPVec(p))   
+            cP.setIndex(index)
+            cP.setGroupName(self.name)
+            self.pins.append(cP)
+            self.scene.addItem(cP)
 
-        def createCurve(self):
-            pass
+    def createNodes(self):
+        for index, p in enumerate(self.pinPositions):
+            node = Node(QPVec(p))
+            node.setIndex(index)
+            node.setPin(self.pins[index])
+            self.nodes.append(node)
+            self.scene.addItem(node)
+
+    def createCurve(self):
+        pass
 
 
 class ControlPin(QtGui.QGraphicsItem):
-    def __init__(self, control = None):
+    def __init__(self, cPos, control = None):
         super(ControlPin, self).__init__()
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
-        self.scale = 3
+        self.scale = 1
+        self.scaleOffset = 2.5
+        self.index = 0 
+        self.groupName = 1
+
+        self.setPos(cPos)
+
+    def getIndex(self):
+        return self.index
+
+    def setIndex(self,index):
+        self.index = index
+
+    def getGroupName(self):
+        return str(self.groupName)
+
+    def setGroupName(self, groupName):
+        self.groupName = groupName
 
     def drawWireControl(self, painter):
         wCurve1 = QtGui.QPainterPath()
 
-        locAx = -1.6 * self.scale
-        locAy = 2.78 * self.scale
+        locAx = -1.6 * self.scale*self.scaleOffset
+        locAy = 2.78 * self.scale*self.scaleOffset
 
-        locBx = -0.556 * self.scale
-        locBy = 3.25 * self.scale
+        locBx = -0.556 * self.scale*self.scaleOffset
+        locBy = 3.25 * self.scale*self.scaleOffset
 
         pen = QtGui.QPen(QtCore.Qt.black, 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
@@ -283,18 +317,18 @@ class ControlPin(QtGui.QGraphicsItem):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
         pen = QtGui.QPen(QtCore.Qt.black, 0.5, QtCore.Qt.SolidLine)
         painter.setPen(pen)
-        # painter.drawLine(self.scale*-3,self.scale*-3,self.scale*3,self.scale*3)
-        # painter.drawLine(self.scale*-3,self.scale*3,self.scale*3,self.scale*-3)
-        painter.drawLine(0,self.scale*3,0,self.scale*-3)
-        painter.drawLine(self.scale*-3,0,self.scale*3,0)
+        # painter.drawLine(self.scale*self.scaleOffset*-3,self.scale*self.scaleOffset*-3,self.scale*self.scaleOffset*3,self.scale*self.scaleOffset*3)
+        # painter.drawLine(self.scale*self.scaleOffset*-3,self.scale*self.scaleOffset*3,self.scale*self.scaleOffset*3,self.scale*self.scaleOffset*-3)
+        painter.drawLine(0,self.scale*self.scaleOffset*3.0,0,self.scale*self.scaleOffset*-3.0)
+        painter.drawLine(self.scale*self.scaleOffset*-3.0,0,self.scale*self.scaleOffset*3.0,0)
 
         #Now add wire details if needed
         self.drawWireControl(painter)
 
     def boundingRect(self):
         adjust = 5
-        return QtCore.QRectF(self.scale*(-3 - adjust), self.scale*(-3 - adjust),
-                             self.scale*(6 + adjust), self.scale*(6 + adjust))
+        return QtCore.QRectF(self.scale*self.scaleOffset*(-3 - adjust), self.scale*self.scaleOffset*(-3 - adjust),
+                             self.scale*self.scaleOffset*(6 + adjust), self.scale*self.scaleOffset*(6 + adjust))
 
 #################################RIGGER GRAPHICS ITEMS#############################################################################
 
@@ -541,10 +575,9 @@ class RigCurve(QtGui.QGraphicsItem):
 
 ###Nodes for selection in the Graphics View
 class Node(QtGui.QGraphicsItem):
-    def __init__(self, graphWidget, xPos, yPos, restraintDef=None, moveThreshold=5, operatorClass = None):
+    def __init__(self, nPos, restraintDef=None, moveThreshold=5, operatorClass = None):
         QtGui.QGraphicsItem.__init__(self)
         self.index = 0
-        self.graph = weakref.ref(graphWidget)
         self.rigCurveList = []
         self.bezierHandles = [None, None]
         self.newPos = QtCore.QPointF()
@@ -555,8 +588,11 @@ class Node(QtGui.QGraphicsItem):
         self.restraintDef = restraintDef
         self.move_restrict_circle = None
         self.operatorClass = operatorClass
-        self.setPos(xPos,yPos)
+        self.setPos(nPos)
         self.marker = False
+        self.radius = 8
+        # self.pin.append(weakref.ref(pin))
+        self.pin = None
         # if self.restraintDef:
         #     self.move_restrict_circle = QtGui.QGraphicsEllipseItem(2*self.restraintDef["centerOffset"][0],2*self.restraintDef["centerOffset"][1], 2*self.restraintDef["radius"],2*self.restraintDef["radius"])
         # offsetPos = self.pos() - QPVec(self.restraintDef["center"])
@@ -585,24 +621,45 @@ class Node(QtGui.QGraphicsItem):
         """A function to return the position of the bezier handles associated with this Node"""
         return self.bezierHandles[handleNo]
 
+    def getPin(self):
+        return self.pin
+
+    def setPin(self, pin):
+        if type(pin) == ControlPin:
+            self.pin = pin
+        else: 
+            print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PIN ALLOCATION"
+
     def boundingRect(self):
-        adjust = 2.0
-        return QtCore.QRectF(-10 - adjust, -10 - adjust,
-                             22 + adjust, 23 + adjust)
+        adjust = 0.0
+        return QtCore.QRectF(-self.radius - adjust, -self.radius - adjust,
+                             2*self.radius + adjust, 2*self.radius + adjust)
+
+    def drawPinLink(self, painter):
+        if self.pin != None: 
+            pen = QtGui.QPen(QtCore.Qt.black, 10, QtCore.Qt.SolidLine)
+            painter.setPen(pen)
+            lineEnd = self.pin.pos() - self.pos()
+            painter.drawLine(0,0, lineEnd.x(), lineEnd.y())
+            print "drawing from/to : " + str(self.pos()) + " " + str(self.pin.pos())
 
     def paint(self, painter, option, widget):
-        # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
+        self.prepareGeometryChange()
         painter.setPen(QtCore.Qt.NoPen)
         painter.setBrush(QtCore.Qt.lightGray)
-        painter.drawEllipse(-10, -10, 20, 20)
-        gradient = QtGui.QRadialGradient(0, 0, 22)
+        painter.drawEllipse(-self.radius, -self.radius, 2*self.radius, 2*self.radius)
+        gradient = QtGui.QRadialGradient(0, 0, 2*self.radius)
         if option.state & QtGui.QStyle.State_Sunken: # selected
             gradient.setColorAt(0, QtGui.QColor(QtCore.Qt.darkGreen).lighter(120))
         else:
             gradient.setColorAt(1, QtCore.Qt.blue)
         painter.setBrush(QtGui.QBrush(gradient))
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 0))
-        painter.drawEllipse(-6, -6, 12, 12)
+        painter.drawEllipse(-self.radius/2, -self.radius/2, self.radius, self.radius)
+        self.drawPinLink(painter)
+        # pen = QtGui.QPen(QtCore.Qt.black, 10, QtCore.Qt.SolidLine)
+        # painter.setPen(pen)
+        # painter.drawLine(self.pos().x(), self.pos().y(), self.pin.pos().x(), self.pin.pos().y())
 
 
     def itemChange(self, change, value):
@@ -613,16 +670,16 @@ class Node(QtGui.QGraphicsItem):
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
     def mousePressEvent(self, event):
-        if not self.graph().inhibit_edit:
-            self.update()
-            # print "Node pressed"
-            QtGui.QGraphicsItem.mousePressEvent(self, event)
+        # if not self.graph().inhibit_edit:
+        self.update()
+        # print "Node pressed"
+        QtGui.QGraphicsItem.mousePressEvent(self, event)
 
     def mouseReleaseEvent(self, event):
-        if not self.graph().inhibit_edit:
-            self.update()
-            # print "Node Pos: " + str(self.pos())
-            QtGui.QGraphicsItem.mouseReleaseEvent(self, event)
+        # if not self.graph().inhibit_edit:
+        self.update()
+        # print "Node Pos: " + str(self.pos())
+        QtGui.QGraphicsItem.mouseReleaseEvent(self, event)
 
     def mouseMoveEvent(self, event):
         # check of mouse moved within the restricted area for the item 
@@ -684,26 +741,27 @@ class RigGraphicsView(QtGui.QGraphicsView):
         #Add in Reflection Line
         self.reflectionLine = self.addReflectionLine()
         self.showReflectionLine = True
-        self.addRigControl([[290,80],[384,137],[424,237],[381,354]])
+        # self.addRigControl([[290,80],[384,137],[424,237],[381,354]])
 
         #Test Parenting 
-        cP1 = ControlPin()   
-        cP1.setPos(QtCore.QPointF(20,20))
+        self.WireGroup = WireControlGroup([[290,80],[384,137],[424,237],[381,354]], self)
+        # cP1 = ControlPin()   
+        # cP1.setPos(QtCore.QPointF(20,20))
 
-        cP2 = ControlPin()   
-        cP2.setPos(QtCore.QPointF(60,20))
+        # cP2 = ControlPin()   
+        # cP2.setPos(QtCore.QPointF(60,20))
 
-        m1 = GuideMarker()
-        m1.setPos(QtCore.QPointF(20,20))
+        # m1 = GuideMarker()
+        # m1.setPos(QtCore.QPointF(20,20))
 
-        m2 = GuideMarker()
-        m2.setPos(QtCore.QPointF(60,20))
+        # m2 = GuideMarker()
+        # m2.setPos(QtCore.QPointF(60,20))
 
-        m2.setParentItem(m1)
-        self.scene().addItem(m1)
-        self.scene().addItem(m2)
-        self.scene().addItem(cP1)
-        self.scene().addItem(cP2)
+        # m2.setParentItem(m1)
+        # self.scene().addItem(m1)
+        # self.scene().addItem(m2)
+        # self.scene().addItem(cP1)
+        # self.scene().addItem(cP2)
 
     def setBackgroundImage(self):
         """Function to set the validity of a file path, and if it is good then pass it to the Graphics View for drawing"""

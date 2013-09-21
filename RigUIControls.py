@@ -213,11 +213,11 @@ class DragItemButton(QtGui.QPushButton):
 #################################RIGGER CONTROL GROUPS#############################################################################
 
 class WireControlGroup():
-    def __init__(self, pinPosArr, rigGView):
+    def __init__(self, pinQPointList, rigGView):
         #LIST OF ATTRIBUTES
         self.name = ""
         self.colour = QtCore.Qt.black
-        self.pinPositions = pinPosArr
+        self.pinPositions = pinQPointList
         self.pins = []
         self.nodes = []
         self.pinTies = []
@@ -242,7 +242,7 @@ class WireControlGroup():
         """Initially place the pins according to markers given, and fill out self.pins"""
         self.pins = []
         for index,p in enumerate(self.pinPositions):
-            cP = ControlPin(QPVec(p))   
+            cP = ControlPin(p)   
             cP.setIndex(index)
             cP.setGroupName(self.name)
             self.pins.append(cP)
@@ -251,7 +251,7 @@ class WireControlGroup():
     def createNodes(self):
         self.nodes = []
         for index, p in enumerate(self.pinPositions):
-            node = Node(QPVec(p))
+            node = Node(p)
             node.setIndex(index)
             node.setPin(self.pins[index])
             self.nodes.append(node)
@@ -732,16 +732,25 @@ class Node(QtGui.QGraphicsItem):
 
     def paint(self, painter, option, widget):
         self.prepareGeometryChange()
-        painter.setPen(QtCore.Qt.NoPen)
-        painter.setBrush(QtCore.Qt.lightGray)
+        # painter.setPen(QtCore.Qt.NoPen)
+        cColour = QtGui.QColor(25,25,50,150)
+        pen = QtGui.QPen(cColour, 1, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        # painter.setBrush(QtCore.Qt.lightGray)
         painter.drawEllipse(-self.radius, -self.radius, 2*self.radius, 2*self.radius)
-        gradient = QtGui.QRadialGradient(0, 0, 2*self.radius)
+        gradient = QtGui.QRadialGradient(0, 0, self.radius/2)
         if option.state & QtGui.QStyle.State_Sunken: # selected
-            gradient.setColorAt(0, QtGui.QColor(QtCore.Qt.darkGreen).lighter(120))
+            cColour = QtGui.QColor(50,255,255,150)
+            gradient.setColorAt(0, cColour)
+            gradient.setColorAt(0.6, cColour)
+            gradient.setColorAt(1, QtGui.QColor(cColour.red(), cColour.green(), cColour.blue(), 20))
         else:
-            gradient.setColorAt(1, QtCore.Qt.blue)
+            cColour = QtGui.QColor(QtCore.Qt.blue).lighter(120)
+            gradient.setColorAt(0, cColour)
+            gradient.setColorAt(0.5, cColour)
+            gradient.setColorAt(1, QtGui.QColor(cColour.red(), cColour.green(), cColour.blue(), 20))
         painter.setBrush(QtGui.QBrush(gradient))
-        painter.setPen(QtGui.QPen(QtCore.Qt.black, 0))
+        QtGui.QPen(QtCore.Qt.black, 1.2, QtCore.Qt.SolidLine)
         painter.drawEllipse(-self.radius/2, -self.radius/2, self.radius, self.radius)
 
     def itemChange(self, change, value):
@@ -827,8 +836,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.showReflectionLine = True
         # self.addRigControl([[290,80],[384,137],[424,237],[381,354]])
 
+        #LARGE GROUP ATTRIBUTES
+        self.wireGroups = []
+
         #Test Parenting 
-        self.WireGroup = WireControlGroup([[290,80],[384,137],[424,237],[381,354]], self)
         # cP1 = ControlPin()   
         # cP1.setPos(QtCore.QPointF(20,20))
 
@@ -1012,6 +1023,16 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 self.markerSelectionList = []
                 marker.setActive(False)
 
+
+    def addWireGroup(self):
+        """Function that looks at the makerSelection List and tried to build a Wire Rig"""
+        if len(self.markerSelectionList) > 2:
+            posList = []
+            for m in self.markerSelectionList: posList.append(m.pos())
+            newWireGroup = WireControlGroup(posList, self)
+            self.wireGroups.append(newWireGroup)
+        else:
+            print "WARNING : THERE ARE NOT ENOUGH MARKERS SELECTED TO CREATE A WIRE GROUP"
 
         #     if ctrl: #ctrl is pressed so  we are deselecting the item and removing from the list
         #         print "length : " + str(len(self.markerSelectionList))

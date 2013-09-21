@@ -49,6 +49,8 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.reflectGuides.clicked.connect(self.view.reflectGuides)
         self.testCheckBox = QtGui.QCheckBox("Check me Out")
         self.selectionButton = QtGui.QPushButton("Test Selection")
+        self.addWireGroupButton = QtGui.QPushButton("Add Wire Group")
+        self.addWireGroupButton.clicked.connect(lambda:  self.view.addWireGroup())
         # self.selectionButton.pressed.connect(lambda: self.view.printSelection()) #Adjust this to add hide Reflection Line Functionality
 
 
@@ -64,6 +66,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         vButtonBox.addWidget(self.reflectGuides)
         vButtonBox.addWidget(self.testCheckBox)
         vButtonBox.addWidget(self.selectionButton)
+        vButtonBox.addWidget(self.addWireGroupButton)
         vButtonBox.addStretch(1)
 
         hBox.addWidget(self.view)

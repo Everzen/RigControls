@@ -39,7 +39,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         # self.showReflectionLineButton = QtGui.QCheckButton("Toggle Reflection Line")
         self.markerScale = QtGui.QSlider(QtCore.Qt.Horizontal)
         # self.markerScale.setTickPosition(1.0)
-        self.markerScale.setRange(10, 300)
+        self.markerScale.setRange(60, 200)
         self.markerScale.setValue(100)
         self.markerScale.valueChanged.connect(lambda: self.view.setMarkerScale(self.markerScale.value()))
 
@@ -47,7 +47,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         
         self.reflectGuides = QtGui.QPushButton("Reflect Markers")
         self.reflectGuides.clicked.connect(self.view.reflectGuides)
-        self.testCheckBox = QtGui.QCheckBox("Check me Out")
+        # self.testCheckBox = QtGui.QCheckBox("Check me Out")
         self.selectionButton = QtGui.QPushButton("Test Selection")
         self.addWireGroupButton = QtGui.QPushButton("Add Wire Group")
         self.addWireGroupButton.clicked.connect(lambda:  self.view.addWireGroup())
@@ -64,7 +64,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         vButtonBox.addWidget(self.markerSpawn)
         vButtonBox.addWidget(self.markerScale)
         vButtonBox.addWidget(self.reflectGuides)
-        vButtonBox.addWidget(self.testCheckBox)
+        # vButtonBox.addWidget(self.testCheckBox)
         vButtonBox.addWidget(self.selectionButton)
         vButtonBox.addWidget(self.addWireGroupButton)
         vButtonBox.addStretch(1)
@@ -76,15 +76,47 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.setCentralWidget(self.mainWidget)
 
         #Setup UI Menu Actions
+
+        openFace = QtGui.QAction(QtGui.QIcon('exit.png'), 'Open Face', self)        
+        openFace.setShortcut('Ctrl+O')
+        openFace.setStatusTip('Exit application')
+        openFace.triggered.connect(lambda: self.moo())
+
+        saveFace = QtGui.QAction(QtGui.QIcon('exit.png'), 'Save Face', self)        
+        saveFace.setShortcut('Ctrl+S')
+        saveFace.setStatusTip('Exit application')
+        saveFace.triggered.connect(lambda: self.moo())
+
+        saveFaceAs = QtGui.QAction(QtGui.QIcon('exit.png'), 'Save Face as...', self)        
+        saveFaceAs.setShortcut('Ctrl+Shift+S')
+        saveFaceAs.setStatusTip('Exit application')
+        saveFaceAs.triggered.connect(lambda: self.moo())
+
         exitAction = QtGui.QAction(QtGui.QIcon('exit.png'), '&Exit', self)        
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(QtGui.qApp.quit)
 
-        viewMarkerIDs = QtGui.QAction('&Show Marker IDs', self)  
-        viewMarkerIDs.setCheckable(True)
-        viewMarkerIDs.setChecked(True)
-        viewMarkerIDs.toggled.connect(lambda: self.view.setShowMarkerID(viewMarkerIDs.isChecked())) #Adjust this to add hide Reflection Line Functionality
+        showMarkers = QtGui.QAction('Show Markers', self)  
+        showMarkers.setCheckable(True)
+        showMarkers.setChecked(True)
+        showMarkers.toggled.connect(lambda: self.view.setShowMarkerID(viewMarkerIDs.isChecked())) #Adjust this to add hide Reflection Line Functionality
+
+        showNodes = QtGui.QAction('Show Nodes', self)  
+        showNodes.setCheckable(True)
+        showNodes.setChecked(True)
+        showNodes.toggled.connect(lambda: self.view.setShowMarkerID(viewMarkerIDs.isChecked())) #Adjust this to add hide Reflection Line Functionality
+
+        showCurves = QtGui.QAction('Show Curves', self)  
+        showCurves.setCheckable(True)
+        showCurves.setChecked(True)
+        showCurves.toggled.connect(lambda: self.view.setShowMarkerID(viewMarkerIDs.isChecked())) #Adjust this to add hide Reflection Line Functionality
+
+        showPins = QtGui.QAction('Show Pins', self)  
+        showPins.setCheckable(True)
+        showPins.setChecked(True)
+        showPins.toggled.connect(lambda: self.view.setShowMarkerID(viewMarkerIDs.isChecked())) #Adjust this to add hide Reflection Line Functionality
+
 
         viewReflectionLine = QtGui.QAction('&Show Reflection Line', self)  
         viewReflectionLine.setCheckable(True)
@@ -93,15 +125,51 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(openFace)
+        fileMenu.addAction(saveFace)
+        fileMenu.addAction(saveFaceAs)
         fileMenu.addAction(exitAction)
 
         viewMenu = menubar.addMenu('&View')
-        viewMenu.addAction(viewMarkerIDs)
+        viewMenu.addAction(showMarkers)
+        viewMenu.addAction(showNodes)
+        viewMenu.addAction(showCurves)
+        viewMenu.addAction(showPins)
+        viewMenu.addSeparator()
         viewMenu.addAction(viewReflectionLine)
+
+        self.toolbar = self.addToolBar('Key Options')
+        
+        self.selMarkers = QtGui.QAction(QtGui.QIcon('images/GuideMarker_toolbar_active.png'), 'Select Markers', self) 
+        self.selMarkers.setCheckable(True)
+        self.selMarkers.setChecked(True)
+        self.selMarkers.toggled.connect(lambda: self.selectMarkers(self.selMarkers.isChecked()))
+
+        self.selNodes = QtGui.QAction(QtGui.QIcon('images/Node_toolbar_active.png'), 'Select Markers', self) 
+        self.selNodes.setCheckable(True)
+        self.selNodes.setChecked(True)
+        self.selNodes.toggled.connect(lambda: self.selectNodes(self.selNodes.isChecked()))
+
+        self.toolbar.addAction(self.selMarkers)
+        self.toolbar.addAction(self.selNodes)
+        self.toolbar.addSeparator()
 
         self.statusBar()
 
+    def moo(self):
+        print "mr Moo"
 
+    def selectMarkers(self,state):
+        if state:
+            self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_active.png'))
+        else:
+            self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_deactive.png'))
+
+    def selectNodes(self,state):
+        if state:
+            self.selNodes.setIcon(QtGui.QIcon('images/Node_toolbar_active.png'))
+        else:
+            self.selNodes.setIcon(QtGui.QIcon('images/Node_toolbar_deactive.png'))
 
 
 app = QtGui.QApplication([])

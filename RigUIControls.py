@@ -285,6 +285,7 @@ class ControlPin(QtGui.QGraphicsItem):
         self.groupName = 1
 
         self.setPos(cPos)
+        self.setZValue(1) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
     def getIndex(self):
         return self.index
@@ -363,6 +364,7 @@ class PinTie(QtGui.QGraphicsItem):
         self.endPoint = None
         self.midPoint = None
         self.drawTie()
+        self.setZValue(1) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
     def getIndex(self):
         return self.index
@@ -430,6 +432,8 @@ class GuideMarker(QtGui.QGraphicsItem):
         self.scale = 1.0
         self.colourList = [QtGui.QColor(255,0,0), QtGui.QColor(0,255,0), QtGui.QColor(0,0,255), QtGui.QColor(0,255,255), QtGui.QColor(255,0,255), QtGui.QColor(255,255,0), QtGui.QColor(255,125,0), QtGui.QColor(125,255,0),QtGui.QColor(255,0,125),QtGui.QColor(125,0,255),QtGui.QColor(0,255,125),QtGui.QColor(0,125,255),QtGui.QColor(255,125,125),QtGui.QColor(125,255,125),QtGui.QColor(125,125,255),QtGui.QColor(255,255,125),QtGui.QColor(255,125,255),QtGui.QColor(125,255,255)]
         self.guideColour = self.colourList[1]
+        self.setZValue(11) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
+
         # self.setPos(QtCore.QPointF(50,50))
         # self.move_restrict_rect = QtGui.QGraphicsRectItem(50,50,,410)
         # self.colourBroadcaster = colourBroadcaster #Pass the slider a Broadcaster
@@ -491,7 +495,7 @@ class GuideMarker(QtGui.QGraphicsItem):
     def drawActive(self, painter):
         """A function to draw an active glow around the marker when activated"""
         if self.active:
-            pen = QtGui.QPen(self.guideColour, 0.5, QtCore.Qt.SolidLine)
+            pen = QtGui.QPen(self.guideColour, self.scale*0.5, QtCore.Qt.SolidLine)
             gradient = QtGui.QRadialGradient(0, 0, self.scale*18)
             gradient.setColorAt(0, QtGui.QColor(self.guideColour.red(),0,0,100))
             gradient.setColorAt(1, QtGui.QColor(self.guideColour.red(),self.guideColour.green(),self.guideColour.blue(),20))
@@ -540,7 +544,7 @@ class GuideMarker(QtGui.QGraphicsItem):
             gradient.setColorAt(0, QtGui.QColor(self.guideColour.red(),self.guideColour.green(),self.guideColour.blue(),20))
             painter.setBrush(QtGui.QBrush(gradient))
             painter.drawRect(self.scale*-4, self.scale*-4, self.scale*8, self.scale*8)
-            pen = QtGui.QPen(self.guideColour, 2, QtCore.Qt.SolidLine)
+            pen = QtGui.QPen(self.guideColour, 2*self.scale, QtCore.Qt.SolidLine)
 
         painter.setPen(pen)
         painter.drawLine(self.scale*-12,self.scale*-12,self.scale*12,self.scale*12)
@@ -571,6 +575,7 @@ class RigCurve(QtGui.QGraphicsItem):
         self.secondHandleScale = 0.5
         self.addCurveLink()
         self.buildCurve()
+        self.setZValue(0) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
     def getNodeList(self, controlNodes):
         """Function to collect and store control nodes as weak references"""
@@ -686,6 +691,8 @@ class Node(QtGui.QGraphicsItem):
             self.operatorClass.setPos([offsetPos.x(),offsetPos.y()]) #Set colourGrabber position
             self.operatorClass.mouseMoveExecute() # Set the initial colour
 
+        self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
+
     def setIndex(self,value):
         self.index = value
 
@@ -725,6 +732,17 @@ class Node(QtGui.QGraphicsItem):
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PINTIE ALLOCATION"
 
+    def goHome(self):
+        """Function to centralise the node back to the pin and update any associated rigCurves and pinTies"""
+        if self.pin:
+            self.setPos(self.pin.pos())
+            if self.pinTie:
+                self.pinTie().drawTie()
+            for rigCurve in self.rigCurveList:
+                rigCurve().buildCurve()
+        else:
+            print "WARNING : NODE HAS NO ASSOCIATED PIN AND AS SUCH HAS NO HOME TO GO TO :("
+
     def boundingRect(self):
         adjust = 0.0
         return QtCore.QRectF(-self.radius - adjust, -self.radius - adjust,
@@ -755,7 +773,7 @@ class Node(QtGui.QGraphicsItem):
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
-            if self.pinTie != None:
+            if self.pinTie:
                 self.pinTie().drawTie()
             for rigCurve in self.rigCurveList:
                 rigCurve().buildCurve()
@@ -787,6 +805,7 @@ class Node(QtGui.QGraphicsItem):
                     # self.operatorClass.mouseMoveExecute() #Execute our defined operator class through the move event
         else: QtGui.QGraphicsItem.mouseMoveEvent(self, event)
 
+
 ###
 class RigGraphicsView(QtGui.QGraphicsView):
     def __init__(self):
@@ -803,6 +822,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.setVerticalScrollBarPolicy(policy)
         self.setHorizontalScrollBarPolicy(policy)
         self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
+        self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
         # self.rubberband = QtGui.QRubberBand(QtGui.QRubberBand.Rectangle, self)
 
         scene = QtGui.QGraphicsScene(self)
@@ -1150,6 +1170,50 @@ class RigGraphicsView(QtGui.QGraphicsView):
         else: 
             return QtGui.QGraphicsView.mouseDoubleClickEvent(self, mouseEvent)
 
+
+    def contextMenuEvent(self, event):
+        scene = self.scene()
+        items = self.items(event.pos())
+        if len(items) != 0:
+            if type(items[0]) == GuideMarker:
+                self.guideMarkerContextMenu(event,items[0])
+            elif type(items[0]) == Node:
+                self.nodeContextMenu(event,items[0])
+            elif type(items[0]) == ControlPin:
+                pass
+                # menu.addAction('ControlPin')
+
+
+    def guideMarkerContextMenu(self,event,item):
+        scene = self.scene()
+        menu = QtGui.QMenu()
+        if item.getActive():
+            menu.addAction('Deactivate')
+        else:
+            menu.addAction('Activate')
+        menu.addSeparator()   
+        menu.addAction('Delete')
+        menu.addAction('Hide')
+        action = menu.exec_(event.globalPos())
+        if action:
+            if action.text() == 'Deactivate' or action.text() == 'Activate':
+                item.setActive(not item.getActive())
+            elif action.text() == 'Delete':
+                self.processMarkerDelete(item)
+                scene.removeItem(item)
+                del item
+            elif action.text() == 'Hide':
+                item.setVisible(False)
+
+
+    def nodeContextMenu(self,event,item):
+        scene = self.scene()
+        menu = QtGui.QMenu()
+        menu.addAction('Go Home')
+        action = menu.exec_(event.globalPos())
+        if action:
+            if action.text() == 'Go Home':
+                item.goHome()
 
     # def mouseReleaseEvent(self, mouseEvent):
     #     if len(self.scene().selectedItems()) > 0 and len(self.markerSelectionList) == 0: #A drag selection has occured. reset Marker list to selection

@@ -103,7 +103,7 @@ class ReflectionLine(QtGui.QGraphicsItem):
         self.drawEnd = []
         # self.visible = True #Use default isVisble method etc
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
-
+        self.adjustable = False
         self.initUI()
 
     def initUI(self):
@@ -112,6 +112,7 @@ class ReflectionLine(QtGui.QGraphicsItem):
         self.drawStart = [0, -self.height/2 + self.inset]
         self.drawEnd = [0, self.height/2 - self.inset]
         self.setPos(QtCore.QPointF(self.width/2, self.height/2))
+        self.restPos = QtCore.QPointF(self.width/2, self.height/2)
 
     def paint(self, painter, option, widget):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
@@ -119,11 +120,43 @@ class ReflectionLine(QtGui.QGraphicsItem):
         pen = QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.DotLine)
         painter.setPen(pen)
         painter.drawLine(self.drawStart[0],self.drawStart[1],self.drawEnd[0],self.drawEnd[1])
+        if self.adjustable:
+            painter.setPen(QtGui.QPen(QtCore.Qt.black, 0.25, QtCore.Qt.SolidLine))
+            adjustRect = QtCore.QRectF(QPVec(self.drawStart) - QtCore.QPointF(5, 0), QPVec(self.drawEnd) + QtCore.QPointF(5, 0))
+            painter.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25)))
+            painter.drawRect(adjustRect)
+
+    def setAdjustable(self, state):
+        self.adjustable = state
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,state)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,state)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,state)
+        self.update()
+
+    def getAdjustable(self):
+        return self.adjustable
 
     def boundingRect(self):
         adjust = 5.0
         return QtCore.QRectF( -adjust, -self.height/2 + self.inset - adjust,
                              2*adjust, self.height - 2*self.inset + 2*adjust)
+
+    # def itemChange(self, change, value):
+    #     if change == QtGui.QGraphicsItem.ItemPositionChange:
+    #         # print "Item new position :" + str(self.pos().x()) + ", " + str(self.pos().y())
+    #         # print "Max Level : " + str(self.maxLevel)
+    #         yPos = value.toPointF().y()
+    #         # if yPos > self.maxLevel : yPos = self.maxLevel
+    #         # elif yPos < self.minLevel : yPos = self.minLevel
+    #         vValue = self.getValue(yPos)
+    #         # print "VValue %s" % str(vValue)
+    #         if vValue:       
+    #             self.colourBroadcaster.setValue(vValue)
+    #             self.colourBroadcaster.broadcast()
+    #             # print "Colour Value is : " + str(self.getValue(yPos))
+    #         return QtCore.QPointF(509.75,yPos)
+    #     return QtGui.QGraphicsItem.itemChange(self, change, value)
+
 
     def remap(self,gViewWidth, gViewHeight):
         self.width = gViewWidth
@@ -603,60 +636,61 @@ class RigCurve(QtGui.QGraphicsItem):
 
     def buildCurve(self):
         """Function to build section of Bezier"""
-        if len(self.nodeList) >= 3:
-            self.path = QtGui.QPainterPath()
-            self.prepareGeometryChange()
-            #BuildSection
-            curveInfo = RigCurveInfo(self.nodeList[0],self.nodeList[1],self.nodeList[2])
-            startPoint = curveInfo.getStartPos()
-            endPoint = curveInfo.getEndPos()
-            targetPoint= curveInfo.getTargPos()
-            #Take point at a 1/3 of the way along the line and 2/3 of the way along the line
-            cP1 = startPoint + self.handlescale*curveInfo.getDirVec() - curveInfo.getDirDist()*curveInfo.getperpUnitVec()*self.curveSwing*curveInfo.getPerpSwing()
-            cP2 = startPoint + (1-self.handlescale)*curveInfo.getDirVec() - curveInfo.getDirDist()*curveInfo.getperpUnitVec()*self.curveSwing*curveInfo.getPerpSwing()
-            #Now make sure that we assign the new Bezier handles to the end node, but making the far handle proportional to the next segment length
-            self.nodeList[0]().setBezierHandles(cP1, 1)
-            self.nodeList[1]().setBezierHandles(cP2, 0)
-            #Now calculate our endNode second handle - to do this we need to calculate the distance to the next node (endnode to targetnode)
-            targNodeDist = np.linalg.norm(targetPoint - endPoint)
-            #Now set the next handle of the endpoint to be the same tangent, but scaled in proportion to the length of the endnode -> targetnode segment 
-            cPNext = (endPoint - cP2)*self.secondHandleScale*curveInfo.getTargetNodeDist()/curveInfo.getDirDist() + endPoint
-            self.nodeList[1]().setBezierHandles(cPNext, 1)
-            # print "End Node Handle Test : " + str(self.nodeList[1]().getBezierHandles(0))
-            # print "End Node Handle Test : " + str(self.nodeList[1]().getBezierHandles(1))
-            # print "CP1 : " + str(cP1)
-            # print "CP2 : " + str(cP2)
-            #Move the points out along the the perpendicular vector by a 3rd of the magnitude
-            self.path.moveTo(QPVec(startPoint))
-            self.path.cubicTo(QPVec(cP1),QPVec(cP2),QPVec(endPoint))
-            # self.path.cubicTo(QPVec([20,20]),QPVec([40,20]),QPVec([50,50]))
-            midNodes = self.nodeList[1:-2]
-            for index,node in enumerate(midNodes): #This is setup to give us nodes and indexing
-                curveInfo = RigCurveInfo(node,self.nodeList[index+2],self.nodeList[index+3])
+        if self.isVisible:
+            if len(self.nodeList) >= 3:
+                self.path = QtGui.QPainterPath()
+                self.prepareGeometryChange()
+                #BuildSection
+                curveInfo = RigCurveInfo(self.nodeList[0],self.nodeList[1],self.nodeList[2])
                 startPoint = curveInfo.getStartPos()
                 endPoint = curveInfo.getEndPos()
                 targetPoint= curveInfo.getTargPos()
-                #First Control Point is already resolved!
-                cP1 = node().getBezierHandles(1)
+                #Take point at a 1/3 of the way along the line and 2/3 of the way along the line
+                cP1 = startPoint + self.handlescale*curveInfo.getDirVec() - curveInfo.getDirDist()*curveInfo.getperpUnitVec()*self.curveSwing*curveInfo.getPerpSwing()
                 cP2 = startPoint + (1-self.handlescale)*curveInfo.getDirVec() - curveInfo.getDirDist()*curveInfo.getperpUnitVec()*self.curveSwing*curveInfo.getPerpSwing()
-
-                node().setBezierHandles(cP1, 1)
-                self.nodeList[index+2]().setBezierHandles(cP2, 0)
-                #Now figure out next node hand
+                #Now make sure that we assign the new Bezier handles to the end node, but making the far handle proportional to the next segment length
+                self.nodeList[0]().setBezierHandles(cP1, 1)
+                self.nodeList[1]().setBezierHandles(cP2, 0)
+                #Now calculate our endNode second handle - to do this we need to calculate the distance to the next node (endnode to targetnode)
                 targNodeDist = np.linalg.norm(targetPoint - endPoint)
+                #Now set the next handle of the endpoint to be the same tangent, but scaled in proportion to the length of the endnode -> targetnode segment 
                 cPNext = (endPoint - cP2)*self.secondHandleScale*curveInfo.getTargetNodeDist()/curveInfo.getDirDist() + endPoint
-                self.nodeList[index+2]().setBezierHandles(cPNext, 1)
+                self.nodeList[1]().setBezierHandles(cPNext, 1)
+                # print "End Node Handle Test : " + str(self.nodeList[1]().getBezierHandles(0))
+                # print "End Node Handle Test : " + str(self.nodeList[1]().getBezierHandles(1))
+                # print "CP1 : " + str(cP1)
+                # print "CP2 : " + str(cP2)
+                #Move the points out along the the perpendicular vector by a 3rd of the magnitude
+                self.path.moveTo(QPVec(startPoint))
                 self.path.cubicTo(QPVec(cP1),QPVec(cP2),QPVec(endPoint))
-            #Now place the final Bezier. To do this we will calculate from the end backwards, then plot the nodes forwards
-            curveInfo = RigCurveInfo(self.nodeList[-1],self.nodeList[-2],self.nodeList[-3])
-            startPoint = curveInfo.getStartPos()
-            endPoint = curveInfo.getEndPos()
-            targetPoint= curveInfo.getTargPos()
-            cP2 = startPoint + self.handlescale*curveInfo.getDirVec() - curveInfo.getDirDist()*curveInfo.getperpUnitVec()*self.curveSwing*curveInfo.getPerpSwing()
-            #We have cP1 from our previous Node calculations
-            cP1 = self.nodeList[-2]().getBezierHandles(1)
-            self.nodeList[-1]().setBezierHandles(cP2, 0)
-            self.path.cubicTo(QPVec(cP1),QPVec(cP2),QPVec(startPoint))
+                # self.path.cubicTo(QPVec([20,20]),QPVec([40,20]),QPVec([50,50]))
+                midNodes = self.nodeList[1:-2]
+                for index,node in enumerate(midNodes): #This is setup to give us nodes and indexing
+                    curveInfo = RigCurveInfo(node,self.nodeList[index+2],self.nodeList[index+3])
+                    startPoint = curveInfo.getStartPos()
+                    endPoint = curveInfo.getEndPos()
+                    targetPoint= curveInfo.getTargPos()
+                    #First Control Point is already resolved!
+                    cP1 = node().getBezierHandles(1)
+                    cP2 = startPoint + (1-self.handlescale)*curveInfo.getDirVec() - curveInfo.getDirDist()*curveInfo.getperpUnitVec()*self.curveSwing*curveInfo.getPerpSwing()
+
+                    node().setBezierHandles(cP1, 1)
+                    self.nodeList[index+2]().setBezierHandles(cP2, 0)
+                    #Now figure out next node hand
+                    targNodeDist = np.linalg.norm(targetPoint - endPoint)
+                    cPNext = (endPoint - cP2)*self.secondHandleScale*curveInfo.getTargetNodeDist()/curveInfo.getDirDist() + endPoint
+                    self.nodeList[index+2]().setBezierHandles(cPNext, 1)
+                    self.path.cubicTo(QPVec(cP1),QPVec(cP2),QPVec(endPoint))
+                #Now place the final Bezier. To do this we will calculate from the end backwards, then plot the nodes forwards
+                curveInfo = RigCurveInfo(self.nodeList[-1],self.nodeList[-2],self.nodeList[-3])
+                startPoint = curveInfo.getStartPos()
+                endPoint = curveInfo.getEndPos()
+                targetPoint= curveInfo.getTargPos()
+                cP2 = startPoint + self.handlescale*curveInfo.getDirVec() - curveInfo.getDirDist()*curveInfo.getperpUnitVec()*self.curveSwing*curveInfo.getPerpSwing()
+                #We have cP1 from our previous Node calculations
+                cP1 = self.nodeList[-2]().getBezierHandles(1)
+                self.nodeList[-1]().setBezierHandles(cP2, 0)
+                self.path.cubicTo(QPVec(cP1),QPVec(cP2),QPVec(startPoint))
 
 
 
@@ -1083,6 +1117,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,state)
                 if not state: item.setSelected(state)
 
+
+
         #     if ctrl: #ctrl is pressed so  we are deselecting the item and removing from the list
         #         print "length : " + str(len(self.markerSelectionList))
         #         if len(self.markerSelectionList) > 1 : 
@@ -1210,8 +1246,22 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 self.nodeContextMenu(event,items[0])
             elif type(items[0]) == ControlPin:
                 pass
+            elif type(items[0]) == ReflectionLine:
+                self.reflectionLineContextMenu(event,items[0])
                 # menu.addAction('ControlPin')
 
+    def reflectionLineContextMenu(self,event,item):
+        scene = self.scene()
+        menu = QtGui.QMenu()
+        menu.setStyleSheet(self.styleData)
+        if item.getAdjustable():
+            menu.addAction('Lock')
+        else:
+            menu.addAction('Unlock')
+        action = menu.exec_(event.globalPos())
+        if action:
+            if action.text() == 'Lock': self.reflectionLine.setAdjustable(False)
+            elif action.text() == 'Unlock': self.reflectionLine.setAdjustable(True)
 
     def guideMarkerContextMenu(self,event,item):
         scene = self.scene()
@@ -1239,6 +1289,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def nodeContextMenu(self,event,item):
         scene = self.scene()
         menu = QtGui.QMenu()
+        menu.setStyleSheet(self.styleData)
         menu.addAction('Go Home')
         action = menu.exec_(event.globalPos())
         if action:

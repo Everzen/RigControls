@@ -164,9 +164,6 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         self.statusBar()
 
-    def moo(self):
-        print "mr Moo"
-
     def selectMarkers(self,state):
         if state:
             self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_active.png'))

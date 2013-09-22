@@ -75,7 +75,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.mainWidget.setLayout(hBox)
         self.setCentralWidget(self.mainWidget)
 
-        #Setup UI Menu Actions
+        #File Menu
 
         openFace = QtGui.QAction(QtGui.QIcon('exit.png'), 'Open Face', self)        
         openFace.setShortcut('Ctrl+O')
@@ -97,25 +97,27 @@ class RigFaceSetup(QtGui.QMainWindow):
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(QtGui.qApp.quit)
 
+        #View Menu
+
         showMarkers = QtGui.QAction('Show Markers', self)  
         showMarkers.setCheckable(True)
         showMarkers.setChecked(True)
-        showMarkers.toggled.connect(lambda: self.view.setShowMarkerID(viewMarkerIDs.isChecked())) #Adjust this to add hide Reflection Line Functionality
+        showMarkers.toggled.connect(lambda: self.view.showItem(showMarkers.isChecked(), RigUIControls.GuideMarker)) #Adjust this to add hide Reflection Line Functionality
 
         showNodes = QtGui.QAction('Show Nodes', self)  
         showNodes.setCheckable(True)
         showNodes.setChecked(True)
-        showNodes.toggled.connect(lambda: self.view.setShowMarkerID(viewMarkerIDs.isChecked())) #Adjust this to add hide Reflection Line Functionality
+        showNodes.toggled.connect(lambda: self.view.showItem(showNodes.isChecked(), RigUIControls.Node)) 
 
         showCurves = QtGui.QAction('Show Curves', self)  
         showCurves.setCheckable(True)
         showCurves.setChecked(True)
-        showCurves.toggled.connect(lambda: self.view.setShowMarkerID(viewMarkerIDs.isChecked())) #Adjust this to add hide Reflection Line Functionality
+        showCurves.toggled.connect(lambda: self.view.showItem(showCurves.isChecked(), RigUIControls.RigCurve)) 
 
         showPins = QtGui.QAction('Show Pins', self)  
         showPins.setCheckable(True)
         showPins.setChecked(True)
-        showPins.toggled.connect(lambda: self.view.setShowMarkerID(viewMarkerIDs.isChecked())) #Adjust this to add hide Reflection Line Functionality
+        showPins.toggled.connect(lambda: self.view.showItem(showPins.isChecked(), RigUIControls.ControlPin)) 
 
 
         viewReflectionLine = QtGui.QAction('&Show Reflection Line', self)  
@@ -140,6 +142,11 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         self.toolbar = self.addToolBar('Key Options')
         
+        # self.selectionFilters = QtGui.QAction(QtGui.QIcon('images/SelectionFilters_toolbar.png'),'Selection Filters', self) 
+        # self.selectionFilters.setEnabled(False)
+        self.selectionFilters = QtGui.QLabel("   Selection Filters   ")
+
+
         self.selMarkers = QtGui.QAction(QtGui.QIcon('images/GuideMarker_toolbar_active.png'), 'Select Markers', self) 
         self.selMarkers.setCheckable(True)
         self.selMarkers.setChecked(True)
@@ -150,6 +157,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.selNodes.setChecked(True)
         self.selNodes.toggled.connect(lambda: self.selectNodes(self.selNodes.isChecked()))
 
+        self.toolbar.addWidget(self.selectionFilters)
         self.toolbar.addAction(self.selMarkers)
         self.toolbar.addAction(self.selNodes)
         self.toolbar.addSeparator()
@@ -164,13 +172,14 @@ class RigFaceSetup(QtGui.QMainWindow):
             self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_active.png'))
         else:
             self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_deactive.png'))
+        self.view.selectFilter(state, RigUIControls.GuideMarker)
 
     def selectNodes(self,state):
         if state:
             self.selNodes.setIcon(QtGui.QIcon('images/Node_toolbar_active.png'))
         else:
             self.selNodes.setIcon(QtGui.QIcon('images/Node_toolbar_deactive.png'))
-
+        self.view.selectFilter(state, RigUIControls.Node)
 
 app = QtGui.QApplication([])
 app.setStyle('Plastique')

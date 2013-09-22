@@ -817,7 +817,11 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # self.restraintDef = restraintDef
         self.setAcceptDrops(True)
         # self.colourBroadCaster = ColourBroadcaster(self.iP,self.port)
-        #
+
+        f=open('darkorange.stylesheet', 'r')  #Set up Style Sheet for customising anything within the Graphics View
+        self.styleData = f.read()
+        f.close()
+
         policy = QtCore.Qt.ScrollBarAlwaysOff
         self.setVerticalScrollBarPolicy(policy)
         self.setHorizontalScrollBarPolicy(policy)
@@ -1054,6 +1058,31 @@ class RigGraphicsView(QtGui.QGraphicsView):
         else:
             print "WARNING : THERE ARE NOT ENOUGH MARKERS SELECTED TO CREATE A WIRE GROUP"
 
+
+    def showItem(self,state,objectType):
+        """Function to hide and show markers"""
+        scene = self.scene()
+        for item in scene.items():
+            if type(item) == objectType: #change the state of its show ID
+                item.setVisible(state)
+                item.update()
+            if objectType == Node and type(item) == PinTie:
+                item.setVisible(state)
+                item.update()
+            if objectType == ControlPin and type(item) == PinTie:
+                item.setVisible(state)
+                item.update()
+
+    def selectFilter(self, state, objectType):
+        """A function to control whether items can be selected or not"""
+        scene = self.scene()
+        for item in scene.items():
+            if type(item) == objectType: #change the state of its show ID        
+                item.setFlag(QtGui.QGraphicsItem.ItemIsMovable,state)
+                item.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,state)
+                item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,state)
+                if not state: item.setSelected(state)
+
         #     if ctrl: #ctrl is pressed so  we are deselecting the item and removing from the list
         #         print "length : " + str(len(self.markerSelectionList))
         #         if len(self.markerSelectionList) > 1 : 
@@ -1187,6 +1216,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def guideMarkerContextMenu(self,event,item):
         scene = self.scene()
         menu = QtGui.QMenu()
+        menu.setStyleSheet(self.styleData)
         if item.getActive():
             menu.addAction('Deactivate')
         else:

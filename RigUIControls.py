@@ -885,10 +885,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.width = 500
         self.height = 500
         self.size = (0, 0, self.width, self.height)
-        self.characterImageFile = None
-        # self.restraintDef = restraintDef
         self.setAcceptDrops(True)
-        # self.colourBroadCaster = ColourBroadcaster(self.iP,self.port)
 
         f=open('darkorange.stylesheet', 'r')  #Set up Style Sheet for customising anything within the Graphics View
         self.styleData = f.read()
@@ -899,34 +896,27 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.setHorizontalScrollBarPolicy(policy)
         self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
         self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
-        # self.rubberband = QtGui.QRubberBand(QtGui.QRubberBand.Rectangle, self)
 
         scene = QtGui.QGraphicsScene(self)
         scene.setItemIndexMethod(QtGui.QGraphicsScene.NoIndex)
         scene.setSceneRect(self.size[0],self.size[1],self.size[2],self.size[3])
         self.setScene(scene)
-        # self.setCacheMode(QtGui.QGraphicsView.CacheBackground)
         self.setRenderHint(QtGui.QPainter.Antialiasing)
         self.setTransformationAnchor(QtGui.QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QtGui.QGraphicsView.AnchorViewCenter)
-        #
-        # self.maxtemp = 300
-        # self.maxtime = 160
-        self.nodeCount = 0
-        self.markerCount = 1
-        self.markerGuideCount = 0
-        self.showMarkerID = True
-        self.markerScale = 1.0
-        self.markerActiveList = []
-        # self.calc_upper_limits()
-        #
+
         self.scale(1,1)
         self.setMinimumSize(500, 500)
         self.setWindowTitle(self.tr("Elastic Nodes"))
         self.inhibit_edit = False
 
-        # self.setBackgroundImage() #Add the character image to the background
-        
+        # View Settings
+        self.backgroundImage = None
+
+        self.markerCount = 1
+        self.markerScale = 1.0
+        self.markerActiveList = []   #Do not need to store this in XML since we can find the actual markers that have an
+
         #Add in Reflection Line
         self.reflectionLine = self.addReflectionLine()
         self.showReflectionLine = True
@@ -936,32 +926,36 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.markerList = []
         self.wireGroups = []
 
-        #Test Parenting 
-        # cP1 = ControlPin()   
-        # cP1.setPos(QtCore.QPointF(20,20))
 
-        # cP2 = ControlPin()   
-        # cP2.setPos(QtCore.QPointF(60,20))
+    def getBackgroundimage(self):
+        return self.backgroundImage
 
-        # m1 = GuideMarker()
-        # m1.setPos(QtCore.QPointF(20,20))
+    def getMarkerCount(self):
+        return self.markerCount
 
-        # m2 = GuideMarker()
-        # m2.setPos(QtCore.QPointF(60,20))
+    def getMarkerScale(self):
+        return self.markerScale
 
-        # m2.setParentItem(m1)
-        # self.scene().addItem(m1)
-        # self.scene().addItem(m2)
-        # self.scene().addItem(cP1)
-        # self.scene().addItem(cP2)
+    def getReflectionLine(self):
+        return self.reflectionLine
 
-    def setBackgroundImage(self):
-        """Function to set the validity of a file path, and if it is good then pass it to the Graphics View for drawing"""
+    def getMarkerList(self):
+        return self.markerList
+
+    def getWireGroups(self):
+        return self.wireGroups
+
+    def loadBackgroundImage(self):
         imagePath = QtGui.QFileDialog.getOpenFileName(caption = "Please choose front character face image ~ 500px x 500px", directory="./images" , filter = "*.png")
         if os.path.exists(imagePath):
-            self.characterImageFile = imagePath
-            print "characterImageFile : " + str(self.characterImageFile)
-            characterImage = QtGui.QPixmap(self.characterImageFile)
+            self.backgroundImage = imagePath 
+            self.setupBackground() 
+
+
+    def setupBackground(self):
+        """Function to set the validity of a file path, and if it is good then pass it to the Graphics View for drawing"""
+        if self.backgroundImage:
+            characterImage = QtGui.QPixmap(self.backgroundImage)
             self.width = characterImage.width()
             self.height = characterImage.height()
             self.size = [self.size[0],self.size[1], self.width,self.height]
@@ -971,9 +965,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.setMinimumSize(self.width,self.height)
             self.scene().update()
             self.sizeHint()
-        else:
-            self.characterImageFile = None
-            print "WARNING: NOW VALID IMAGE SELECTED FOR CHARACTER BACKGROUND"
+
 
     def addReflectionLine(self):
         scene = self.scene()
@@ -985,28 +977,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
         """Function to show/hide the central reflection line"""
         self.reflectionLine.setVisible(state)
         self.reflectionLine.update()
-
-    def findMarkerGuideCount(self):
-        """Run through the markers and find the next Guide Index"""
-        markerCount = 1
-
-    # def calc_upper_limits(self):
-    #     self.toptemp = (self.maxtemp / 100 + 1) * 100
-    #     self.toptime = (int(self.maxtime) / 30 + 1) * 30
-    #     self.graph_width_ratio = float(self.size[2]) /self.toptime
-    #     self.graph_height_ratio = float(self.size[3]) / self.toptemp
-
-    def add_node(self,xPos,yPos, marker=False):
-        scene = self.scene()
-        # Insert Node into scene
-        # colourGrabber = colourGrab(self.colourBroadCaster, radius = self.restraintDef["radius"])
-        node = Node(self, xPos, yPos)
-        node.setIndex(self.nodeCount)
-        # colourGrabber.setIndex(self.nodecount) #Make sure that the Node and the ColourGrabber have neatly setup indexes
-        # self.colourBroadCaster.addColourGrab(colourGrabber) #Make sure that the colour grabber is past to the broadcaster
-        scene.addItem(node)
-        self.nodeCount += 1
-        return node
 
     def add_guideMarker(self,pos):
         """Function to add a new node at the specified position!"""
@@ -1022,27 +992,14 @@ class RigGraphicsView(QtGui.QGraphicsView):
         nodes.sort(key=lambda n: n.index)
         return nodes
 
-    def addRigControl(self, controlPosList, color = QtGui.QColor(0, 0, 0)):
-        scene = self.scene()
-        rigCurveNodes = []
-        for p in controlPosList:
-            newNode = self.add_node(p[0],p[1])
-            # ctrlPoint = QtCore.QPointF(p[0], p[1])
-            rigCurveNodes.append(newNode)
-            # rigCurveNodes.append(ctrlPoint)
-        # print "Node List : " + str(rigCurveNodes)
-        # for n in rigCurveNodes: print "Node Pos : " + str(n.pos())
-        curve = RigCurve(color, rigCurveNodes)
-        scene.addItem(curve)
-
     def drawBackground(self, painter, rect):
-        if self.characterImageFile != None:
-            backImage = QtGui.QPixmap(self.characterImageFile)
+        if self.backgroundImage != None:
+            backImage = QtGui.QPixmap(self.backgroundImage)
             # backImage.scaled(500,500, QtCore.Qt.KeepAspectRatio)
             painter.drawPixmap(rect, backImage, rect)
             # print "This was drawn"
         sceneRect = self.sceneRect()
-        # print "Back image is: " + str(self.characterImageFile)
+        # print "Back image is: " + str(self.backgroundImage)
 
     def reflectPos(self, pos):
         """Function to find the reflected position of a guide"""
@@ -1266,7 +1223,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
             item.setIndex(self.markerCount)
             item.setPos(self.mapToScene(event.pos()))
             item.setScale(self.markerScale)
-            item.setShowID(self.showMarkerID)
             self.markerList.append(item) #Add Item to the main Marker list
             self.scene().addItem(item)
             print self.markerList
@@ -1391,3 +1347,48 @@ class RigGraphicsView(QtGui.QGraphicsView):
     #     for item in self.markerActiveList: markerIndexes.append(item.getIndex())
     #     print str(markerIndexes)
     #     return QtGui.QGraphicsView.mouseReleaseEvent(self, mouseEvent)
+
+class FaceGVCapture():
+    def __init__(self, faceGView):
+        """Class to capture all of the information out of the Graphics View"""
+        self.view = faceGView
+        self.scene = self.view.scene()
+        self.viewXML = None
+
+    def store(self):
+        self.viewXML = xml.Element('faceRigGraphicsView')
+        self.viewSettings = xml.SubElement(self.viewXML,'viewSettings')
+        self.sceneItems = xml.SubElement(self.viewXML,'sceneItems')
+
+        self.captureBackgroundImage() #Record the background Image
+        self.captureViewSettings() # Capture remainng View settings
+        self.captureReflectionLine()
+        self.captureMarkers()
+        self.captureWireGroups()
+
+        #Now we have captured everything into a super giant XML tree we need to save this out.
+
+    def read(self):
+        pass
+
+    def captureBackgroundImage(self):
+        """Function to process background Image into XML"""
+        backgroundImage = xml.SubElement(self.viewSettings, 'attribute', name = 'backgroundImage', value = str(self.view.getbackgroundImage()))
+
+    def captureViewSettings(self):
+        """Function to process View Settings into XML"""
+        markerCount = xml.SubElement(self.viewSettings, 'attribute', name = 'markerCount', value = str(self.view.getMarkerCount()))
+        markerScale = xml.SubElement(self.viewSettings, 'attribute', name = 'markerScale', value = str(self.view.getMarkerScale()))
+
+    def captureReflectionLine(self):
+        """Function to process Reflection Line into XML"""
+        reflecionLine = self.view.getReflectionLine()
+
+    def captureMarkers(self):
+        """Function to process Markers into XML"""
+        markers = self.view.getMarkerList()
+
+    def captureWireGroups(self):
+        """Function to process WireGroups into XML"""
+        wireGroups = self.view.getWireGroups()
+

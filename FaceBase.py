@@ -34,7 +34,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.imgFileLineEdit.setMinimumWidth(200)
         self.imgFileLineEdit.setReadOnly(True)
         self.imgFileSetButton = QtGui.QPushButton("Image")
-        self.imgFileSetButton.pressed.connect(lambda: self.view.setBackgroundImage())
+        self.imgFileSetButton.pressed.connect(lambda: self.view.loadBackgroundImage())
 
         self.markerSpawn = RigUIControls.DragItemButton("GuideMarker")
         # self.showReflectionLineButton = QtGui.QCheckButton("Toggle Reflection Line")

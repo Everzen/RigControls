@@ -102,7 +102,7 @@ class ReflectionLine(QtGui.QGraphicsItem):
         self.drawStart = []
         self.drawEnd = []
         # self.visible = True #Use default isVisble method etc
-        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
+        # self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
         self.adjustable = False
         self.initUI()
 
@@ -287,6 +287,7 @@ class WireControlGroup():
             node = Node(p)
             node.setIndex(index)
             node.setPin(self.pins[index])
+            node.setWireGroup(self)
             self.nodes.append(node)
             self.scene.addItem(node)
 
@@ -307,11 +308,14 @@ class WireControlGroup():
             self.curve = RigCurve(self.colour, self.nodes)
             self.scene.addItem(self.curve)
 
+    def resetNodes(self):
+        for node in self.nodes:
+            node.goHome()
 
 class ControlPin(QtGui.QGraphicsItem):
     def __init__(self, cPos, control = None):
         super(ControlPin, self).__init__()
-        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
+        # self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
         self.scale = 1
         self.scaleOffset = 2.5
         self.index = 0 
@@ -387,7 +391,7 @@ class ControlPin(QtGui.QGraphicsItem):
 class PinTie(QtGui.QGraphicsItem):
     def __init__(self, startNode, endNode):
         super(PinTie, self).__init__()
-        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
+        # self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
         self.thickness = 0.5
         self.index = 0 
         self.groupName = 1
@@ -452,7 +456,7 @@ class GuideMarker(QtGui.QGraphicsItem):
     def __init__(self):
         super(GuideMarker, self).__init__()
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
-        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
+        # self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
         # self.setCacheMode(self.DeviceCoordinateCache)
         ####MARKER IDENTIFIERS####################################
@@ -704,8 +708,9 @@ class Node(QtGui.QGraphicsItem):
         self.rigCurveList = []
         self.bezierHandles = [None, None]
         self.newPos = QtCore.QPointF()
-        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
-        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
         # self.setCacheMode(self.DeviceCoordinateCache)
         self.setZValue(-1)
         self.restraintDef = restraintDef
@@ -717,6 +722,8 @@ class Node(QtGui.QGraphicsItem):
         # self.pin.append(weakref.ref(pin))
         self.pin = None
         self.pinTie = None
+
+        self.wireGroup = None
         # if self.restraintDef:
         #     self.move_restrict_circle = QtGui.QGraphicsEllipseItem(2*self.restraintDef["centerOffset"][0],2*self.restraintDef["centerOffset"][1], 2*self.restraintDef["radius"],2*self.restraintDef["radius"])
         # offsetPos = self.pos() - QPVec(self.restraintDef["center"])
@@ -766,6 +773,17 @@ class Node(QtGui.QGraphicsItem):
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PINTIE ALLOCATION"
 
+    def getWireGroup(self):
+        if not self.wireGroup: print "WARNING : NO REGISTERED WIRE GROUP ON THE NODE, SO NO GROUP TO RETURN"
+        return self.wireGroup
+
+    def setWireGroup(self, wireGroup):
+        self.wireGroup = wireGroup
+
+    def resetWireGroup(self):
+        if self.wireGroup:
+            self.wireGroup.resetNodes()
+
     def goHome(self):
         """Function to centralise the node back to the pin and update any associated rigCurves and pinTies"""
         if self.pin:
@@ -786,6 +804,7 @@ class Node(QtGui.QGraphicsItem):
         self.prepareGeometryChange()
         # painter.setPen(QtCore.Qt.NoPen)
         cColour = QtGui.QColor(25,25,50,150)
+        if self.isSelected(): cColour = QtGui.QColor(220,220,255,150)
         pen = QtGui.QPen(cColour, 1, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         # painter.setBrush(QtCore.Qt.lightGray)
@@ -1089,6 +1108,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
             for m in self.markerSelectionList: posList.append(m.pos())
             newWireGroup = WireControlGroup(posList, self)
             self.wireGroups.append(newWireGroup)
+            for m in self.markerSelectionList: 
+                m.setActive(False) 
+                m.setSelected(False) #Deactivate all markers and deselect them
+            self.markerSelectionList = [] #Reset the Marker List
         else:
             print "WARNING : THERE ARE NOT ENOUGH MARKERS SELECTED TO CREATE A WIRE GROUP"
 
@@ -1222,18 +1245,21 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def mouseDoubleClickEvent(self, mouseEvent):
         scene = self.scene()
         selGuides = []
-        if mouseEvent.button() == QtCore.Qt.LeftButton:
-            possibleItems = self.items(mouseEvent.pos())
+        possibleItems = self.items(mouseEvent.pos())
+        if mouseEvent.button() == QtCore.Qt.LeftButton:    #Left Double click on a Marker to activate or deactivate it
             for item in possibleItems:
                if type(item) == GuideMarker: selGuides.append(item)
 
-        print "Double"
         if len(selGuides) > 0 :
             self.processMarkerSelection(selGuides[0])
             self.processMarkerActiceIndex()
             return QtGui.QGraphicsView.mouseDoubleClickEvent(self, mouseEvent)
-        else: 
-            return QtGui.QGraphicsView.mouseDoubleClickEvent(self, mouseEvent)
+
+        if mouseEvent.button() == QtCore.Qt.MiddleButton:  #Send a Node back to its Pin with a Double Right button click
+            for item in possibleItems:
+               if type(item) == Node: 
+                    item.goHome()
+        return QtGui.QGraphicsView.mouseDoubleClickEvent(self, mouseEvent)
 
 
     def contextMenuEvent(self, event):
@@ -1291,10 +1317,14 @@ class RigGraphicsView(QtGui.QGraphicsView):
         menu = QtGui.QMenu()
         menu.setStyleSheet(self.styleData)
         menu.addAction('Go Home')
+        menu.addSeparator()
+        menu.addAction('Reset Wire Group')
         action = menu.exec_(event.globalPos())
         if action:
             if action.text() == 'Go Home':
                 item.goHome()
+            if action.text() == 'Reset Wire Group':
+                item.resetWireGroup()
 
     # def mouseReleaseEvent(self, mouseEvent):
     #     if len(self.scene().selectedItems()) > 0 and len(self.markerSelectionList) == 0: #A drag selection has occured. reset Marker list to selection

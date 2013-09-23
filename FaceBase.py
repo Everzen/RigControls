@@ -5,6 +5,7 @@ import RigUIControls
 import math
 import sys
 import Icons
+import pickle #For saving out 
 
 class RigFaceSetup(QtGui.QMainWindow):
 # class RigFaceSetup(QtGui.QMainWindow):
@@ -51,6 +52,8 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.selectionButton = QtGui.QPushButton("Test Selection")
         self.addWireGroupButton = QtGui.QPushButton("Add Wire Group")
         self.addWireGroupButton.clicked.connect(lambda:  self.view.addWireGroup())
+        self.clearGV = QtGui.QPushButton("CLEAR")
+        self.clearGV.clicked.connect(lambda:  self.view.clear())
         # self.selectionButton.pressed.connect(lambda: self.view.printSelection()) #Adjust this to add hide Reflection Line Functionality
 
 
@@ -67,6 +70,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         # vButtonBox.addWidget(self.testCheckBox)
         vButtonBox.addWidget(self.selectionButton)
         vButtonBox.addWidget(self.addWireGroupButton)
+        vButtonBox.addWidget(self.clearGV)
         vButtonBox.addStretch(1)
 
         hBox.addWidget(self.view)
@@ -80,12 +84,12 @@ class RigFaceSetup(QtGui.QMainWindow):
         openFace = QtGui.QAction(QtGui.QIcon('exit.png'), 'Open Face', self)        
         openFace.setShortcut('Ctrl+O')
         openFace.setStatusTip('Exit application')
-        openFace.triggered.connect(lambda: self.moo())
+        openFace.triggered.connect(lambda: self.openFaceRig())
 
         saveFace = QtGui.QAction(QtGui.QIcon('exit.png'), 'Save Face', self)        
         saveFace.setShortcut('Ctrl+S')
         saveFace.setStatusTip('Exit application')
-        saveFace.triggered.connect(lambda: self.moo())
+        saveFace.triggered.connect(lambda: self.saveFaceRig())
 
         saveFaceAs = QtGui.QAction(QtGui.QIcon('exit.png'), 'Save Face as...', self)        
         saveFaceAs.setShortcut('Ctrl+Shift+S')
@@ -177,6 +181,17 @@ class RigFaceSetup(QtGui.QMainWindow):
         else:
             self.selNodes.setIcon(QtGui.QIcon('images/Node_toolbar_deactive.png'))
         self.view.selectFilter(state, RigUIControls.Node)
+
+    def openFaceRig(self):
+        self.view.read("faceFiles/test.xml")
+
+    def saveFaceRig(self):
+        # print "Saving"
+        # print str(self.view.__dict__)
+        self.view.store("faceFiles/test.xml")
+        # faceFile = open('faceFiles/pickle.txt', 'wb')
+        # pickle.dump(self.view, faceFile)
+        # faceFile.close()
 
 app = QtGui.QApplication([])
 app.setStyle('Plastique')

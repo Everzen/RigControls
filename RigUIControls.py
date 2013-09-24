@@ -114,7 +114,51 @@ class ReflectionLine(QtGui.QGraphicsItem):
         self.drawStart = [0, -self.height/2 + self.inset]
         self.drawEnd = [0, self.height/2 - self.inset]
         self.setPos(QtCore.QPointF(self.width/2, self.height/2))
-        self.restPos = QtCore.QPointF(self.width/2, self.height/2)
+
+    def store(self):
+        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        ReflectionLineRoot = xml.Element('ReflectionLine')
+        attributes = xml.SubElement(ReflectionLineRoot,'attributes')
+        xml.SubElement(attributes, 'attribute', name = 'width', value = str(self.getWidth()))
+        xml.SubElement(attributes, 'attribute', name = 'height', value = str(self.getHeight()))
+        xml.SubElement(attributes, 'attribute', name = 'inset', value = str(self.getInset()))
+        xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
+        return ReflectionLineRoot
+
+    def read(self, ReflectionLineXml):
+        """A function to read in a block of XML and set all major attributes accordingly"""
+        # ReflectionLineRoot = ReflectionLineXml.getroot()
+        for a in ReflectionLineXml.findall( 'attributes/attribute'):
+            if a.attrib['name'] == 'width': self.setWidth(float(a.attrib['value']))
+            elif a.attrib['name'] == 'height': self.setHeight(float(a.attrib['value']))
+            elif a.attrib['name'] == 'inset': self.setInset(float(a.attrib['value']))
+            elif a.attrib['name'] == 'pos': 
+                newPos = a.attrib['value'].split(",")
+                self.setPos(float(newPos[0]), float(newPos[1]))
+        self.setDraw()
+        self.update()
+
+    def getWidth(self):
+        return self.width
+
+    def setWidth(self,width):
+        self.width = width
+
+    def getHeight(self):
+        return self.height
+
+    def setHeight(self,height):
+        self.height = height
+
+    def getInset(self):
+        return self.inset
+
+    def setInset(self, inset):
+        self.inset = inset
+
+    def setDraw(self):
+        self.drawStart = [0, -self.height/2 + self.inset]
+        self.drawEnd = [0, self.height/2 - self.inset]      
 
     def paint(self, painter, option, widget):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
@@ -927,17 +971,42 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.wireGroups = []
 
 
-    def getBackgroundimage(self):
+    def getBackgroundImage(self):
         return self.backgroundImage
+
+    def setBackgroundImage(self, image):
+        if image:   
+            if os.path.exists(image):
+                self.backgroundImage = image
+            else: self.backgroundImage = None
+        else: self.backgroundImage = None
 
     def getMarkerCount(self):
         return self.markerCount
 
+    def setMarkerCount(self, markerCount):
+        self.markerCount = markerCount
+
     def getMarkerScale(self):
         return self.markerScale
 
+    def setMarkerScaleSlider(self, scale):
+        """Function to cycle through markers and scale"""
+        scene = self.scene()
+        for item in scene.items():
+            if type(item) == GuideMarker: #change the state of its show ID
+                item.setScale(float(scale/100.0))
+                item.update()
+        self.markerScale = float(scale/100.0)
+
+    def setMarkerScale(self,markerScale):
+        self.markerScale = markerScale
+
     def getReflectionLine(self):
         return self.reflectionLine
+
+    def setReflectionLine(self, reflectionLine):
+        self.reflectionLine = reflectionLine
 
     def getMarkerList(self):
         return self.markerList
@@ -952,7 +1021,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.setupBackground() 
 
 
-    def setupBackground(self):
+    def setupBackground(self, remap = True):
         """Function to set the validity of a file path, and if it is good then pass it to the Graphics View for drawing"""
         if self.backgroundImage:
             characterImage = QtGui.QPixmap(self.backgroundImage)
@@ -961,7 +1030,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.size = [self.size[0],self.size[1], self.width,self.height]
             self.scene().setSceneRect(self.size[0],self.size[1],self.size[2],self.size[3])
             self.updateSceneRect(QtCore.QRectF(self.size[0],self.size[1],self.size[2],self.size[3]))
-            self.reflectionLine.remap(self.width, self.height) # Adjust the Positing and height of the reflection line
+            if remap: self.reflectionLine.remap(self.width, self.height) # Adjust the Positing and height of the reflection line
             self.setMinimumSize(self.width,self.height)
             self.scene().update()
             self.sizeHint()
@@ -1019,15 +1088,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 newMarker.setPos(newGuidePos.x(),newGuidePos.y())
                 self.markerList.append(newMarker)
                 scene.addItem(newMarker)
-
-    def setMarkerScale(self, scale):
-        """Function to cycle through markers and scale"""
-        scene = self.scene()
-        for item in scene.items():
-            if type(item) == GuideMarker: #change the state of its show ID
-                item.setScale(float(scale/100.0))
-                item.update()
-        self.markerScale = float(scale/100.0)  
 
     def processMarkerActiveIndex(self):
         itemPresent = False
@@ -1123,13 +1183,14 @@ class RigGraphicsView(QtGui.QGraphicsView):
         #     else: self.markerActiveList = [marker] #ctrl not pressed, so we are starting a new clean list with the marker
         # # print str(self.markerActiveList)
 
-    def clear(self):
+    def clear(self, isReflectionLine = True):
         self.scene().clear() # Clear the scene of all items
+        self.setBackgroundImage(None)
         self.reflectionLine = None
         self.markerList = []
         self.markerActiveList = []
         self.wireGroups = []
-        self.reflectionLine = self.addReflectionLine()
+        if isReflectionLine: self.reflectionLine = self.addReflectionLine()
 
     def store(self, XMLFile):
         """Function to store all the contents of the Graphics View and write it out to a giant XML File - Work through all elements and Store"""
@@ -1348,45 +1409,110 @@ class RigGraphicsView(QtGui.QGraphicsView):
     #     print str(markerIndexes)
     #     return QtGui.QGraphicsView.mouseReleaseEvent(self, mouseEvent)
 
+
 class FaceGVCapture():
     def __init__(self, faceGView):
         """Class to capture all of the information out of the Graphics View"""
         self.view = faceGView
         self.scene = self.view.scene()
         self.viewXML = None
+        self.xMLFile = None
+
+    def setXMLFile(self,xMLFile):
+        self.xMLFile = xMLFile
+        self.setTree()
+
+    def setTree(self):
+        self.viewXML = FileControl.XMLMan()
+        self.viewXML.setLoad(self.xMLFile)        
 
     def store(self):
-        self.viewXML = xml.Element('faceRigGraphicsView')
-        self.viewSettings = xml.SubElement(self.viewXML,'viewSettings')
-        self.sceneItems = xml.SubElement(self.viewXML,'sceneItems')
+        if self.xMLFile:
+            self.viewXML = FileControl.XMLMan()
+            self.viewXML.tree = xml.Element('faceRigGraphicsView')
+            self.viewSettings = xml.SubElement(self.viewXML.tree,'viewSettings')
+            self.sceneItems = xml.SubElement(self.viewXML.tree,'sceneItems')
 
-        self.captureBackgroundImage() #Record the background Image
-        self.captureViewSettings() # Capture remainng View settings
-        self.captureReflectionLine()
-        self.captureMarkers()
-        self.captureWireGroups()
+            self.captureBackgroundImage() #Record the background Image
+            self.captureViewSettings() # Capture remainng View settings
+            self.captureReflectionLine()
+            self.captureMarkers()
+            # self.captureWireGroups()
 
-        #Now we have captured everything into a super giant XML tree we need to save this out.
+            #Now we have captured everything into a super giant XML tree we need to save this out.
+            self.viewXML.setFile(self.xMLFile)
+            self.viewXML.save()
+        else: print "WARNING : COULD NOT SAVE FACE RIG TO FILE, SINCE A VALID FILE NAME WAS NOT SUPPLIED"
 
     def read(self):
-        pass
+        if self.viewXML:
+            scene = self.view.scene()
+            self.view.clear(isReflectionLine = False) #Clear the entire Graphics View, including reflection Line
+
+            self.readBackgroundImage()
+            self.readViewSettings()
+            self.readRelectionLine()
+            self.readMarkers()
+        else: print "WARNING : COULD NOT LOAD FACE RIG, SINCE A VALID FILE NAME WAS NOT SUPPLIED"
 
     def captureBackgroundImage(self):
         """Function to process background Image into XML"""
-        backgroundImage = xml.SubElement(self.viewSettings, 'attribute', name = 'backgroundImage', value = str(self.view.getbackgroundImage()))
+        backgroundImage = xml.SubElement(self.viewSettings, 'attribute', name = 'backgroundImage', value = str(self.view.getBackgroundImage()))
+
+    def readBackgroundImage(self):
+        """Function to process background Image from XML"""
+        viewSettings = self.viewXML.findBranch("viewSettings")[0]
+        for a in viewSettings.findall( 'attribute'):
+            if a.attrib['name'] == 'backgroundImage': self.view.setBackgroundImage(str(a.attrib['value']))
+        self.view.setupBackground(remap = False) # Do not remap the reflection Line since it does not exist yet! 
 
     def captureViewSettings(self):
         """Function to process View Settings into XML"""
+        print "MarkerScale -= " + str(self.view.getMarkerScale())
         markerCount = xml.SubElement(self.viewSettings, 'attribute', name = 'markerCount', value = str(self.view.getMarkerCount()))
         markerScale = xml.SubElement(self.viewSettings, 'attribute', name = 'markerScale', value = str(self.view.getMarkerScale()))
 
+    def readViewSettings(self):
+        """Function to process view Settings from XML"""
+        viewSettings = self.viewXML.findBranch("viewSettings")[0]
+        for a in viewSettings.findall( 'attribute'):
+            if a.attrib['name'] == 'markerCount': self.view.setMarkerCount(int(a.attrib['value']))
+            elif a.attrib['name'] == 'markerScale': self.view.setMarkerScale(float(a.attrib['value']))
+
     def captureReflectionLine(self):
         """Function to process Reflection Line into XML"""
-        reflecionLine = self.view.getReflectionLine()
+        reflectionLine = self.view.getReflectionLine()
+        reflectionLineXml = reflectionLine.store()
+        self.sceneItems.append(reflectionLineXml)
+
+    def readRelectionLine(self):
+        scene = self.view.scene()
+        reflectionLineXml = self.viewXML.findBranch("ReflectionLine")
+        if len(reflectionLineXml) ==  1: #We have found a single Correct Reflection Line
+            newReflectionLine = ReflectionLine(20,20)  #Initialise Reflection line with arbitary width and height that we can over ride immediately with read method
+            newReflectionLine.read(reflectionLineXml[0])
+            scene.addItem(newReflectionLine)
+            self.view.setReflectionLine(newReflectionLine)
+        else: print "WARNING : REFLECTION LINE ERROR : NO REFLECTION LINES OR MULTIPLE REFLECTIONS LINES WERE LOADED"
 
     def captureMarkers(self):
         """Function to process Markers into XML"""
         markers = self.view.getMarkerList()
+        for m in markers:
+            markerXML = m.store()
+            self.sceneItems.append(markerXML)
+
+    def readMarkers(self):
+        scene = self.view.scene()
+        markers = self.viewXML.findBranch("GuideMarker")
+        for m in markers:
+            newMarker = GuideMarker()
+            newMarker.read(m)
+            scene.addItem(newMarker)
+            self.view.markerList.append(newMarker) #Add Marker to marker List
+            if newMarker.getActive(): self.view.markerActiveList.append(newMarker)
+        self.view.markerActiveList.sort(key=lambda x: x.getActiveIndex())
+        self.view.processMarkerActiveIndex()  #Update all active states 
 
     def captureWireGroups(self):
         """Function to process WireGroups into XML"""

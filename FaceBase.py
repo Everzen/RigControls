@@ -42,7 +42,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         # self.markerScale.setTickPosition(1.0)
         self.markerScale.setRange(60, 200)
         self.markerScale.setValue(100)
-        self.markerScale.valueChanged.connect(lambda: self.view.setMarkerScale(self.markerScale.value()))
+        self.markerScale.valueChanged.connect(lambda: self.view.setMarkerScaleSlider(self.markerScale.value()))
 
         # self.connect(self.markerScale , QtCore.SIGNAL( ' valueChanged ( int ) ' ), self.changeValue)
         
@@ -183,12 +183,16 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.view.selectFilter(state, RigUIControls.Node)
 
     def openFaceRig(self):
-        self.view.read("faceFiles/test.xml")
+        xMLStructure = RigUIControls.FaceGVCapture(self.view)
+        xMLStructure.setXMLFile("faceFiles/test.xml")
+        xMLStructure.read()
 
     def saveFaceRig(self):
         # print "Saving"
         # print str(self.view.__dict__)
-        self.view.store("faceFiles/test.xml")
+        xMLStructure = RigUIControls.FaceGVCapture(self.view)
+        xMLStructure.setXMLFile("faceFiles/test.xml")
+        xMLStructure.store()
         # faceFile = open('faceFiles/pickle.txt', 'wb')
         # pickle.dump(self.view, faceFile)
         # faceFile.close()

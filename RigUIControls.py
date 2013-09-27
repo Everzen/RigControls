@@ -327,6 +327,25 @@ class WireControlGroup():
         #     wirePins.append(pinXml)
         return wireRoot
 
+    def read(self, wireXml):
+        """A function to read in a block of XML and set all major attributes accordingly"""
+        for a in wireXml.findall( 'attributes/attribute'):
+            if a.attrib['name'] == 'name': self.setIndex(int(a.attrib['value']))
+            elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
+            elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
+            elif a.attrib['name'] == 'colour': 
+                newColour = a.attrib['value'].split(",")
+                self.setColour(QtGui.QColor(int(newColour[0]), int(newColour[1]),int(newColour[2])))
+
+        #Now read in and generate all the nodes
+        self.nodes = []
+        for n in wireXml.findall('nodes')
+            newNode = Node([0,0]) #Create new Node with Arbitray pos
+            self.nodes.append(newNode)
+            newNode.read(n)
+
+
+
 
     def buildFromPositions(self , pinQPointList):
         self.pinPositions = pinQPointList

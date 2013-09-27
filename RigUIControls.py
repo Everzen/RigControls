@@ -291,7 +291,7 @@ class DragItemButton(QtGui.QPushButton):
 
 #################################RIGGER CONTROL GROUPS#############################################################################
 
-class WireControlGroup():
+class WireGroup():
     def __init__(self, rigGView):
         #LIST OF ATTRIBUTES
         self.name = ""
@@ -308,7 +308,7 @@ class WireControlGroup():
 
     def store(self):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
-        wireRoot = xml.Element('wireGroup')
+        wireRoot = xml.Element('WireGroup')
         attributes = xml.SubElement(wireRoot,'attributes')
         xml.SubElement(attributes, 'attribute', name = 'name', value = str(self.getName()))
         xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.colour.red()) + "," + str(self.colour.green()) + "," + str(self.colour.blue())))
@@ -330,7 +330,7 @@ class WireControlGroup():
     def read(self, wireXml):
         """A function to read in a block of XML and set all major attributes accordingly"""
         for a in wireXml.findall( 'attributes/attribute'):
-            if a.attrib['name'] == 'name': self.setIndex(int(a.attrib['value']))
+            if a.attrib['name'] == 'name': self.setName(a.attrib['value'])
             elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
             elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
             elif a.attrib['name'] == 'colour': 
@@ -339,13 +339,13 @@ class WireControlGroup():
 
         #Now read in and generate all the nodes
         self.nodes = []
-        for n in wireXml.findall('nodes')
-            newNode = Node([0,0]) #Create new Node with Arbitray pos
+        nodes = wireXml.findall('nodes')
+        for n in nodes[0].findall('node'):
+            print "processing Node"
+            newNode = Node(QPVec([0,0])) #Create new Node with Arbitray pos
             self.nodes.append(newNode)
             newNode.read(n)
-
-
-
+            self.scene.addItem(newNode)
 
     def buildFromPositions(self , pinQPointList):
         self.pinPositions = pinQPointList
@@ -376,7 +376,7 @@ class WireControlGroup():
         return self.visibility
 
     def setVisible(self, visibility):
-        self. visibility = visiblility
+        self. visibility = visibility
 
     def createPins(self):
         """Initially place the pins according to markers given, and fill out self.pins"""
@@ -1265,7 +1265,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if len(self.markerActiveList) > 2:
             posList = []
             for m in self.markerActiveList: posList.append(m.pos())
-            newWireGroup = WireControlGroup(self)
+            newWireGroup = WireGroup(self)
             newWireGroup.buildFromPositions(posList)
             self.wireGroups.append(newWireGroup)
             for m in self.markerActiveList: 
@@ -1586,6 +1586,7 @@ class FaceGVCapture():
             self.readViewSettings()
             self.readRelectionLine()
             self.readMarkers()
+            self.readWireGroups()
         else: print "WARNING : COULD NOT LOAD FACE RIG, SINCE A VALID FILE NAME WAS NOT SUPPLIED"
 
     def captureBackgroundImage(self):
@@ -1653,3 +1654,12 @@ class FaceGVCapture():
         for w in wireGroups:
             wireXml = w.store()
             self.sceneItems.append(wireXml)
+    
+    def readWireGroups(self):
+        """A Function to generate WireGroups from XML"""
+        scene = self.view.scene()
+        wireGroups = self.viewXML.findBranch("WireGroup")
+        for w in wireGroups:
+            newWireGroup = WireGroup(self.view)
+            newWireGroup.read(w)
+            self.view.wireGroups.append(newWireGroup)

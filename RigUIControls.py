@@ -292,20 +292,44 @@ class DragItemButton(QtGui.QPushButton):
 #################################RIGGER CONTROL GROUPS#############################################################################
 
 class WireControlGroup():
-    def __init__(self, pinQPointList, rigGView):
+    def __init__(self, rigGView):
         #LIST OF ATTRIBUTES
         self.name = ""
-        self.colour = QtCore.Qt.black
-        self.pinPositions = pinQPointList
+        self.colour = QtGui.QColor(0,0,0)
+        self.scale = 1.0 #Not implemented, but it is stored, so could be used to drive the size of the setup of the wiregroup
+        self.pinPositions = []
+        self.visibility = True
         self.pins = []
         self.nodes = []
         self.pinTies = []
         self.curve = None
-        self.colour = QtGui.QColor(0,0,0)
         self.scene = rigGView.scene()
-        self.initBuild()
+        # self.initBuild()
 
-    def initBuild(self):
+    def store(self):
+        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        wireRoot = xml.Element('node')
+        attributes = xml.SubElement(wireoot,'attributes')
+        xml.SubElement(attributes, 'attribute', name = 'name', value = str(self.getName()))
+        xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.colour.red()) + "," + str(self.colour.green()) + "," + str(self.colour.blue())))
+        xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
+        xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
+
+        #Now record the xml for the Nodes
+        wireNodes = xml.SubElement(wireRoot,'nodes')
+        for n in self.nodes:
+            nodeXml = n.read()
+            wireNodes.append(nodeXml)
+        #Now record the xml for the Pins - pinTies should be able to be drawn from the resulting data of nodes and pinz
+        wirePins = xml.SubElement(wireRoot,'pins')
+        # for p in self.pins:
+        #     pinXml = p.read()
+        #     wirePins.append(pinXml)
+        return wireRoot
+
+
+    def buildFromPositions(self , pinQPointList):
+        self.pinPositions = pinQPointList
         self.createPins()
         self.createNodes()
         self.createPintTies()
@@ -316,6 +340,24 @@ class WireControlGroup():
 
     def setName(self, newName):
         self.name = str(newName)
+
+    def getColour(self):
+        return self.colour
+
+    def setColour(self,colour):
+        self.colour = colour
+
+    def getScale(self):
+        return self.scale
+
+    def setScale(self, scale):
+        self.scale = scale
+
+    def isVisible(self):
+        return self.visibility
+
+    def setVisible(self, visibility):
+        self. visibility = visiblility
 
     def createPins(self):
         """Initially place the pins according to markers given, and fill out self.pins"""
@@ -767,26 +809,29 @@ class RigCurve(QtGui.QGraphicsItem):
 class Node(QtGui.QGraphicsItem):
     def __init__(self, nPos, restraintDef=None, moveThreshold=5, operatorClass = None):
         QtGui.QGraphicsItem.__init__(self)
-        self.index = 0
-        self.rigCurveList = []
-        self.bezierHandles = [None, None]
-        self.newPos = QtCore.QPointF()
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
-        # self.setCacheMode(self.DeviceCoordinateCache)
-        self.setZValue(-1)
+
+        self.index = 0
+        self.rigCurveList = []
+        self.bezierHandles = [None, None]
+
+        self.radius = 8
+        self.scale = 1.0
+        # self.pin.append(weakref.ref(pin))
+        self.pin = None
+        self.pinIndex = None
+
+        self.pinTie = None
+        self.pinTieIndex = None
+
+        self.wireGroup = None
+        
         self.restraintDef = restraintDef
         self.move_restrict_circle = None
         self.operatorClass = operatorClass
-        
-        self.marker = False
-        self.radius = 8
-        # self.pin.append(weakref.ref(pin))
-        self.pin = None
-        self.pinTie = None
 
-        self.wireGroup = None
         # if self.restraintDef:
         #     self.move_restrict_circle = QtGui.QGraphicsEllipseItem(2*self.restraintDef["centerOffset"][0],2*self.restraintDef["centerOffset"][1], 2*self.restraintDef["radius"],2*self.restraintDef["radius"])
         # offsetPos = self.pos() - QPVec(self.restraintDef["center"])
@@ -797,14 +842,72 @@ class Node(QtGui.QGraphicsItem):
 
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
+    def store(self):
+        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        nodeRoot = xml.Element('node')
+        attributes = xml.SubElement(nodeRoot,'attributes')
+        xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
+        xml.SubElement(attributes, 'attribute', name = 'bezierHandle0', value = (str(self.getBezierHandles(0)[0]) + "," + str(self.getBezierHandles(0)[1])))
+        xml.SubElement(attributes, 'attribute', name = 'bezierHandle1', value = (str(self.getBezierHandles(1)[0]) + "," + str(self.getBezierHandles(1)[1])))
+        xml.SubElement(attributes, 'attribute', name = 'radius', value = str(self.getRadius()))
+        xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
+        xml.SubElement(attributes, 'attribute', name = 'pinIndex', value = str(self.getPinIndex()))
+        xml.SubElement(attributes, 'attribute', name = 'pinTieIndex', value = str(self.getPinTieIndex()))
+        xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
+        xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
+        xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
+        return nodeRoot
+
+    def read(self, nodeXml):
+        """A function to read in a block of XML and set all major attributes accordingly"""
+        for a in nodeXml.findall( 'attributes/attribute'):
+            if a.attrib['name'] == 'index': self.setIndex(int(a.attrib['value']))
+            elif a.attrib['name'] == 'radius': self.setRadius(float(a.attrib['value']))
+            elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
+            elif a.attrib['name'] == 'pinIndex': self.setPinIndex(int(a.attrib['value']))
+            elif a.attrib['name'] == 'pinTieIndex': self.setPinTieIndex(int(a.attrib['value']))
+            elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
+            elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
+            elif a.attrib['name'] == 'pos': 
+                newPos = a.attrib['value'].split(",")
+                self.setPos(float(newPos[0]), float(newPos[1]))
+            elif a.attrib['name'] == 'bezierHandle0': 
+                newPos = a.attrib['value'].split(",")
+                self.setBezierHandles([float(newPos[0]), float(newPos[1])],0)
+            elif a.attrib['name'] == 'bezierHandle1': 
+                newPos = a.attrib['value'].split(",")
+                self.setBezierHandles([float(newPos[0]), float(newPos[1])],1)
+
     def setIndex(self,value):
         self.index = value
 
     def getIndex(self):
         return self.index
 
-    # def type(self):
-    #     return Node.Type
+    def getRadius(self):
+        return self.radius
+
+    def setRadius(self, radius):
+        self.radius = radius
+
+    def getScale(self):
+        return self.scale
+
+    def setScale(self, scale):
+        self.scale = scale
+
+    def getPinIndex(self):
+        return self.pinIndex
+
+    def setPinIndex(self, index):
+        self.pinIndex = index
+
+    def getPinTieIndex(self):
+        return self.pinTieIndex
+
+    def setPinTieIndex(self, index):
+        self.pinTieIndex = index
+
 
     def addRigCurve(self, rigCurve):
         self.rigCurveList.append(weakref.ref(rigCurve))
@@ -1133,7 +1236,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if len(self.markerActiveList) > 2:
             posList = []
             for m in self.markerActiveList: posList.append(m.pos())
-            newWireGroup = WireControlGroup(posList, self)
+            newWireGroup = WireControlGroup(self)
+            newWireGroup.buildFromPositions(posList)
             self.wireGroups.append(newWireGroup)
             for m in self.markerActiveList: 
                 m.setActive(False) 

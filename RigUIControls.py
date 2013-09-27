@@ -308,8 +308,8 @@ class WireControlGroup():
 
     def store(self):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
-        wireRoot = xml.Element('node')
-        attributes = xml.SubElement(wireoot,'attributes')
+        wireRoot = xml.Element('wireGroup')
+        attributes = xml.SubElement(wireRoot,'attributes')
         xml.SubElement(attributes, 'attribute', name = 'name', value = str(self.getName()))
         xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.colour.red()) + "," + str(self.colour.green()) + "," + str(self.colour.blue())))
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
@@ -318,7 +318,7 @@ class WireControlGroup():
         #Now record the xml for the Nodes
         wireNodes = xml.SubElement(wireRoot,'nodes')
         for n in self.nodes:
-            nodeXml = n.read()
+            nodeXml = n.store()
             wireNodes.append(nodeXml)
         #Now record the xml for the Pins - pinTies should be able to be drawn from the resulting data of nodes and pinz
         wirePins = xml.SubElement(wireRoot,'pins')
@@ -385,6 +385,7 @@ class WireControlGroup():
             for index, n in enumerate(self.nodes):
                 pT = PinTie(n, self.pins[index])
                 pT.setIndex(index)
+                n.setPinIndex(index)
                 self.pinTies.append(pT)
                 n.setPinTie(pT)
                 self.scene.addItem(pT)
@@ -847,8 +848,6 @@ class Node(QtGui.QGraphicsItem):
         nodeRoot = xml.Element('node')
         attributes = xml.SubElement(nodeRoot,'attributes')
         xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
-        xml.SubElement(attributes, 'attribute', name = 'bezierHandle0', value = (str(self.getBezierHandles(0)[0]) + "," + str(self.getBezierHandles(0)[1])))
-        xml.SubElement(attributes, 'attribute', name = 'bezierHandle1', value = (str(self.getBezierHandles(1)[0]) + "," + str(self.getBezierHandles(1)[1])))
         xml.SubElement(attributes, 'attribute', name = 'radius', value = str(self.getRadius()))
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
         xml.SubElement(attributes, 'attribute', name = 'pinIndex', value = str(self.getPinIndex()))
@@ -856,6 +855,11 @@ class Node(QtGui.QGraphicsItem):
         xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
         xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
+        if self.getBezierHandles(0) != None: xml.SubElement(attributes, 'attribute', name = 'bezierHandle0', value = (str(self.getBezierHandles(0)[0]) + "," + str(self.getBezierHandles(0)[1])))
+        else: xml.SubElement(attributes, 'attribute', name = 'bezierHandle0', value = ("None"))
+        if self.getBezierHandles(1) != None: xml.SubElement(attributes, 'attribute', name = 'bezierHandle1', value = (str(self.getBezierHandles(1)[0]) + "," + str(self.getBezierHandles(1)[1])))
+        else: xml.SubElement(attributes, 'attribute', name = 'bezierHandle1', value = ("None"))
+
         return nodeRoot
 
     def read(self, nodeXml):
@@ -872,11 +876,15 @@ class Node(QtGui.QGraphicsItem):
                 newPos = a.attrib['value'].split(",")
                 self.setPos(float(newPos[0]), float(newPos[1]))
             elif a.attrib['name'] == 'bezierHandle0': 
-                newPos = a.attrib['value'].split(",")
-                self.setBezierHandles([float(newPos[0]), float(newPos[1])],0)
+                if a.attrib['value'] != "None":
+                    newPos = a.attrib['value'].split(",")
+                    self.setBezierHandles([float(newPos[0]), float(newPos[1])],0)
+                else: self.setBezierHandles(None,0)
             elif a.attrib['name'] == 'bezierHandle1': 
-                newPos = a.attrib['value'].split(",")
-                self.setBezierHandles([float(newPos[0]), float(newPos[1])],1)
+                if a.attrib['value'] != "None":
+                    newPos = a.attrib['value'].split(",")
+                    self.setBezierHandles([float(newPos[0]), float(newPos[1])],1)
+                else: self.setBezierHandles(None,1)
 
     def setIndex(self,value):
         self.index = value
@@ -927,6 +935,7 @@ class Node(QtGui.QGraphicsItem):
     def setPin(self, pin):
         if type(pin) == ControlPin:
             self.pin = pin
+            self.setPinIndex(pin.getIndex())
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PIN ALLOCATION"
 
@@ -936,6 +945,7 @@ class Node(QtGui.QGraphicsItem):
     def setPinTie(self, pinTie):
         if type(pinTie) == PinTie:
             self.pinTie = weakref.ref(pinTie)
+            self.setPinTieIndex(pinTie.getIndex())
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PINTIE ALLOCATION"
 
@@ -1541,7 +1551,7 @@ class FaceGVCapture():
             self.captureViewSettings() # Capture remainng View settings
             self.captureReflectionLine()
             self.captureMarkers()
-            # self.captureWireGroups()
+            self.captureWireGroups()
 
             #Now we have captured everything into a super giant XML tree we need to save this out.
             self.viewXML.setFile(self.xMLFile)
@@ -1621,4 +1631,6 @@ class FaceGVCapture():
     def captureWireGroups(self):
         """Function to process WireGroups into XML"""
         wireGroups = self.view.getWireGroups()
-
+        for w in wireGroups:
+            wireXml = w.store()
+            self.sceneItems.append(wireXml)

@@ -1135,9 +1135,157 @@ class Node(QtGui.QGraphicsItem):
                     # self.operatorClass.setPos(npVec(nodePos))
                     # self.operatorClass.mouseMoveExecute() #Execute our defined operator class through the move event
         else: QtGui.QGraphicsItem.mouseMoveEvent(self, event)
+###########################################################################################################################
+#RESTRICTION ITEMS
+class OpsCross(QtGui.QGraphicsItem):
+    def __init__(self, constraintItem):
+        QtGui.QGraphicsItem.__init__(self)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        self.scale = 1.0
+        # self.length
+        self.length = 4
+        self.constraintItem = constraintItem
+        self.setZValue(9)
+        # self.parentItem() #To Return Parent Item 
+
+    def getScale(self):
+        return self.scale
+
+    def setScale(self, scale):
+        self.scale = scaleOffset
+
+    def getLength(self):
+        return self.length
+
+    def setLength(self,length):
+        self.length = length
+
+    def boundingRect(self):
+        adjust = 0
+        return QtCore.QRectF(self.scale*(-self.length - adjust), self.scale*(-self.length - adjust),
+                             self.scale*(2*self.length + adjust), self.scale*(2*self.length + adjust))        
+
+    def paint(self, painter, option, widget):
+        pen = QtGui.QPen(QtGui.QColor(255,0,0), 0.5, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        painter.drawLine(self.scale*-self.length,0,self.scale*self.length,0)
+        painter.drawLine(0,self.scale*self.length,0,self.scale*-self.length)
+
+    def mousePressEvent(self, event):
+        QtGui.QGraphicsItem.mousePressEvent(self, event)
+
+    def mouseMoveEvent(self, event):
+        # check of mouse moved within the restricted area for the item 
+        if self.parentItem():
+            self.prepareGeometryChange()
+            self.constraintItem.redraw(self.pos())
+            self.update()
+        QtGui.QGraphicsItem.mouseMoveEvent(self, event)
+
+    def mouseReleaseEvent(self, event):
+        if self.parentItem():
+            self.prepareGeometryChange()
+            self.constraintItem.redraw(self.pos())
+            self.update()
+        QtGui.QGraphicsItem.mouseReleaseEvent(self, event)
 
 
-###
+class ConstraintRect(QtGui.QGraphicsEllipseItem):
+    def __init__(self, w, h):
+        QtGui.QGraphicsEllipseItem.__init__(self, -w/2, -h/2, w, h) 
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        self.scale = 1.0
+        self.width = w
+        self.height = h
+        self.opX = None
+        self.setZValue(1)
+        self.initBuild()
+
+    def initBuild(self):
+        self.opX = OpsCross(self)
+        # opPos = self.pos() - QtCore.QPointF(-self.height/2 + self.opX.getLength(), self.width/2 - self.opX.getLength())
+        opPos = self.pos() - QtCore.QPointF(-self.height/2, self.width/2)
+        self.opX.setPos(opPos.x(), opPos.y())
+        self.opX.setParentItem(self)
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
+
+    # def paint(self, painter, option, widget):
+    #     painter.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25)))
+    def getWidth(self):
+        return self.width
+
+    def setWidth(self, width):
+        self.width = width
+
+    def getHeight(self):
+        return self.height
+
+    def setHeight(self,height):
+        self.height = height
+
+    def boundingRect(self):
+        adjust = 0.0
+        return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust),
+                             self.scale*(2*self.width + adjust), self.scale*(2*self.height + adjust))
+
+    def redraw(self, dimPos):
+        self.width = abs(dimPos.x())
+        self.height = abs(dimPos.y())
+        self.setRect(self.scale*(-self.width), self.scale*(-self.height),
+                             self.scale*(2*self.width), self.scale*(2*self.height)) 
+
+   
+class ConstraintEllipse(QtGui.QGraphicsRectItem):
+    def __init__(self, w, h):
+        QtGui.QGraphicsRectItem.__init__(self, -w/2, -h/2, w, h) 
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        self.scale = 1.0
+        self.width = w
+        self.height = h
+        self.opX = None
+        self.setZValue(1)
+        self.initBuild()
+
+    def initBuild(self):
+        self.opX = OpsCross(self)
+        # opPos = self.pos() - QtCore.QPointF(-self.height/2 + self.opX.getLength(), self.width/2 - self.opX.getLength())
+        opPos = self.pos() - QtCore.QPointF(-self.height/2, self.width/2)
+        self.opX.setPos(opPos.x(), opPos.y())
+        self.opX.setParentItem(self)
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
+
+    # def paint(self, painter, option, widget):
+    #     painter.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25)))
+    def getWidth(self):
+        return self.width
+
+    def setWidth(self, width):
+        self.width = width
+
+    def getHeight(self):
+        return self.height
+
+    def setHeight(self,height):
+        self.height = height
+
+    def boundingRect(self):
+        adjust = 0.0
+        return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust),
+                             self.scale*(2*self.width + adjust), self.scale*(2*self.height + adjust))
+
+    def redraw(self, dimPos):
+        self.width = abs(dimPos.x())
+        self.height = abs(dimPos.y())
+        self.setRect(self.scale*(-self.width), self.scale*(-self.height),
+                             self.scale*(2*self.width), self.scale*(2*self.height))  
+
+###########################################################################################################################
 class RigGraphicsView(QtGui.QGraphicsView):
     def __init__(self):
         QtGui.QGraphicsView.__init__(self) 
@@ -1179,12 +1327,20 @@ class RigGraphicsView(QtGui.QGraphicsView):
         #Add in Reflection Line
         self.reflectionLine = self.addReflectionLine()
         self.showReflectionLine = True
-        # self.addRigControl([[290,80],[384,137],[424,237],[381,354]])
 
         #LARGE GROUP ATTRIBUTES
         self.markerList = []
         self.wireGroups = []
 
+        #TESTING ADDING NEW ITEMS
+        el = ConstraintEllipse(80,80)
+        el.setPos(200,200)
+
+        rect = ConstraintRect(80,90)
+        rect.setPos(400,300)
+
+        self.scene().addItem(el)
+        self.scene().addItem(rect)
 
     def getBackgroundImage(self):
         return self.backgroundImage

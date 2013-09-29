@@ -31,9 +31,9 @@ def QPVec(npVec):
 class RigCurveInfo():
     """A Class to capture how the """
     def __init__(self,startNode, endNode, targNode):
-        self.startPos = npVec(startNode().pos())
-        self.endPos = npVec(endNode().pos())
-        self.targPos = npVec(targNode().pos())
+        self.startPos = npVec(startNode().scenePos())
+        self.endPos = npVec(endNode().scenePos())
+        self.targPos = npVec(targNode().scenePos())
         # print "self.startPos : " + str(self.startPos)
         # print "self.endPos : " + str(self.endPos)
         # print "self.targPos : " + str(self.targPos)
@@ -353,7 +353,7 @@ class WireGroup():
             newNode.read(n)
             newNode.setPin(self.findPin(newNode.getPinIndex()))
             newNode.setWireGroup(self)
-            self.scene.addItem(newNode)
+            # self.scene.addItem(newNode)
         self.createPinTies() #Now nodes and Pins are in Place we can create the pinTies
         self.createCurve() #UPGRADE: Possibly to include a series of smaller curves, not a giant clumsy one
 
@@ -404,12 +404,13 @@ class WireGroup():
     def createNodes(self):
         self.nodes = []
         for index, p in enumerate(self.pins):
-            node = Node(p.pos())
+            # node = Node(p.pos())
+            node = Node(QtCore.QPointF(0,0))
             node.setIndex(p.getIndex())
             node.setPin(p)
             node.setWireGroup(self)
             self.nodes.append(node)
-            self.scene.addItem(node)
+            # self.scene.addItem(node)
 
     def createPinTies(self):
         self.pinTies = []
@@ -592,6 +593,7 @@ class PinTie(QtGui.QGraphicsItem):
         self.midPoint = None
         self.drawTie()
         self.setZValue(1) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
+        # self.setParentItem(self.startNode) # consider implemeting a tie as a child of the pin
 
     def getIndex(self):
         return self.index
@@ -613,9 +615,9 @@ class PinTie(QtGui.QGraphicsItem):
 
     def linePoints(self):
         """Function to calulate the start mid and end points of the line"""
-        self.midPoint =  (self.startNode().pos() + self.endNode().pos())/2
-        self.startPoint = self.startNode().pos() - self.midPoint 
-        self.endPoint = self.endNode().pos() - self.midPoint #+ QtCore.QPointF(20,20)
+        self.midPoint =  (self.startNode().scenePos() + self.endNode().scenePos())/2
+        self.startPoint = self.startNode().scenePos() - self.midPoint 
+        self.endPoint = self.endNode().scenePos() - self.midPoint #+ QtCore.QPointF(20,20)
 
 
     def boundingRect(self):
@@ -1038,6 +1040,7 @@ class Node(QtGui.QGraphicsItem):
         if type(pin) == ControlPin:
             self.pin = pin
             self.setPinIndex(pin.getIndex())
+            self.setParentItem(pin)
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PIN ALLOCATION"
 
@@ -1065,7 +1068,7 @@ class Node(QtGui.QGraphicsItem):
     def goHome(self):
         """Function to centralise the node back to the pin and update any associated rigCurves and pinTies"""
         if self.pin:
-            self.setPos(self.pin.pos())
+            self.setPos(QtCore.QPointF(0,0))
             if self.pinTie:
                 self.pinTie().drawTie()
             for rigCurve in self.rigCurveList:

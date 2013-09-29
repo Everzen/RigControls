@@ -40,7 +40,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         # self.showReflectionLineButton = QtGui.QCheckButton("Toggle Reflection Line")
         self.markerScale = QtGui.QSlider(QtCore.Qt.Horizontal)
         # self.markerScale.setTickPosition(1.0)
-        self.markerScale.setRange(60, 200)
+        self.markerScale.setRange(80, 200)
         self.markerScale.setValue(100)
         self.markerScale.valueChanged.connect(lambda: self.view.setMarkerScaleSlider(self.markerScale.value()))
 

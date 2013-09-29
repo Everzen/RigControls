@@ -320,11 +320,11 @@ class WireGroup():
         for n in self.nodes:
             nodeXml = n.store()
             wireNodes.append(nodeXml)
-        #Now record the xml for the Pins - pinTies should be able to be drawn from the resulting data of nodes and pinz
+        #Now record the xml for the Pins - pinTies should be able to be drawn from the resulting data of nodes and pins
         wirePins = xml.SubElement(wireRoot,'pins')
-        # for p in self.pins:
-        #     pinXml = p.read()
-        #     wirePins.append(pinXml)
+        for p in self.pins:
+            pinXml = p.store()
+            wirePins.append(pinXml)
         return wireRoot
 
     def read(self, wireXml):
@@ -338,21 +338,31 @@ class WireGroup():
                 self.setColour(QtGui.QColor(int(newColour[0]), int(newColour[1]),int(newColour[2])))
 
         #Now read in and generate all the nodes
-        self.nodes = []
+        self.clear() #Clear out all items, safely deleting everything from the scene and destroying objects
+
+        pins = wireXml.findall('pins')
+        for p in pins[0].findall('pin'):
+            newPin = ControlPin(QPVec([0,0])) #Create new Node with Arbitrary pos
+            self.pins.append(newPin)
+            newPin.read(p)
+            self.scene.addItem(newPin)
         nodes = wireXml.findall('nodes')
         for n in nodes[0].findall('node'):
-            print "processing Node"
             newNode = Node(QPVec([0,0])) #Create new Node with Arbitray pos
             self.nodes.append(newNode)
             newNode.read(n)
+            newNode.setPin(self.findPin(newNode.getPinIndex()))
+            newNode.setWireGroup(self)
             self.scene.addItem(newNode)
+        self.createPinTies() #Now nodes and Pins are in Place we can create the pinTies
+        self.createCurve() #UPGRADE: Possibly to include a series of smaller curves, not a giant clumsy one
 
     def buildFromPositions(self , pinQPointList):
         self.pinPositions = pinQPointList
         self.createPins()
         self.createNodes()
-        self.createPintTies()
-        self.createCurve()
+        self.createPinTies()
+        self.createCurve() #UPGRADE: Possibly to include a series of smaller curves, not a giant clumsy one
 
     def getName(self):
         return self.name
@@ -371,6 +381,9 @@ class WireGroup():
 
     def setScale(self, scale):
         self.scale = scale
+        #Now update the scale of all items
+        for n in self.nodes: n.setScale(scale)
+        for p in self.pins: p.setScale(scale)
 
     def isVisible(self):
         return self.visibility
@@ -384,30 +397,33 @@ class WireGroup():
         for index,p in enumerate(self.pinPositions):
             cP = ControlPin(p)   
             cP.setIndex(index)
-            cP.setGroupName(self.name)
+            cP.setWireGroup(self)
             self.pins.append(cP)
             self.scene.addItem(cP)
 
     def createNodes(self):
         self.nodes = []
-        for index, p in enumerate(self.pinPositions):
-            node = Node(p)
-            node.setIndex(index)
-            node.setPin(self.pins[index])
+        for index, p in enumerate(self.pins):
+            node = Node(p.pos())
+            node.setIndex(p.getIndex())
+            node.setPin(p)
             node.setWireGroup(self)
             self.nodes.append(node)
             self.scene.addItem(node)
 
-    def createPintTies(self):
+    def createPinTies(self):
         self.pinTies = []
         if len(self.pins) > 1 and len(self.pins) == len(self.nodes):
             for index, n in enumerate(self.nodes):
-                pT = PinTie(n, self.pins[index])
-                pT.setIndex(index)
-                n.setPinIndex(index)
-                self.pinTies.append(pT)
-                n.setPinTie(pT)
-                self.scene.addItem(pT)
+                pin = self.findPin(n.getPinIndex())
+                if pin:
+                    pT = PinTie(n, pin)
+                    pT.setIndex(pin.getIndex()) #Make the tie Index the same as the pins
+                    # n.setPinIndex(index)
+                    self.pinTies.append(pT)
+                    n.setPinTie(pT)
+                    self.scene.addItem(pT)
+                else: print "WARNING : NO PIN TIES DRAWN SINCE NO MATCHING PIN WAS FOUND FOR NODE"
         else:
             print "WARNING : NO PIN TIES DRAWN SINCE THERE WERE INSUFFICIENT NODES OR UNEQUAL NODES AND PINS"
 
@@ -416,33 +432,99 @@ class WireGroup():
             self.curve = RigCurve(self.colour, self.nodes)
             self.scene.addItem(self.curve)
 
+    def findNode(self,index):
+        for n in self.nodes:
+            if n.getIndex() == index:
+                return n
+
+    def findPin(self,index):
+        for p in self.pins:
+            if p.getIndex() == index:
+                return p
+
     def resetNodes(self):
         for node in self.nodes:
             node.goHome()
+
+    def clear(self):
+        for n in self.nodes:
+            self.scene.removeItem(n)
+            del n
+        for p in self.pins:
+            self.scene.removeItem(p)
+            del p
+        for pT in self.pinTies:
+            self.scene.removeItem(pT)
+            del pT
+        if self.curve: 
+            self.scene.removeItem(self.curve)
+            del self.curve
+        self.nodes = []
+        self.pins = []
+        self.pinTiles = []
+        self.curve = None 
+
 
 class ControlPin(QtGui.QGraphicsItem):
     def __init__(self, cPos, control = None):
         super(ControlPin, self).__init__()
         # self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
+        self.index = 0 
         self.scale = 1
         self.scaleOffset = 2.5
-        self.index = 0 
-        self.groupName = 1
+        self.wireGroup = None
 
         self.setPos(cPos)
         self.setZValue(1) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
+
+    def store(self):
+        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        pinRoot = xml.Element('pin')
+        attributes = xml.SubElement(pinRoot,'attributes')
+        xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
+        xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
+        xml.SubElement(attributes, 'attribute', name = 'scaleOffset', value = str(self.getScaleOffset()))
+        xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
+        xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
+        xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
+        return pinRoot
+
+    def read(self, nodeXml):
+        """A function to read in a block of XML and set all major attributes accordingly"""
+        for a in nodeXml.findall( 'attributes/attribute'):
+            if a.attrib['name'] == 'index': self.setIndex(int(a.attrib['value']))
+            elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
+            elif a.attrib['name'] == 'scaleOffset': self.setScaleOffset(float(a.attrib['value']))
+            elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
+            elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
+            elif a.attrib['name'] == 'pos': 
+                newPos = a.attrib['value'].split(",")
+                self.setPos(float(newPos[0]), float(newPos[1]))
+
+    def setIndex(self,value):
+        self.index = value
+
     def getIndex(self):
         return self.index
 
-    def setIndex(self,index):
-        self.index = index
+    def getScale(self):
+        return self.scale
 
-    def getGroupName(self):
-        return str(self.groupName)
+    def setScale(self, scale):
+        self.scale = scale
 
-    def setGroupName(self, groupName):
-        self.groupName = groupName
+    def getScaleOffset(self):
+        return self.scaleOffset
+
+    def setScaleOffset(self, scaleOffset):
+        self.scaleOffset = scaleOffset
+
+    def getWireGroup(self):
+        return self.wireGroup
+
+    def setWireGroup(self, wireGroup):
+        self.wireGroup = wireGroup
 
     def drawWireControl(self, painter):
         wCurve1 = QtGui.QPainterPath()
@@ -676,7 +758,7 @@ class GuideMarker(QtGui.QGraphicsItem):
                 fontsize = int(9*self.scale)
             painter.setFont(QtGui.QFont('Arial', fontsize))
             if self.guideIndex != 0: 
-                print "guide index : " + str(self.guideIndex)
+                # print "guide index : " + str(self.guideIndex)
                 painter.drawText(self.scale*12,self.scale*-12, str(self.guideIndex)) #Add in the guide Index if it is not 0
             painter.drawText(self.scale*12,self.scale*21,str(self.index))
 
@@ -834,10 +916,11 @@ class Node(QtGui.QGraphicsItem):
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
 
         self.index = 0
+        self.radius = 8
         self.rigCurveList = []
         self.bezierHandles = [None, None]
 
-        self.radius = 8
+        self.scaleOffset = 7
         self.scale = 1.0
         # self.pin.append(weakref.ref(pin))
         self.pin = None
@@ -992,8 +1075,8 @@ class Node(QtGui.QGraphicsItem):
 
     def boundingRect(self):
         adjust = 0.0
-        return QtCore.QRectF(-self.radius - adjust, -self.radius - adjust,
-                             2*self.radius + adjust, 2*self.radius + adjust)
+        return QtCore.QRectF((-self.radius - adjust)*self.scale, (-self.radius - adjust)*self.scale,
+                             (2*self.radius + adjust)*self.scale, (2*self.radius + adjust)*self.scale)
 
     def paint(self, painter, option, widget):
         self.prepareGeometryChange()
@@ -1003,8 +1086,8 @@ class Node(QtGui.QGraphicsItem):
         pen = QtGui.QPen(cColour, 1, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         # painter.setBrush(QtCore.Qt.lightGray)
-        painter.drawEllipse(-self.radius, -self.radius, 2*self.radius, 2*self.radius)
-        gradient = QtGui.QRadialGradient(0, 0, self.radius/2)
+        painter.drawEllipse(-self.radius*self.scale, -self.radius*self.scale, 2*self.radius*self.scale, 2*self.radius*self.scale)
+        gradient = QtGui.QRadialGradient(0, 0, self.scale*self.radius/2)
         if option.state & QtGui.QStyle.State_Sunken: # selected
             cColour = QtGui.QColor(50,255,255,150)
             gradient.setColorAt(0, cColour)
@@ -1017,7 +1100,7 @@ class Node(QtGui.QGraphicsItem):
             gradient.setColorAt(1, QtGui.QColor(cColour.red(), cColour.green(), cColour.blue(), 20))
         painter.setBrush(QtGui.QBrush(gradient))
         QtGui.QPen(QtCore.Qt.black, 1.2, QtCore.Qt.SolidLine)
-        painter.drawEllipse(-self.radius/2, -self.radius/2, self.radius, self.radius)
+        painter.drawEllipse((-self.radius/2)*self.scale, (-self.radius/2)*self.scale, self.radius*self.scale, self.radius*self.scale)
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
@@ -1267,6 +1350,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             for m in self.markerActiveList: posList.append(m.pos())
             newWireGroup = WireGroup(self)
             newWireGroup.buildFromPositions(posList)
+            newWireGroup.setScale(self.markerScale)
             self.wireGroups.append(newWireGroup)
             for m in self.markerActiveList: 
                 m.setActive(False) 
@@ -1419,7 +1503,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             item.setScale(self.markerScale)
             self.markerList.append(item) #Add Item to the main Marker list
             self.scene().addItem(item)
-            print self.markerList
+            # print self.markerList
             # item.store()
 
             # xml = FileControl.XMLMan()
@@ -1602,7 +1686,6 @@ class FaceGVCapture():
 
     def captureViewSettings(self):
         """Function to process View Settings into XML"""
-        print "MarkerScale -= " + str(self.view.getMarkerScale())
         markerCount = xml.SubElement(self.viewSettings, 'attribute', name = 'markerCount', value = str(self.view.getMarkerCount()))
         markerScale = xml.SubElement(self.viewSettings, 'attribute', name = 'markerScale', value = str(self.view.getMarkerScale()))
 

@@ -1140,6 +1140,60 @@ class Node(QtGui.QGraphicsItem):
         else: QtGui.QGraphicsItem.mouseMoveEvent(self, event)
 ###########################################################################################################################
 #RESTRICTION ITEMS
+class OpsRotation(QtGui.QGraphicsItem):
+    def __init__(self, constraintItem):
+        QtGui.QGraphicsItem.__init__(self)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,False)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        self.scale = 1.0
+        self.length = 10
+        self.constraintItem = constraintItem
+        self.setZValue(9)
+
+    def getScale(self):
+        return self.scale
+
+    def setScale(self, scale):
+        self.scale = scaleOffset
+
+    def getLength(self):
+        return self.length
+
+    def setLength(self,length):
+        self.length = length
+
+    def boundingRect(self):
+        adjust = 10
+        return QtCore.QRectF(self.scale*(-self.length - adjust), self.scale*(-self.length - adjust),
+                             self.scale*(2*self.length + adjust), self.scale*(2*self.length + adjust))       
+
+    def paint(self, painter, option, widget):
+        wCurve1 = QtGui.QPainterPath()
+
+        locAx = -7.8 * self.scale
+        locAy = -2 * self.scale
+
+        locBx = -4 * self.scale
+        locBy = 0 * self.scale
+
+        pen = QtGui.QPen(QtCore.Qt.red, 0.5, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+
+        wCurve1 = QtGui.QPainterPath()
+        wCurve1.moveTo(QtCore.QPointF(locAx,-locAy))
+        wCurve1.cubicTo(QtCore.QPointF(locBx,-locBy),QtCore.QPointF(-locBx,-locBy),QtCore.QPointF(-locAx,-locAy))
+        painter.strokePath(wCurve1, painter.pen())
+        
+        pen = QtGui.QPen(QtCore.Qt.red, 0.5, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        painter.drawLine(locAx-0.5,-locAy,locAx+2,-locAy+1)
+        painter.drawLine(locAx-0.5,-locAy,locAx+1,-locAy-2)
+
+        painter.drawLine(-locAx+0.5,-locAy,-locAx-2,-locAy+1)
+        painter.drawLine(-locAx+0.5,-locAy,-locAx-1,-locAy-2)
+
+
 class OpsCross(QtGui.QGraphicsItem):
     def __init__(self, constraintItem):
         QtGui.QGraphicsItem.__init__(self)
@@ -1147,11 +1201,9 @@ class OpsCross(QtGui.QGraphicsItem):
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
         self.scale = 1.0
-        # self.length
         self.length = 4
         self.constraintItem = constraintItem
         self.setZValue(9)
-        # self.parentItem() #To Return Parent Item 
 
     def getScale(self):
         return self.scale
@@ -1171,7 +1223,7 @@ class OpsCross(QtGui.QGraphicsItem):
                              self.scale*(2*self.length + adjust), self.scale*(2*self.length + adjust))        
 
     def paint(self, painter, option, widget):
-        pen = QtGui.QPen(QtGui.QColor(255,0,0), 0.5, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(255,0,0,200), 0.5, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         painter.drawLine(self.scale*-self.length,0,self.scale*self.length,0)
         painter.drawLine(0,self.scale*self.length,0,self.scale*-self.length)
@@ -1206,15 +1258,18 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.height = h/2
         self.extension = 15.0
         self.opX = None
+        self.opRot = None
         self.setZValue(1)
         self.initBuild()
 
     def initBuild(self):
         self.opX = OpsCross(self)
-        # opPos = self.pos() - QtCore.QPointF(-self.height/2 + self.opX.getLength(), self.width/2 - self.opX.getLength())
-        # opPos = self.pos() - QtCore.QPointF(-self.height, self.width)
         self.opX.setParentItem(self)
         self.opX.setPos(QtCore.QPointF(self.width,-self.height))
+
+        self.opRot = OpsRotation(self)
+        self.opRot.setParentItem(self)
+        self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
 
     def getWidth(self):
@@ -1250,6 +1305,7 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.height = abs(dimPos.y())
         self.setRect(self.scale*(-self.width), self.scale*(-self.height),
                              self.scale*(2*self.width), self.scale*(2*self.height)) 
+        self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
 
    
 class ConstraintRect(QtGui.QGraphicsRectItem):
@@ -1270,8 +1326,11 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.opX = OpsCross(self)
         self.opX.setParentItem(self)
         self.opX.setPos(QtCore.QPointF(self.width,-self.height))
+        
+        self.opRot = OpsRotation(self)
+        self.opRot.setParentItem(self)
+        self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
-
     # def paint(self, painter, option, widget):
     #     painter.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25)))
     def getWidth(self):
@@ -1306,6 +1365,7 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.height = abs(dimPos.y())
         self.setRect(self.scale*(-self.width), self.scale*(-self.height),
                              self.scale*(2*self.width), self.scale*(2*self.height))  
+        self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
 
 ###########################################################################################################################
 class RigGraphicsView(QtGui.QGraphicsView):

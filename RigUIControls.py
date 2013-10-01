@@ -1195,15 +1195,16 @@ class OpsCross(QtGui.QGraphicsItem):
         QtGui.QGraphicsItem.mouseReleaseEvent(self, event)
 
 
-class ConstraintRect(QtGui.QGraphicsEllipseItem):
+class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
     def __init__(self, w, h):
         QtGui.QGraphicsEllipseItem.__init__(self, -w/2, -h/2, w, h) 
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
         self.scale = 1.0
-        self.width = w
-        self.height = h
+        self.width = w/2
+        self.height = h/2
+        self.extension = 15.0
         self.opX = None
         self.setZValue(1)
         self.initBuild()
@@ -1211,13 +1212,11 @@ class ConstraintRect(QtGui.QGraphicsEllipseItem):
     def initBuild(self):
         self.opX = OpsCross(self)
         # opPos = self.pos() - QtCore.QPointF(-self.height/2 + self.opX.getLength(), self.width/2 - self.opX.getLength())
-        opPos = self.pos() - QtCore.QPointF(-self.height/2, self.width/2)
-        self.opX.setPos(opPos.x(), opPos.y())
+        # opPos = self.pos() - QtCore.QPointF(-self.height, self.width)
         self.opX.setParentItem(self)
+        self.opX.setPos(QtCore.QPointF(self.width,-self.height))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
 
-    # def paint(self, painter, option, widget):
-    #     painter.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25)))
     def getWidth(self):
         return self.width
 
@@ -1232,8 +1231,19 @@ class ConstraintRect(QtGui.QGraphicsEllipseItem):
 
     def boundingRect(self):
         adjust = 0.0
-        return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust),
-                             self.scale*(2*self.width + adjust), self.scale*(2*self.height + adjust))
+        return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust - self.extension),
+                             self.scale*(2*self.width + adjust), self.scale*(2*self.height + adjust + 2*self.extension))
+
+    def paint(self, painter, option, widget):
+        QtGui.QGraphicsEllipseItem.paint(self, painter, option, widget)
+        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.5, QtCore.Qt.DotLine)
+        painter.setPen(pen)
+        painter.drawLine(0,self.scale*self.height+self.extension,0,self.scale*-self.height-self.extension) 
+        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.5, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
+        painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension)) 
+
 
     def redraw(self, dimPos):
         self.width = abs(dimPos.x())
@@ -1242,25 +1252,24 @@ class ConstraintRect(QtGui.QGraphicsEllipseItem):
                              self.scale*(2*self.width), self.scale*(2*self.height)) 
 
    
-class ConstraintEllipse(QtGui.QGraphicsRectItem):
+class ConstraintRect(QtGui.QGraphicsRectItem):
     def __init__(self, w, h):
         QtGui.QGraphicsRectItem.__init__(self, -w/2, -h/2, w, h) 
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
         self.scale = 1.0
-        self.width = w
-        self.height = h
+        self.width = w/2
+        self.height = h/2
+        self.extension = 15.0
         self.opX = None
         self.setZValue(1)
         self.initBuild()
 
     def initBuild(self):
         self.opX = OpsCross(self)
-        # opPos = self.pos() - QtCore.QPointF(-self.height/2 + self.opX.getLength(), self.width/2 - self.opX.getLength())
-        opPos = self.pos() - QtCore.QPointF(-self.height/2, self.width/2)
-        self.opX.setPos(opPos.x(), opPos.y())
         self.opX.setParentItem(self)
+        self.opX.setPos(QtCore.QPointF(self.width,-self.height))
         self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
 
     # def paint(self, painter, option, widget):
@@ -1279,8 +1288,18 @@ class ConstraintEllipse(QtGui.QGraphicsRectItem):
 
     def boundingRect(self):
         adjust = 0.0
-        return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust),
-                             self.scale*(2*self.width + adjust), self.scale*(2*self.height + adjust))
+        return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust - self.extension),
+                             self.scale*(2*self.width + adjust), self.scale*(2*self.height + adjust + 2*self.extension))
+
+    def paint(self, painter, option, widget):
+        QtGui.QGraphicsRectItem.paint(self, painter, option, widget)
+        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.5, QtCore.Qt.DotLine)
+        painter.setPen(pen)
+        painter.drawLine(0,self.scale*self.height+self.extension,0,self.scale*-self.height-self.extension) 
+        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.5, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
+        painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
 
     def redraw(self, dimPos):
         self.width = abs(dimPos.x())

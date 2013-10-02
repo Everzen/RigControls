@@ -1193,6 +1193,18 @@ class OpsRotation(QtGui.QGraphicsItem):
         painter.drawLine(-locAx+0.5,-locAy,-locAx-2,-locAy+1)
         painter.drawLine(-locAx+0.5,-locAy,-locAx-1,-locAy-2)
 
+    def mousePressEvent(self, event):
+        # print "Hit OpsRot"
+        QtGui.QGraphicsItem.mousePressEvent(self, event)
+
+    def mouseMoveEvent(self, event):
+        if self.parentItem() and self.constraintItem:
+            # print "Event Pos : " + str(self.mapToScene(event.pos()))
+            s_coords = self.constraintItem.sceneCoordinates(self.mapToScene(event.pos()))
+            theta_deg = self.constraintItem.calculateAngle(s_coords)   
+            self.constraintItem.doTransform(theta_deg, s_coords[2], s_coords[3])
+        # QtGui.QGraphicsItem.mouseMoveEvent(self, event)
+
 
 class OpsCross(QtGui.QGraphicsItem):
     def __init__(self, constraintItem):
@@ -1298,7 +1310,7 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         painter.setPen(pen)
         painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
         painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension)) 
-
+        painter.drawLine(5,0,-5,0)
 
     def redraw(self, dimPos):
         self.width = abs(dimPos.x())
@@ -1307,7 +1319,58 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
                              self.scale*(2*self.width), self.scale*(2*self.height)) 
         self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
 
-   
+    def sceneCoordinates(self, sMousePt): #Code curtesy of ZetCode
+        s_mouse_x = sMousePt.x()
+        s_mouse_y = sMousePt.y()
+        constraintCentre = self.boundingRect().center()
+        arrow_x = constraintCentre.x()
+        arrow_y = constraintCentre.y()
+        sConstraintPt = self.mapToScene(arrow_x, arrow_y)
+        s_arrow_x = sConstraintPt.x()
+        s_arrow_y = sConstraintPt.y() 
+        return (s_mouse_x, s_mouse_y, arrow_x, arrow_y, 
+            s_arrow_x, s_arrow_y)
+ 
+    def calculateAngle(self, coords):
+        s_mouse_x, s_mouse_y = coords[0], coords[1] 
+        s_arrow_x, s_arrow_y = coords[4], coords[5]
+        a = abs(s_mouse_x - s_arrow_x)
+        b = abs(s_mouse_y - s_arrow_y)
+        # print "Opposite : " + str(a)
+        # print "Adjacent : " + str(b)
+        theta_deg = 0.0
+
+        if a == 0 and b == 0:
+            return
+        elif a == 0 and s_mouse_y < s_arrow_y:
+            theta_deg = 270
+        elif a == 0 and s_mouse_y > s_arrow_y: 
+            theta_deg = 90
+        else:
+            theta_rad = math.atan(b / a)
+            theta_deg = math.degrees(theta_rad)
+            if (s_mouse_x < s_arrow_x and \
+                s_mouse_y > s_arrow_y):
+                theta_deg = 180 - theta_deg
+            elif (s_mouse_x < s_arrow_x and \
+                s_mouse_y < s_arrow_y):
+                theta_deg = 180 + theta_deg   
+            elif (s_mouse_x > s_arrow_x and \
+                s_mouse_y < s_arrow_y):
+                theta_deg = 360 - theta_deg               
+        # print str(theta_deg)
+        return (theta_deg + 90)
+
+    def doTransform(self, theta_deg, arrow_x, arrow_y):
+        transform = QtGui.QTransform()
+        # transform.translate(arrow_x, arrow_y)
+        transform.rotate(theta_deg)
+        # transform.translate(-arrow_x, -arrow_y)
+        self.setTransform(transform)
+
+
+
+
 class ConstraintRect(QtGui.QGraphicsRectItem):
     def __init__(self, w, h):
         QtGui.QGraphicsRectItem.__init__(self, -w/2, -h/2, w, h) 
@@ -1366,6 +1429,55 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.setRect(self.scale*(-self.width), self.scale*(-self.height),
                              self.scale*(2*self.width), self.scale*(2*self.height))  
         self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
+
+    def sceneCoordinates(self, sMousePt): #Code curtesy of ZetCode
+        s_mouse_x = sMousePt.x()
+        s_mouse_y = sMousePt.y()
+        constraintCentre = self.boundingRect().center()
+        arrow_x = constraintCentre.x()
+        arrow_y = constraintCentre.y()
+        sConstraintPt = self.mapToScene(arrow_x, arrow_y)
+        s_arrow_x = sConstraintPt.x()
+        s_arrow_y = sConstraintPt.y() 
+        return (s_mouse_x, s_mouse_y, arrow_x, arrow_y, 
+            s_arrow_x, s_arrow_y)
+ 
+    def calculateAngle(self, coords):
+        s_mouse_x, s_mouse_y = coords[0], coords[1] 
+        s_arrow_x, s_arrow_y = coords[4], coords[5]
+        a = abs(s_mouse_x - s_arrow_x)
+        b = abs(s_mouse_y - s_arrow_y)
+        # print "Opposite : " + str(a)
+        # print "Adjacent : " + str(b)
+        theta_deg = 0.0
+
+        if a == 0 and b == 0:
+            return
+        elif a == 0 and s_mouse_y < s_arrow_y:
+            theta_deg = 270
+        elif a == 0 and s_mouse_y > s_arrow_y: 
+            theta_deg = 90
+        else:
+            theta_rad = math.atan(b / a)
+            theta_deg = math.degrees(theta_rad)
+            if (s_mouse_x < s_arrow_x and \
+                s_mouse_y > s_arrow_y):
+                theta_deg = 180 - theta_deg
+            elif (s_mouse_x < s_arrow_x and \
+                s_mouse_y < s_arrow_y):
+                theta_deg = 180 + theta_deg   
+            elif (s_mouse_x > s_arrow_x and \
+                s_mouse_y < s_arrow_y):
+                theta_deg = 360 - theta_deg               
+        # print str(theta_deg)
+        return (theta_deg + 90)
+
+    def doTransform(self, theta_deg, arrow_x, arrow_y):
+        transform = QtGui.QTransform()
+        # transform.translate(arrow_x, arrow_y)
+        transform.rotate(theta_deg)
+        # transform.translate(-arrow_x, -arrow_y)
+        self.setTransform(transform)
 
 ###########################################################################################################################
 class RigGraphicsView(QtGui.QGraphicsView):

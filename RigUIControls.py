@@ -2053,15 +2053,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.setFlag(QtGui.QGraphicsItem.ItemIsMovable, self.isMovableList[index])
                 item.setSelected(self.isSelectedList[index])
         QtGui.QGraphicsView.keyReleaseEvent(self, event)
-    # def mousePressEvent(self, event):
-    #     # print "GraphWidget mouse"
-    #     # print "Mouse clicked - Maybe add a marker?"
-    #     modifiers = QtGui.QApplication.keyboardModifiers()
-    #     if modifiers == QtCore.Qt.ControlModifier:
-    #         #ctrl is pressed so add a marker
-    #         mousePos = event.pos()
-    #         self.add_guideMarker(mousePos)
-    #     QtGui.QGraphicsView.mousePressEvent(self, event)
 
     def wheelEvent(self, event):
         self.scaleView(math.pow(2.0, -event.delta() / 240.0))

@@ -1213,13 +1213,17 @@ class OpsRotation(QtGui.QGraphicsItem):
 class OpsCross(QtGui.QGraphicsItem):
     def __init__(self, constraintItem):
         QtGui.QGraphicsItem.__init__(self)
+        self.scale = 1.0
+        self.length = 4
+        self.slider = False
+        self.sliderLimit = 0
+        self.index = 0
+        self.constraintItem = constraintItem
+        self.setZValue(9)
+
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
-        self.scale = 1.0
-        self.length = 4
-        self.constraintItem = constraintItem
-        self.setZValue(9)
 
     def getScale(self):
         return self.scale
@@ -1232,6 +1236,24 @@ class OpsCross(QtGui.QGraphicsItem):
 
     def setLength(self,length):
         self.length = length
+
+    def isSlider(self):
+        return self.slider
+
+    def setSlider(self, slider):
+        self.slider = bool(slider)
+
+    def getSliderLimit(self):
+        return self.sliderLimit
+
+    def setSliderLimit(self, limit):
+        self.sliderLimit = limit
+
+    def getIndex(self):
+        return self.index
+
+    def setIndex(self, index):
+        self.index = int(index)
 
     def boundingRect(self):
         adjust = 1
@@ -1252,10 +1274,13 @@ class OpsCross(QtGui.QGraphicsItem):
 
     def mouseMoveEvent(self, event):
         # check of mouse moved within the restricted area for the item 
-        if self.parentItem():
-            self.prepareGeometryChange()
-            self.constraintItem.redraw(self.pos())
-            self.update()
+        if self.isSlider():
+            pass
+        else:
+            if self.parentItem():
+                self.prepareGeometryChange()
+                self.constraintItem.redraw(self.pos())
+                self.update()
         QtGui.QGraphicsItem.mouseMoveEvent(self, event)
 
     def mouseReleaseEvent(self, event):
@@ -1264,6 +1289,39 @@ class OpsCross(QtGui.QGraphicsItem):
             self.constraintItem.redraw(self.pos())
             self.update()
         QtGui.QGraphicsItem.mouseReleaseEvent(self, event)
+
+    def itemChange(self, change, value):
+        if self.isSlider(): #Check if the cross is meant to have restricted movement
+            if change == QtGui.QGraphicsItem.ItemPositionChange:
+                yPos = 0
+                if self.getIndex() == 0:
+                    # print "Hit Head"
+                    yPos = value.toPointF().y()
+                    if yPos >= 0 - self.getSliderLimit():
+                        yPos = 0 - self.getSliderLimit()
+                    self.parentItem().redraw(0)
+                    # print "Head Pos : " + str(yPos)
+                elif self.getIndex() == 1:
+                    # print "Hit Tail"
+                    yPos = value.toPointF().y()
+                    if yPos <= 0 + self.getSliderLimit():
+                        yPos = 0 + self.getSliderLimit()
+                    self.parentItem().redraw(1)                   
+                    # print "Tail Pos : " + str(yPos)              
+                # print "Item new position :" + str(self.pos().x()) + ", " + str(self.pos().y())
+                # print "Max Level : " + str(self.maxLevel)
+                # yPos = value.toPointF().y()
+                # if yPos > self.maxLevel : yPos = self.maxLevel
+                # elif yPos < self.minLevel : yPos = self.minLevel
+                # vValue = self.getValue(yPos)
+                # # print "VValue %s" % str(vValue)
+                # if vValue:       
+                #     self.colourBroadcaster.setValue(vValue)
+                #     self.colourBroadcaster.broadcast()
+                #     # print "Colour Value is : " + str(self.getValue(yPos))
+                return QtCore.QPointF(0,yPos)
+            return QtGui.QGraphicsItem.itemChange(self, change, value)
+        else: return QtGui.QGraphicsItem.itemChange(self, change, value)
 
 
 class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
@@ -1289,7 +1347,7 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.opRot = OpsRotation(self)
         self.opRot.setParentItem(self)
         self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-9))
-        self.opRot.setVisible(False)
+        # self.opRot.setVisible(False)
         self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
 
     def getWidth(self):
@@ -1312,14 +1370,19 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
     def paint(self, painter, option, widget):
         self.prepareGeometryChange()
         QtGui.QGraphicsEllipseItem.paint(self, painter, option, widget)
-        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.5, QtCore.Qt.DotLine)
+        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
-        # painter.drawLine(0,self.scale*self.height+self.extension,0,self.scale*-self.height-self.extension) 
-        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.5, QtCore.Qt.SolidLine)
+        painter.drawLine(0,self.scale*self.height - 2,0,self.scale*-self.height-self.extension) 
+        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
-        # painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
-        # painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension)) 
-        painter.drawLine(3,0,-3,0)
+        if self.width > 5:
+            painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
+            painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
+        else:
+            painter.drawLine(-self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
+            painter.drawLine(self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
+        if self.width > 3: painter.drawLine(3,0,-3,0)
+        else: painter.drawLine(self.width,0,-self.width,0)
 
     def redraw(self, dimPos):
         self.width = abs(dimPos.x())
@@ -1417,20 +1480,27 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.height = height
 
     def boundingRect(self):
-        adjust = 0.0
+        adjust = 2
         return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust - self.extension),
-                             self.scale*(2*self.width + adjust), self.scale*(2*self.height + adjust + 2*self.extension))
+                             self.scale*(2*self.width + 2*adjust), self.scale*(2*self.height + 2*adjust + 2*self.extension))
 
     def paint(self, painter, option, widget):
         self.prepareGeometryChange()
-        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.5, QtCore.Qt.DotLine)
+        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
-        painter.drawLine(0,self.scale*-self.height - 2,0,self.scale*-self.height-self.extension) 
-        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.5, QtCore.Qt.SolidLine)
+        # painter.drawLine(0,self.scale*-self.height - 2,0,self.scale*-self.height-self.extension) 
+        # painter.drawLine(0,self.scale*-self.height + 2,0,self.scale*self.height -2)
+        painter.drawLine(0,self.scale*self.height - 2,0,self.scale*-self.height-self.extension)  
+        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
-        painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
-        painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
-        painter.drawLine(3,0,-3,0)
+        if self.width > 5:
+            painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
+            painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
+        else:
+            painter.drawLine(-self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
+            painter.drawLine(self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
+        if self.width > 3: painter.drawLine(3,0,-3,0)
+        else: painter.drawLine(self.width,0,-self.width,0)
         QtGui.QGraphicsRectItem.paint(self, painter, option, widget)
 
 
@@ -1501,6 +1571,7 @@ class ConstraintLine(QtGui.QGraphicsItem):
         self.scale = 1.0
         self.headLength = head
         self.tailLength = tail
+        self.crossOffset = 7
         self.opXHead = None
         self.opXTail = None
         self.setZValue(1)
@@ -1509,15 +1580,20 @@ class ConstraintLine(QtGui.QGraphicsItem):
     def initBuild(self):
         self.opXHead = OpsCross(self)
         self.opXHead.setParentItem(self)
-        self.opXHead.setPos(QtCore.QPointF(0,-self.headLength - 7))
+        self.opXHead.setPos(QtCore.QPointF(0,-self.headLength - self.crossOffset))
+        self.opXHead.setSlider(True)
+        self.opXHead.setSliderLimit(self.crossOffset)
         
         self.opXTail = OpsCross(self)
         self.opXTail.setParentItem(self)
-        self.opXTail.setPos(QtCore.QPointF(0,self.tailLength + 7))
+        self.opXTail.setPos(QtCore.QPointF(0,self.tailLength + self.crossOffset))
+        self.opXTail.setIndex(1)
+        self.opXTail.setSlider(True)
+        self.opXTail.setSliderLimit(self.crossOffset)
 
         self.opRot = OpsRotation(self)
         self.opRot.setParentItem(self)
-        self.opRot.setPos(QtCore.QPointF(0,-self.headLength - 18))
+        self.opRot.setPos(QtCore.QPointF(0,-self.headLength - self.crossOffset - 9))
 
     def getHeadLength(self):
         return self.headLength
@@ -1539,10 +1615,12 @@ class ConstraintLine(QtGui.QGraphicsItem):
     def paint(self, painter, option, widget):
         # QtGui.QGraphicsRectItem.paint(self, painter, option, widget)
         self.prepareGeometryChange()
-        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.5, QtCore.Qt.DotLine)
+        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
-        painter.drawLine(0,0.98*self.scale*self.tailLength,0,0.98*self.scale*-self.headLength) 
-        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.5, QtCore.Qt.SolidLine)
+        # painter.drawLine(0,0.98*self.scale*self.tailLength,0,0.98*self.scale*-self.headLength) 
+        painter.drawLine(0,1*self.scale*self.tailLength,0,1*self.scale*-self.headLength) 
+
+        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         # painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
         # painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
@@ -1551,13 +1629,20 @@ class ConstraintLine(QtGui.QGraphicsItem):
         painter.drawLine(3,0,-3,0)
         # painter.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
         # painter.drawRect(self.boundingRect())
-        
-    def redraw(self, dimPos):
-        self.width = abs(dimPos.x())
-        self.height = abs(dimPos.y())
-        self.setRect(self.scale*(-self.width), self.scale*(-self.height),
-                             self.scale*(2*self.width), self.scale*(2*self.height))  
-        self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
+
+    def redraw(self, index): #index indicates which cross we are interested in - on this Line 0 is a head, and 1 is a tail
+        if index == 0:
+            self.setHeadLength(abs(self.opXHead.pos().y()) - self.crossOffset)
+            self.opRot.setPos(QtCore.QPointF(0,-self.headLength - self.crossOffset - 9))
+        elif index == 1:
+            self.setTailLength(abs(self.opXTail.pos().y()) - self.crossOffset)
+        self.update()
+
+        # self.width = abs(dimPos.x())
+        # self.height = abs(dimPos.y())
+        # self.setRect(self.scale*(-self.width), self.scale*(-self.height),
+        #                      self.scale*(2*self.width), self.scale*(2*self.height))  
+        # self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
 
     def sceneCoordinates(self, sMousePt): #Code curtesy of ZetCode
         s_mouse_x = sMousePt.x()

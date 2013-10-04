@@ -654,6 +654,7 @@ class GuideMarker(QtGui.QGraphicsItem):
         self.active = False
         self.activeIndex = 0
         self.scale = 1.0
+        self.alpha = 1.0
         self.colourList = [QtGui.QColor(255,0,0), QtGui.QColor(0,255,0), QtGui.QColor(0,0,255), QtGui.QColor(0,255,255), QtGui.QColor(255,0,255), QtGui.QColor(255,255,0), QtGui.QColor(255,125,0), QtGui.QColor(125,255,0),QtGui.QColor(255,0,125),QtGui.QColor(125,0,255),QtGui.QColor(0,255,125),QtGui.QColor(0,125,255),QtGui.QColor(255,125,125),QtGui.QColor(125,255,125),QtGui.QColor(125,125,255),QtGui.QColor(255,255,125),QtGui.QColor(255,125,255),QtGui.QColor(125,255,255)]
         self.guideColourIndex = 0
         self.setZValue(11) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
@@ -669,6 +670,7 @@ class GuideMarker(QtGui.QGraphicsItem):
         xml.SubElement(attributes, 'attribute', name = 'active', value = str(self.getActive()))
         xml.SubElement(attributes, 'attribute', name = 'activeIndex', value = str(self.getActiveIndex()))
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
+        xml.SubElement(attributes, 'attribute', name = 'alpha', value = str(self.getAlpha()))
         xml.SubElement(attributes, 'attribute', name = 'guideColourIndex', value = str(self.getGuideColourIndex()))
         xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
@@ -687,6 +689,7 @@ class GuideMarker(QtGui.QGraphicsItem):
             elif a.attrib['name'] == 'active': self.setActive(str(a.attrib['value']) == 'True')
             elif a.attrib['name'] == 'activeIndex': self.setActiveIndex(int(a.attrib['value']))
             elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
+            elif a.attrib['name'] == 'alpha': self.setAlpha(float(a.attrib['value']))
             elif a.attrib['name'] == 'guideColourIndex': self.setGuideColourIndex(int(a.attrib['value']))
             elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
             elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
@@ -699,6 +702,12 @@ class GuideMarker(QtGui.QGraphicsItem):
 
     def setScale(self, scale):
         self.scale = scale
+
+    def getAlpha(self):
+        return self.alpha
+
+    def setAlpha(self, alpha):
+        self.alpha = float(alpha)
 
     def getShowID(self):
         return self.showID
@@ -741,10 +750,10 @@ class GuideMarker(QtGui.QGraphicsItem):
     def drawActive(self, painter):
         """A function to draw an active glow around the marker when activated"""
         if self.active:
-            pen = QtGui.QPen(self.colourList[self.guideColourIndex], self.scale*0.5, QtCore.Qt.SolidLine)
+            pen = QtGui.QPen(QtGui.QColor(self.colourList[self.guideColourIndex].red(),self.colourList[self.guideColourIndex].green(),self.colourList[self.guideColourIndex].blue(),255*self.alpha), self.scale*0.5, QtCore.Qt.SolidLine)
             gradient = QtGui.QRadialGradient(0, 0, self.scale*18)
-            gradient.setColorAt(0, QtGui.QColor(self.colourList[self.guideColourIndex].red(),0,0,100))
-            gradient.setColorAt(1, QtGui.QColor(self.colourList[self.guideColourIndex].red(),self.colourList[self.guideColourIndex].green(),self.colourList[self.guideColourIndex].blue(),20))
+            gradient.setColorAt(0, QtGui.QColor(self.colourList[self.guideColourIndex].red(),0,0,100*self.alpha))
+            gradient.setColorAt(1, QtGui.QColor(self.colourList[self.guideColourIndex].red(),self.colourList[self.guideColourIndex].green(),self.colourList[self.guideColourIndex].blue(),20*self.alpha))
             painter.setBrush(QtGui.QBrush(gradient))
             painter.drawEllipse(self.scale*-18, self.scale*-18, self.scale*36, self.scale*36)        
 
@@ -753,7 +762,7 @@ class GuideMarker(QtGui.QGraphicsItem):
         # print "Marker guideIndex : " + str(self.guideIndex)
         # print "Marker showID : " + str(self.showID)
         if self.showID and self.index: #Conditions met to disply numbers on corners
-            pen = QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.SolidLine)
+            pen = QtGui.QPen(QtGui.QColor(180,180,180,255*self.alpha), 1, QtCore.Qt.SolidLine)
             painter.setPen(pen)
             fontsize = 9
             if self.scale < 1.0:
@@ -766,7 +775,7 @@ class GuideMarker(QtGui.QGraphicsItem):
 
     def drawActiveIndex(self,painter):
         if self.active: #Conditions met to disply numbers on corners
-            pen = QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.SolidLine)
+            pen = QtGui.QPen(QtGui.QColor(180,180,180,255*self.alpha), 1, QtCore.Qt.SolidLine)
             painter.setPen(pen)
             fontsize = 9
             if self.scale < 1.0:
@@ -778,19 +787,19 @@ class GuideMarker(QtGui.QGraphicsItem):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
         self.drawActive(painter)
         painter.setPen(QtCore.Qt.NoPen)
-        painter.setPen(QtGui.QPen(QtCore.Qt.lightGray, 0))
+        painter.setPen(QtGui.QPen(QtGui.QColor(180,180,180,255*self.alpha), 0))
         painter.drawRect(self.scale*-8, self.scale*-8, self.scale*16, self.scale*16)
-        painter.setPen(QtGui.QPen(QtCore.Qt.black, 0.25, QtCore.Qt.SolidLine))
+        painter.setPen(QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine))
         painter.drawRect(self.scale*-4, self.scale*-4, self.scale*8, self.scale*8)
         # painter.drawRect(-12.5, -2.75, 25, 5)
-        pen = QtGui.QPen(self.colourList[self.guideColourIndex], 0.5, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(self.colourList[self.guideColourIndex].red(),self.colourList[self.guideColourIndex].green(),self.colourList[self.guideColourIndex].blue(),255*self.alpha), 0.5, QtCore.Qt.SolidLine)
         if option.state & QtGui.QStyle.State_Sunken or self.isSelected(): # selected
             gradient = QtGui.QRadialGradient(0, 0, self.scale*4)
-            gradient.setColorAt(1, QtGui.QColor(self.colourList[self.guideColourIndex].red(),0,0,150))
-            gradient.setColorAt(0, QtGui.QColor(self.colourList[self.guideColourIndex].red(),self.colourList[self.guideColourIndex].green(),self.colourList[self.guideColourIndex].blue(),20))
+            gradient.setColorAt(1, QtGui.QColor(self.colourList[self.guideColourIndex].red(),0,0,150*self.alpha))
+            gradient.setColorAt(0, QtGui.QColor(self.colourList[self.guideColourIndex].red(),self.colourList[self.guideColourIndex].green(),self.colourList[self.guideColourIndex].blue(),20*self.alpha))
             painter.setBrush(QtGui.QBrush(gradient))
             painter.drawRect(self.scale*-4, self.scale*-4, self.scale*8, self.scale*8)
-            pen = QtGui.QPen(self.colourList[self.guideColourIndex], 2*self.scale, QtCore.Qt.SolidLine)
+            pen = QtGui.QPen(QtGui.QColor(self.colourList[self.guideColourIndex].red(),self.colourList[self.guideColourIndex].green(),self.colourList[self.guideColourIndex].blue(),255*self.alpha), 2*self.scale, QtCore.Qt.SolidLine)
 
         painter.setPen(pen)
         painter.drawLine(self.scale*-12,self.scale*-12,self.scale*12,self.scale*12)
@@ -1743,6 +1752,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.markerList = []
         self.wireGroups = []
 
+        self.dragItem = None
+        self.isSelectableList = [] #list used to store selectable states while panning around 
+        self.isMovableList = [] #list used to store selectable states while panning around       
+        self.isSelectedList = []
         #TESTING ADDING NEW ITEMS
         el = ConstraintEllipse(80,80)
         el.setPos(200,200)
@@ -1955,21 +1968,21 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,state)
                 if not state: item.setSelected(state)
 
-
-
-        #     if ctrl: #ctrl is pressed so  we are deselecting the item and removing from the list
-        #         print "length : " + str(len(self.markerActiveList))
-        #         if len(self.markerActiveList) > 1 : 
-        #             self.markerActiveList.remove(marker)
-        #             print "ran if"
-        #         else: 
-        #             self.markerActiveList = ["ctrlCase"] # Special Case where we are deselecting the only selected marker with a ctrl click
-        #             print "ran else"
-        #     else: self.markerActiveList = [marker] #ctrl not pressed, so we are starting a new clean list with the marker
-        # else: #the item is not present in the list
-        #     if ctrl: self.markerActiveList.append(marker) #append the 
-        #     else: self.markerActiveList = [marker] #ctrl not pressed, so we are starting a new clean list with the marker
-        # # print str(self.markerActiveList)
+    def panSelectableItems(self):
+        """A function to turn off moveabliliy and selectablility on all objects for a pan"""
+        self.isSelectableList = []
+        self.isMovableList = []
+        self.isSelectedList = []
+        scene = self.scene()
+        for item in scene.items():
+            self.isSelectedList.append(item.isSelected())
+            flags = item.flags()
+            isSelectable = flags.__eq__(flags | QtGui.QGraphicsItem.ItemIsSelectable)
+            self.isSelectableList.append(isSelectable) 
+            isMovable = flags.__eq__(flags | QtGui.QGraphicsItem.ItemIsMovable)
+            self.isMovableList.append(isMovable)
+            item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, False)  
+            item.setFlag(QtGui.QGraphicsItem.ItemIsMovable, False) 
 
     def clear(self, isReflectionLine = True):
         self.scene().clear() # Clear the scene of all items
@@ -2013,7 +2026,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def keyPressEvent(self, event):
         scene = self.scene()
         key = event.key()
-        if key == QtCore.Qt.Key_Plus:
+        if key == QtCore.Qt.Key_Alt:
+            self.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
+            self.panSelectableItems()
+        elif key == QtCore.Qt.Key_Plus:
             self.scaleView(1.2)
         elif key == QtCore.Qt.Key_Minus:
             self.scaleView(1 / 1.2)
@@ -2027,6 +2043,16 @@ class RigGraphicsView(QtGui.QGraphicsView):
         else:
             QtGui.QGraphicsView.keyPressEvent(self, event)
 
+    def keyReleaseEvent(self, event):
+        key = event.key()
+        scene = self.scene()
+        if key == QtCore.Qt.Key_Alt:
+            self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
+            for index, item in enumerate(scene.items()):
+                item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, self.isSelectableList[index])
+                item.setFlag(QtGui.QGraphicsItem.ItemIsMovable, self.isMovableList[index])
+                item.setSelected(self.isSelectedList[index])
+        QtGui.QGraphicsView.keyReleaseEvent(self, event)
     # def mousePressEvent(self, event):
     #     # print "GraphWidget mouse"
     #     # print "Mouse clicked - Maybe add a marker?"
@@ -2051,6 +2077,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if (event.mimeData().hasFormat('text/plain')):
             data = QtCore.QString(event.mimeData().data('text/plain'))
             event.accept()
+            self.dragGuideMarker(event)
         else:
             event.ignore()
 
@@ -2059,12 +2086,22 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if event.mimeData().hasFormat("text/plain"):
             event.setDropAction(QtCore.Qt.CopyAction)
             event.accept()
+            if self.dragItem:
+                self.dragItem.setPos(self.mapToScene(event.pos()))
         else:
             event.ignore()
 
     def dropEvent(self, event): 
         """Function to overider dropEvent to check text has arrived and add it to the graphicsView as appropriate"""
         if (event.mimeData().hasFormat('text/plain')):
+            self.dragItem.setAlpha(1.0)
+            self.dragItem = None #reset the gv dragItem
+            # self.dragGuideMarker(event)
+        else:
+            event.ignore() 
+
+
+    def dragGuideMarker(self, event):
             event.acceptProposedAction()
             #Create a new QGraphicsItem and transfer the text across so we have the correct name
             data = QtCore.QString(event.mimeData().data("text/plain"))
@@ -2072,8 +2109,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
             item.setIndex(self.markerCount)
             item.setPos(self.mapToScene(event.pos()))
             item.setScale(self.markerScale)
+            item.setAlpha(0.5)
             self.markerList.append(item) #Add Item to the main Marker list
             self.scene().addItem(item)
+            self.dragItem = item #set set the gv DragItem
             # print self.markerList
             # item.store()
 
@@ -2081,8 +2120,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
             # xml.setLoad('FaceFiles/test.xml')
             # item.read(xml.getTree())
             self.markerCount += 1
-        else:
-            event.ignore() 
 
     # def mousePressEvent(self, mouseEvent):
     #     scene = self.scene()
@@ -2101,13 +2138,26 @@ class RigGraphicsView(QtGui.QGraphicsView):
     #     # print str(markerIndexes)
     #     return QtGui.QGraphicsView.mousePressEvent(self, mouseEvent)
 
+    def mousePressEvent(self, mouseEvent):
+        scene = self.scene()
+        if mouseEvent.button() == QtCore.Qt.LeftButton:
+            pass
+            # if mouseEvent.modifiers() & QtCore.Qt.ControlModifier:
+            #     self.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
+        return QtGui.QGraphicsView.mousePressEvent(self, mouseEvent)
+
+    def mouseMoveEvent(self, mouseEvent):
+        scene = self.scene()
+        return QtGui.QGraphicsView.mouseMoveEvent(self, mouseEvent)
+
+
     def mouseDoubleClickEvent(self, mouseEvent):
         scene = self.scene()
         selGuides = []
         possibleItems = self.items(mouseEvent.pos())
         if mouseEvent.button() == QtCore.Qt.LeftButton:    #Left Double click on a Marker to activate or deactivate it
             for item in possibleItems:
-               if type(item) == GuideMarker: selGuides.append(item)
+                if type(item) == GuideMarker: selGuides.append(item)
 
         if len(selGuides) > 0 :
             self.processMarkerSelection(selGuides[0])

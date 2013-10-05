@@ -188,7 +188,10 @@ class RigFaceSetup(QtGui.QMainWindow):
         # self.creationToolbar = self.addToolBar('Create Controls')
         self.createItems = QtGui.QLabel("Create Items")
         self.markerCreate = RigUIControls.DragItemButton("GuideMarker")
-        self.wireGroupCreate = RigUIControls.DragItemButton("GuideMarker")
+        self.wireGroupCreate = RigUIControls.WireGroupButton()
+        self.wireGroupCreate.clicked.connect(lambda:  self.view.addWireGroup())
+        # self.wireGroupCreate.clicked.connect(lambda: self.itemTest())
+
         self.ellipseConstraintCreate = RigUIControls.DragItemButton("GuideMarker")
         self.createConstraints = QtGui.QLabel("Constraints")
         self.ellipseConstraintCreate = RigUIControls.DragItemButton("GuideMarker")
@@ -243,6 +246,9 @@ class RigFaceSetup(QtGui.QMainWindow):
         # faceFile = open('faceFiles/pickle.txt', 'wb')
         # pickle.dump(self.view, faceFile)
         # faceFile.close()
+
+    def itemTest(self):
+        print "moo"
 
 app = QtGui.QApplication([])
 app.setStyle('Plastique')

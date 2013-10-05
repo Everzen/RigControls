@@ -187,23 +187,6 @@ class ReflectionLine(QtGui.QGraphicsItem):
         return QtCore.QRectF( -adjust, -self.height/2 + self.inset - adjust,
                              2*adjust, self.height - 2*self.inset + 2*adjust)
 
-    # def itemChange(self, change, value):
-    #     if change == QtGui.QGraphicsItem.ItemPositionChange:
-    #         # print "Item new position :" + str(self.pos().x()) + ", " + str(self.pos().y())
-    #         # print "Max Level : " + str(self.maxLevel)
-    #         yPos = value.toPointF().y()
-    #         # if yPos > self.maxLevel : yPos = self.maxLevel
-    #         # elif yPos < self.minLevel : yPos = self.minLevel
-    #         vValue = self.getValue(yPos)
-    #         # print "VValue %s" % str(vValue)
-    #         if vValue:       
-    #             self.colourBroadcaster.setValue(vValue)
-    #             self.colourBroadcaster.broadcast()
-    #             # print "Colour Value is : " + str(self.getValue(yPos))
-    #         return QtCore.QPointF(509.75,yPos)
-    #     return QtGui.QGraphicsItem.itemChange(self, change, value)
-
-
     def remap(self,gViewWidth, gViewHeight):
         self.width = gViewWidth
         self.height = gViewHeight
@@ -211,8 +194,69 @@ class ReflectionLine(QtGui.QGraphicsItem):
         self.drawEnd = [0, self.height/2 - self.inset]
         self.setPos(QtCore.QPointF(self.width/2, self.height/2))
         self.update()
-    # def (self):
-    #     return self.drawStart[0]
+
+
+
+class WireGroupButton(QtGui.QPushButton):
+    def __init__(self, parent=None):
+        super(WireGroupButton, self).__init__(parent)
+        # self.setMouseTracking(True)
+        self.itemName = "WireGroup"
+        self.imageFile = None
+        self.imageCSS = None
+        self.initUI()
+
+    def initUI(self):
+        """Check the images folder to see if there is an appropriate image to load""" 
+        self.setStyleSheet(self.validImageFile())
+        self.pixmap = QtGui.QPixmap(self.imageFile)
+
+    def leaveEvent(self,event):
+        # QtGui.QPushButton.mouseReleaseEvent(self, event)
+        self.setDown(False)
+        self.setStyleSheet(self.validImageFile())
+
+    def mousePressEvent(self,event):
+        self.setDown(True)
+        self.setStyleSheet(self.validImageFile(state = "pressed"))
+        return QtGui.QPushButton.mousePressEvent(self, event)
+
+    def mouseReleaseEvent(self,event):
+        QtGui.QPushButton.mouseReleaseEvent(self, event)
+        self.setDown(False)
+        self.setStyleSheet(self.validImageFile())
+        return QtGui.QPushButton.mouseReleaseEvent(self, event)
+    
+    def mouseMoveEvent(self, event):
+        if self.hitButton(event.pos()):
+            self.setDown(True)
+            self.setStyleSheet(self.validImageFile(state = "pressed"))
+        else:
+            self.setDown(False)
+            self.setStyleSheet(self.validImageFile())
+
+    def validImageFile(self,state=""):
+        imageFile = ""
+        imageFileCss = ""
+        if state == "hover":
+            imageFile = 'images/' + self.itemName + '_Hover.png'
+            imageFileCss = 'image: url(:/' + imageFile + ');'
+        elif state == "pressed":
+            imageFile = 'images/' + self.itemName + '_Pressed.png'
+            imageFileCss = 'image: url(:/' + imageFile + ');'
+        else:
+            imageFile = 'images/' + self.itemName + '.png'
+            imageFileCss = 'image: url(:/' + imageFile + ');'
+
+        if os.path.exists(imageFile): #create icon and add to button
+            self.imageFile = imageFile
+            return imageFileCss
+        else:
+            print "WARNING : No valid image file has been found"
+
+    def sizeHint(self):
+        return self.pixmap.size()
+
 
 
 class DragItemButton(QtGui.QPushButton):
@@ -230,25 +274,17 @@ class DragItemButton(QtGui.QPushButton):
         self.setStyleSheet(self.validImageFile())
         self.pixmap = QtGui.QPixmap(self.imageFile)
 
-
-    # def enterEvent(self,event):
-    #     print("Enter")
-    #     self.pixmap = self.validImageFile(state = "hover")
-    #     # self.setStyleSheet("background-color:#45b545;")
-
     def leaveEvent(self,event):
-        # self.setStyleSheet("background-color:yellow;")
-        # self.pixmap = self.validImageFile()
         self.setDown(False)
         self.setStyleSheet(self.validImageFile())
 
     def mousePressEvent(self,event):
-        # self.setStyleSheet("background-color:yellow;")
-        # self.pixmap = self.validImageFile("pressed")
-        # self.paintEvent(event)
         self.setDown(True)
         self.setStyleSheet(self.validImageFile(state = "pressed"))
 
+    def mouseReleaseEvent(self,event):
+        self.setDown(False)
+        self.setStyleSheet(self.validImageFile())
 
     def validImageFile(self,state=""):
         imageFile = ""
@@ -277,7 +313,6 @@ class DragItemButton(QtGui.QPushButton):
     def mouseMoveEvent(self, e):
         if e.buttons() != QtCore.Qt.LeftButton:
             return
-
         mimeData = QtCore.QMimeData()
         mimeData.setData("text/plain", str(self.itemName))
         drag = QtGui.QDrag(self)

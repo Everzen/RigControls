@@ -6,5 +6,8 @@
     <file>images/GuideMarker.png</file>
     <file>images/GuideMarker_Hover.png</file>
     <file>images/GuideMarker_Pressed.png</file>
+    <file>images/WireGroup.png</file>
+    <file>images/WireGroup_Hover.png</file>
+    <file>images/WireGroup_Pressed.png</file>
   </qresource>
 </RCC>

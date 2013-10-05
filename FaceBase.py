@@ -57,6 +57,8 @@ class RigFaceSetup(QtGui.QMainWindow):
         # self.selectionButton.pressed.connect(lambda: self.view.printSelection()) #Adjust this to add hide Reflection Line Functionality
 
 
+        self.dockCreationWidget = QtGui.QWidget()
+
         hBox = QtGui.QHBoxLayout()
         vButtonBox = QtGui.QVBoxLayout()
         hImageBox = QtGui.QHBoxLayout()
@@ -74,9 +76,10 @@ class RigFaceSetup(QtGui.QMainWindow):
         vButtonBox.addStretch(1)
 
         hBox.addWidget(self.view)
-        hBox.addLayout(vButtonBox)
+        # hBox.addLayout(vButtonBox)
 
         self.mainWidget.setLayout(hBox)
+
         self.setCentralWidget(self.mainWidget)
 
         #File Menu
@@ -144,10 +147,16 @@ class RigFaceSetup(QtGui.QMainWindow):
         viewMenu.addSeparator()
         viewMenu.addAction(viewReflectionLine)
 
-        self.toolbar = self.addToolBar('Key Options')
-        
-        # self.selectionFilters = QtGui.QAction(QtGui.QIcon('images/SelectionFilters_toolbar.png'),'Selection Filters', self) 
-        # self.selectionFilters.setEnabled(False)
+
+        self.spaceToolbar = self.addToolBar('')
+        space  = QtGui.QLabel("                         ")
+        self.spaceToolbar.addSeparator()
+        self.spaceToolbar.addWidget(space)
+        self.spaceToolbar.addSeparator()
+        self.spaceToolbar.setFloatable(False)
+        self.spaceToolbar.setMovable(False)
+
+        self.filtersToolbar = self.addToolBar('Filter Options')
         self.selectionFilters = QtGui.QLabel("   Selection Filters   ")
 
 
@@ -161,10 +170,48 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.selNodes.setChecked(True)
         self.selNodes.toggled.connect(lambda: self.selectNodes(self.selNodes.isChecked()))
 
-        self.toolbar.addWidget(self.selectionFilters)
-        self.toolbar.addAction(self.selMarkers)
-        self.toolbar.addAction(self.selNodes)
-        self.toolbar.addSeparator()
+        self.filtersToolbar.addWidget(self.selectionFilters)
+        self.filtersToolbar.addAction(self.selMarkers)
+        self.filtersToolbar.addAction(self.selNodes)
+        self.filtersToolbar.addSeparator()
+
+        #Creation DockWidget
+        self.dockCreationWidget = QtGui.QDockWidget(self)
+        self.dockCreationWidget.setWindowTitle("Create")
+        self.creationWidget = QtGui.QWidget()
+        self.dockCreationWidget.setWidget(self.creationWidget)
+
+        creationBox = QtGui.QVBoxLayout()
+        self.creationWidget.setLayout(creationBox)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea(1), self.dockCreationWidget)
+
+        # self.creationToolbar = self.addToolBar('Create Controls')
+        self.createItems = QtGui.QLabel("Create Items")
+        self.markerCreate = RigUIControls.DragItemButton("GuideMarker")
+        self.wireGroupCreate = RigUIControls.DragItemButton("GuideMarker")
+        self.ellipseConstraintCreate = RigUIControls.DragItemButton("GuideMarker")
+        self.createConstraints = QtGui.QLabel("Constraints")
+        self.ellipseConstraintCreate = RigUIControls.DragItemButton("GuideMarker")
+        self.rectConstraintCreate = RigUIControls.DragItemButton("GuideMarker")
+        self.lineConstraintCreate = RigUIControls.DragItemButton("GuideMarker")
+
+        # creationBox.addWidget(self.createItems)
+        creationBox.addWidget(self.markerCreate)
+        creationBox.addWidget(self.wireGroupCreate)
+        creationBox.addWidget(self.createConstraints)
+        creationBox.addWidget(self.ellipseConstraintCreate)
+        creationBox.addWidget(self.rectConstraintCreate)
+        creationBox.addWidget(self.lineConstraintCreate)
+        creationBox.addStretch(1)
+
+        #Options DockWidget
+        self.dockOptionsWidget = QtGui.QDockWidget(self)
+        self.dockOptionsWidget.setWindowTitle("Control Options")
+        self.optionsWidget = QtGui.QWidget()
+        self.dockOptionsWidget.setWidget(self.optionsWidget)
+
+        self.optionsWidget.setLayout(vButtonBox)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea(2), self.dockOptionsWidget)        
 
         self.statusBar()
 

@@ -1156,20 +1156,19 @@ class Node(QtGui.QGraphicsItem):
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
     def mousePressEvent(self, event):
-        # if not self.graph().inhibit_edit:
         self.update()
-        # print "Node pressed"
         QtGui.QGraphicsItem.mousePressEvent(self, event)
 
     def mouseReleaseEvent(self, event):
-        # if not self.graph().inhibit_edit:
         self.update()
-        # print "Node Pos: " + str(self.pos())
         QtGui.QGraphicsItem.mouseReleaseEvent(self, event)
 
     def mouseMoveEvent(self, mouseEvent):
         # check of mouse moved within the restricted area for the item 
-        else: QtGui.QGraphicsItem.mouseMoveEvent(self, event)
+        if self.getPin().getConstraintItem():
+            return self.getPin().getConstraintItem().constrainMovement(mouseEvent)
+        else: QtGui.QGraphicsItem.mouseMoveEvent(self, mouseEvent)
+
 ###########################################################################################################################
 #RESTRICTION ITEMS
 class OpsRotation(QtGui.QGraphicsItem):
@@ -1234,6 +1233,7 @@ class OpsRotation(QtGui.QGraphicsItem):
         painter.drawLine(-locAx+0.5,-locAy,-locAx-1,-locAy-2)
 
     def mousePressEvent(self, event):
+        if self.parentItem().getNode(): self.parentItem().getNode().goHome() #If we are adjusting the constraint area, then first send the node home
         QtGui.QGraphicsItem.mousePressEvent(self, event)
 
     def mouseMoveEvent(self, event):
@@ -1312,6 +1312,7 @@ class OpsCross(QtGui.QGraphicsItem):
         # painter.drawRect(self.boundingRect())
 
     def mousePressEvent(self, event):
+        if self.parentItem().getNode(): self.parentItem().getNode().goHome() #If we are adjusting the constraint area, then first send the node home
         QtGui.QGraphicsItem.mousePressEvent(self, event)
 
     def mouseMoveEvent(self, event):
@@ -1531,14 +1532,11 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.setTransform(transform)
 
     def mouseMoveEvent(self, mouseEvent):
-        if self.pin != None:
-            print "we have a boss"
-        else:
-            return QtGui.QGraphicsView.mouseMoveEvent(self, mouseEvent)
+        if self.pin == None: return QtGui.QGraphicsEllipseItem.mouseMoveEvent(self, mouseEvent) #If there is no pin we are free to move, else we are locked to a pin
 
     def constrainMovement(self, mouseEvent):
-        if self.contains(mouseEvent.scenePos()):
-            QtGui.QGraphicsItem.mouseMoveEvent(self, event)
+        if self.contains(self.mapFromScene(mouseEvent.scenePos())): # make sure the incoming cordinates are map to the constraint Item for processing "contains"
+            return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)
 
 
 class ConstraintRect(QtGui.QGraphicsRectItem):
@@ -1553,6 +1551,10 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
         self.extension = 15.0
         self.opX = None
+        self.pin = None
+        self.pinIndex = 0
+        self.node = None
+        self.nodeIndex = 0
         self.setZValue(2)
         self.initBuild()
 
@@ -1584,6 +1586,39 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.alpha = float(alpha)
         self.opX.setAlpha(float(alpha))
         self.opRot.setAlpha(float(alpha))
+
+    def getPinIndex(self):
+        return self.pinIndex
+
+    def setPinIndex(self, index):
+        self.pinIndex = index
+
+    def getPin(self):
+        return self.pin
+
+    def setPin(self, pin):
+        if type(pin) == ControlPin:
+            self.pin = pin
+            self.setPinIndex(pin.getIndex())
+            self.setParentItem(pin)
+        else: 
+            print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PIN ALLOCATION"
+
+    def getNodeIndex(self):
+        return self.nodeIndex
+
+    def setNodeIndex(self, index):
+        self.nodeIndex = index
+
+    def getNode(self):
+        return self.node
+
+    def setNode(self, node):
+        if type(node) == Node:
+            self.node = node
+            self.setNodeIndex(node.getIndex())
+        else: 
+            print "WARNING : INVALID OBJECT WAS PASSED TO CONSTRAINITEM FOR CONSTRAINT ALLOCATION"
 
     def boundingRect(self):
         adjust = 2
@@ -1668,6 +1703,9 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         # transform.translate(-arrow_x, -arrow_y)
         self.setTransform(transform)
 
+    def constrainMovement(self, mouseEvent):
+        if self.contains(self.mapFromScene(mouseEvent.scenePos())): # make sure the incoming cordinates are map to the constraint Item for processing "contains"
+            return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)
 
 
 class ConstraintLine(QtGui.QGraphicsItem):
@@ -1683,6 +1721,10 @@ class ConstraintLine(QtGui.QGraphicsItem):
         self.crossOffset = 7
         self.opXHead = None
         self.opXTail = None
+        self.pin = None
+        self.pinIndex = 0
+        self.node = None
+        self.nodeIndex = 0
         self.setZValue(2)
         self.initBuild()
 
@@ -1721,6 +1763,39 @@ class ConstraintLine(QtGui.QGraphicsItem):
         self.opXHead.setAlpha(float(alpha))
         self.opXTail.setAlpha(float(alpha))
         self.opRot.setAlpha(float(alpha))
+
+    def getPinIndex(self):
+        return self.pinIndex
+
+    def setPinIndex(self, index):
+        self.pinIndex = index
+
+    def getPin(self):
+        return self.pin
+
+    def setPin(self, pin):
+        if type(pin) == ControlPin:
+            self.pin = pin
+            self.setPinIndex(pin.getIndex())
+            self.setParentItem(pin)
+        else: 
+            print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PIN ALLOCATION"
+
+    def getNodeIndex(self):
+        return self.nodeIndex
+
+    def setNodeIndex(self, index):
+        self.nodeIndex = index
+
+    def getNode(self):
+        return self.node
+
+    def setNode(self, node):
+        if type(node) == Node:
+            self.node = node
+            self.setNodeIndex(node.getIndex())
+        else: 
+            print "WARNING : INVALID OBJECT WAS PASSED TO CONSTRAINITEM FOR CONSTRAINT ALLOCATION"
 
     def boundingRect(self):
         adjust = 2
@@ -1806,7 +1881,9 @@ class ConstraintLine(QtGui.QGraphicsItem):
         # transform.translate(-arrow_x, -arrow_y)
         self.setTransform(transform)
 
-
+    def constrainMovement(self, mouseEvent): #New rules need to be written for constraining the point across the line
+        if self.contains(self.mapFromScene(mouseEvent.scenePos())): # make sure the incoming cordinates are map to the constraint Item for processing "contains"
+            return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)
 
 
 ###########################################################################################################################
@@ -2216,9 +2293,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
             if len(dropNodes) != 0 :
                 print "We hit a node"
                 dropNodes[0].goHome()
-                self.dragItem.setPin(dropNodes[0].getPin())
+                self.dragItem.setPin(dropNodes[0].getPin()) # Add the constraint Item to the Pin
                 self.dragItem.setPos(QtCore.QPointF(0,0))
-                self.dragItem.setNode(dropNodes[0])
+                self.dragItem.setNode(dropNodes[0]) #Add the Node to the ConstraintItem
+                dropNodes[0].getPin().setConstraintItem(self.dragItem) #Add the constraint Item to the pin
             else:
                 scene.removeItem(self.dragItem) #We missed so delete the item
                 self.dragItem = None

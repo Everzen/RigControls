@@ -194,9 +194,9 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         self.ellipseConstraintCreate = RigUIControls.DragItemButton("GuideMarker")
         self.createConstraints = QtGui.QLabel("Constraints")
-        self.ellipseConstraintCreate = RigUIControls.DragItemButton("GuideMarker")
-        self.rectConstraintCreate = RigUIControls.DragItemButton("GuideMarker")
-        self.lineConstraintCreate = RigUIControls.DragItemButton("GuideMarker")
+        self.ellipseConstraintCreate = RigUIControls.DragItemButton("ConstraintEllipse")
+        self.rectConstraintCreate = RigUIControls.DragItemButton("ConstraintRect")
+        self.lineConstraintCreate = RigUIControls.DragItemButton("ConstraintLine")
 
         # creationBox.addWidget(self.createItems)
         creationBox.addWidget(self.markerCreate)

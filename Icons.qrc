@@ -9,5 +9,14 @@
     <file>images/WireGroup.png</file>
     <file>images/WireGroup_Hover.png</file>
     <file>images/WireGroup_Pressed.png</file>
+    <file>images/ConstraintEllipse.png</file>
+    <file>images/ConstraintEllipse_Hover.png</file>
+    <file>images/ConstraintEllipse_Pressed.png</file>
+    <file>images/ConstraintRect.png</file>
+    <file>images/ConstraintRect_Hover.png</file>
+    <file>images/ConstraintRect_Pressed.png</file>
+    <file>images/ConstraintLine.png</file>
+    <file>images/ConstraintLine_Hover.png</file>
+    <file>images/ConstraintLine_Pressed.png</file>
   </qresource>
 </RCC>

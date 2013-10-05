@@ -90,6 +90,7 @@ class RigCurveInfo():
 def buildGuideItem(itemName):
     """A function to build the correct Rig Graphics Item from an input string"""
     itemstring = str(itemName) + "()"
+    # print itemstring 
     item = eval(itemstring)
     return item
 
@@ -511,7 +512,7 @@ class ControlPin(QtGui.QGraphicsItem):
         self.wireGroup = None
 
         self.setPos(cPos)
-        self.setZValue(1) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
+        self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
 
     def store(self):
@@ -988,7 +989,6 @@ class Node(QtGui.QGraphicsItem):
         if self.operatorClass:
             self.operatorClass.setPos([offsetPos.x(),offsetPos.y()]) #Set colourGrabber position
             self.operatorClass.mouseMoveExecute() # Set the initial colour
-
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
     def store(self):
@@ -1191,9 +1191,10 @@ class OpsRotation(QtGui.QGraphicsItem):
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
         self.scale = 1.0
+        self.alpha = 1.0
         self.length = 10
         self.constraintItem = constraintItem
-        self.setZValue(9)
+        self.setZValue(2)
 
     def getScale(self):
         return self.scale
@@ -1206,6 +1207,12 @@ class OpsRotation(QtGui.QGraphicsItem):
 
     def setLength(self,length):
         self.length = length
+
+    def getAlpha(self):
+        return self.alpha
+
+    def setAlpha(self, alpha):
+        self.alpha = float(alpha)
 
     def boundingRect(self):
         adjust = 0
@@ -1222,7 +1229,7 @@ class OpsRotation(QtGui.QGraphicsItem):
         locBx = -4 * self.scale
         locBy = 0 * self.scale
 
-        pen = QtGui.QPen(QtCore.Qt.red, 0.5, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(255,20,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
         painter.setPen(pen)
 
         wCurve1 = QtGui.QPainterPath()
@@ -1230,7 +1237,7 @@ class OpsRotation(QtGui.QGraphicsItem):
         wCurve1.cubicTo(QtCore.QPointF(locBx,-locBy),QtCore.QPointF(-locBx,-locBy),QtCore.QPointF(-locAx,-locAy))
         painter.strokePath(wCurve1, painter.pen())
         
-        pen = QtGui.QPen(QtCore.Qt.red, 0.5, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(255,20,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         painter.drawLine(locAx-0.5,-locAy,locAx+2,-locAy+1)
         painter.drawLine(locAx-0.5,-locAy,locAx+1,-locAy-2)
@@ -1238,11 +1245,7 @@ class OpsRotation(QtGui.QGraphicsItem):
         painter.drawLine(-locAx+0.5,-locAy,-locAx-2,-locAy+1)
         painter.drawLine(-locAx+0.5,-locAy,-locAx-1,-locAy-2)
 
-        painter.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
-        # painter.drawRect(self.boundingRect())
-
     def mousePressEvent(self, event):
-        # print "Hit OpsRot"
         QtGui.QGraphicsItem.mousePressEvent(self, event)
 
     def mouseMoveEvent(self, event):
@@ -1258,12 +1261,13 @@ class OpsCross(QtGui.QGraphicsItem):
     def __init__(self, constraintItem):
         QtGui.QGraphicsItem.__init__(self)
         self.scale = 1.0
+        self.alpha = 1.0
         self.length = 4
         self.slider = False
         self.sliderLimit = 0
         self.index = 0
         self.constraintItem = constraintItem
-        self.setZValue(9)
+        self.setZValue(2)
 
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
@@ -1299,6 +1303,12 @@ class OpsCross(QtGui.QGraphicsItem):
     def setIndex(self, index):
         self.index = int(index)
 
+    def getAlpha(self):
+        return self.alpha
+
+    def setAlpha(self, alpha):
+        self.alpha = float(alpha)
+
     def boundingRect(self):
         adjust = 1
         return QtCore.QRectF(self.scale*(-self.length - adjust), self.scale*(-self.length - adjust),
@@ -1306,11 +1316,11 @@ class OpsCross(QtGui.QGraphicsItem):
 
     def paint(self, painter, option, widget):
         self.prepareGeometryChange()
-        pen = QtGui.QPen(QtGui.QColor(255,0,0,200), 0.5, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(255,0,0,200*self.alpha), 0.5, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         painter.drawLine(self.scale*-self.length,0,self.scale*self.length,0)
         painter.drawLine(0,self.scale*self.length,0,self.scale*-self.length)
-        painter.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
+        painter.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25*self.alpha))) #shade in the circle
         # painter.drawRect(self.boundingRect())
 
     def mousePressEvent(self, event):
@@ -1369,18 +1379,21 @@ class OpsCross(QtGui.QGraphicsItem):
 
 
 class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
-    def __init__(self, w, h):
-        QtGui.QGraphicsEllipseItem.__init__(self, -w/2, -h/2, w, h) 
-        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
-        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
-        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+    def __init__(self):
         self.scale = 1.0
-        self.width = w/2
-        self.height = h/2
+        self.width = 25
+        self.height = 25
+        self.alpha = 1.0
+        QtGui.QGraphicsEllipseItem.__init__(self, -self.width, -self.height, 2*self.width, 2*self.height) 
         self.extension = 15.0
         self.opX = None
         self.opRot = None
-        self.setZValue(1)
+        self.pin = None
+        self.pinIndex = 0
+        self.setZValue(2)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)       
         self.initBuild()
 
     def initBuild(self):
@@ -1391,8 +1404,7 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.opRot = OpsRotation(self)
         self.opRot.setParentItem(self)
         self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-9))
-        # self.opRot.setVisible(False)
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
+
 
     def getWidth(self):
         return self.width
@@ -1406,6 +1418,31 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
     def setHeight(self,height):
         self.height = height
 
+    def getAlpha(self):
+        return self.alpha
+
+    def setAlpha(self, alpha):
+        self.alpha = float(alpha)
+        self.opX.setAlpha(float(alpha))
+        self.opRot.setAlpha(float(alpha))
+
+    def getPinIndex(self):
+        return self.pinIndex
+
+    def setPinIndex(self, index):
+        self.pinIndex = index
+
+    def getPin(self):
+        return self.pin
+
+    def setPin(self, pin):
+        if type(pin) == ControlPin:
+            self.pin = pin
+            self.setPinIndex(pin.getIndex())
+            self.setParentItem(pin)
+        else: 
+            print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PIN ALLOCATION"
+    
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust - self.extension-3),
@@ -1413,11 +1450,14 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
 
     def paint(self, painter, option, widget):
         self.prepareGeometryChange()
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25*self.alpha))) #shade in the circle
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
+        self.setPen(pen)
         QtGui.QGraphicsEllipseItem.paint(self, painter, option, widget)
-        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.25, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         painter.drawLine(0,self.scale*self.height - 2,0,self.scale*-self.height-self.extension) 
-        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.25, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         if self.width > 5:
             painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
@@ -1484,20 +1524,27 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         # transform.translate(-arrow_x, -arrow_y)
         self.setTransform(transform)
 
+    def mouseMoveEvent(self, mouseEvent):
+        if self.pin != None:
+            print "we have a boss"
+        else:
+            return QtGui.QGraphicsView.mouseMoveEvent(self, mouseEvent)
+
 
 
 class ConstraintRect(QtGui.QGraphicsRectItem):
-    def __init__(self, w, h):
-        QtGui.QGraphicsRectItem.__init__(self, -w/2, -h/2, w, h) 
+    def __init__(self):
+        self.scale = 1.0
+        self.alpha = 1.0
+        self.width = 25
+        self.height = 25
+        QtGui.QGraphicsRectItem.__init__(self, -self.width , -self.height, 2*self.width, 2*self.height) 
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
-        self.scale = 1.0
-        self.width = w/2
-        self.height = h/2
         self.extension = 15.0
         self.opX = None
-        self.setZValue(1)
+        self.setZValue(2)
         self.initBuild()
 
     def initBuild(self):
@@ -1508,9 +1555,7 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.opRot = OpsRotation(self)
         self.opRot.setParentItem(self)
         self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
-    # def paint(self, painter, option, widget):
-    #     painter.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25)))
+
     def getWidth(self):
         return self.width
 
@@ -1523,6 +1568,14 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
     def setHeight(self,height):
         self.height = height
 
+    def getAlpha(self):
+        return self.alpha
+
+    def setAlpha(self, alpha):
+        self.alpha = float(alpha)
+        self.opX.setAlpha(float(alpha))
+        self.opRot.setAlpha(float(alpha))
+
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust - self.extension),
@@ -1530,12 +1583,15 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
 
     def paint(self, painter, option, widget):
         self.prepareGeometryChange()
-        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.25, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25*self.alpha))) #shade in the circle
+        self.setPen(pen)
         painter.setPen(pen)
+        QtGui.QGraphicsRectItem.paint(self, painter, option, widget)
         # painter.drawLine(0,self.scale*-self.height - 2,0,self.scale*-self.height-self.extension) 
         # painter.drawLine(0,self.scale*-self.height + 2,0,self.scale*self.height -2)
         painter.drawLine(0,self.scale*self.height - 2,0,self.scale*-self.height-self.extension)  
-        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.25, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         if self.width > 5:
             painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
@@ -1545,7 +1601,6 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
             painter.drawLine(self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
         if self.width > 3: painter.drawLine(3,0,-3,0)
         else: painter.drawLine(self.width,0,-self.width,0)
-        QtGui.QGraphicsRectItem.paint(self, painter, option, widget)
 
 
     def redraw(self, dimPos):
@@ -1607,18 +1662,19 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
 
 
 class ConstraintLine(QtGui.QGraphicsItem):
-    def __init__(self, head, tail):
+    def __init__(self):
         QtGui.QGraphicsItem.__init__(self) 
+        self.scale = 1.0
+        self.alpha = 1.0
+        self.headLength = 25
+        self.tailLength = 25
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
-        self.scale = 1.0
-        self.headLength = head
-        self.tailLength = tail
         self.crossOffset = 7
         self.opXHead = None
         self.opXTail = None
-        self.setZValue(1)
+        self.setZValue(2)
         self.initBuild()
 
     def initBuild(self):
@@ -1651,6 +1707,12 @@ class ConstraintLine(QtGui.QGraphicsItem):
     def setTailLength(self, tailLength):
         self.tailLength = tailLength
 
+    def setAlpha(self, alpha):
+        self.alpha = float(alpha)
+        self.opXHead.setAlpha(float(alpha))
+        self.opXTail.setAlpha(float(alpha))
+        self.opRot.setAlpha(float(alpha))
+
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-5 - adjust), self.scale*(-self.headLength - adjust +1 ),
@@ -1659,20 +1721,18 @@ class ConstraintLine(QtGui.QGraphicsItem):
     def paint(self, painter, option, widget):
         # QtGui.QGraphicsRectItem.paint(self, painter, option, widget)
         self.prepareGeometryChange()
-        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.25, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         # painter.drawLine(0,0.98*self.scale*self.tailLength,0,0.98*self.scale*-self.headLength) 
         painter.drawLine(0,1*self.scale*self.tailLength,0,1*self.scale*-self.headLength) 
 
-        pen = QtGui.QPen(QtGui.QColor(0,0,0), 0.25, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         # painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
         # painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
         painter.drawLine(5,self.scale*-self.headLength,-5,self.scale*-self.headLength)
         painter.drawLine(5,self.scale*self.tailLength,-5,self.scale*self.tailLength)
         painter.drawLine(3,0,-3,0)
-        # painter.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25))) #shade in the circle
-        # painter.drawRect(self.boundingRect())
 
     def redraw(self, index): #index indicates which cross we are interested in - on this Line 0 is a head, and 1 is a tail
         if index == 0:
@@ -1792,18 +1852,18 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.isMovableList = [] #list used to store selectable states while panning around       
         self.isSelectedList = []
         #TESTING ADDING NEW ITEMS
-        el = ConstraintEllipse(80,80)
-        el.setPos(200,200)
+        # el = ConstraintEllipse(80,80)
+        # el.setPos(200,200)
 
-        rect = ConstraintRect(80,90)
-        rect.setPos(200,100)
+        # rect = ConstraintRect(80,90)
+        # rect.setPos(200,100)
 
-        line = ConstraintLine(50,25)
-        line.setPos(200,350)
+        # line = ConstraintLine(50,25)
+        # line.setPos(200,350)
 
-        self.scene().addItem(el)
-        self.scene().addItem(rect)
-        self.scene().addItem(line)
+        # self.scene().addItem(el)
+        # self.scene().addItem(rect)
+        # self.scene().addItem(line)
 
     def getBackgroundImage(self):
         return self.backgroundImage
@@ -2078,6 +2138,14 @@ class RigGraphicsView(QtGui.QGraphicsView):
         else:
             QtGui.QGraphicsView.keyPressEvent(self, event)
 
+    # def sortSceneOrder(self):
+    #     stackItems = []
+    #     for item in self.scene().items(): stackItems.append(item)
+    #     stackItems.sort(key=lambda x: x.zValue(), reverse=True)
+    #     for item in self.scene().items(): self.scene().removeItem(item)
+    #     for item in stackItems: self.scene().addItem(item)
+    #     return stackItems
+
     def keyReleaseEvent(self, event):
         key = event.key()
         scene = self.scene()
@@ -2103,7 +2171,11 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if (event.mimeData().hasFormat('text/plain')):
             data = QtCore.QString(event.mimeData().data('text/plain'))
             event.accept()
-            self.dragGuideMarker(event)
+            if data == "GuideMarker":
+                self.dragGuideMarker(event, data)
+            elif data == "ConstraintLine" or data == "ConstraintRect" or data == "ConstraintEllipse":
+                self.dragConstraintItem(event, data)
+
         else:
             event.ignore()
 
@@ -2120,14 +2192,32 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def dropEvent(self, event): 
         """Function to overider dropEvent to check text has arrived and add it to the graphicsView as appropriate"""
         if (event.mimeData().hasFormat('text/plain')):
-            self.dragItem.setAlpha(1.0)
-            self.dragItem = None #reset the gv dragItem
-            # self.dragGuideMarker(event)
+            self.processDrop(event)
         else:
             event.ignore() 
 
+    def processDrop(self, event):
+        scene = self.scene()
+        dropNodes = []
+        if type(self.dragItem) == ConstraintLine or type(self.dragItem) == ConstraintRect or type(self.dragItem) == ConstraintEllipse:
+            possibleItems = self.items(event.pos())
+            for item in possibleItems:
+                if type(item) == Node: dropNodes.append(item)
+    
+            if len(dropNodes) != 0 :
+                print "We hit a node"
+                dropNodes[0].goHome()
+                self.dragItem.setPin(dropNodes[0].getPin())
+                self.dragItem.setPos(QtCore.QPointF(0,0))
+            else:
+                scene.removeItem(self.dragItem) #We missed so delete the item
+                self.dragItem = None
 
-    def dragGuideMarker(self, event):
+        if self.dragItem:
+            self.dragItem.setAlpha(1.0)
+            self.dragItem = None #reset the gv dragItem
+
+    def dragGuideMarker(self, event, data):
             event.acceptProposedAction()
             #Create a new QGraphicsItem and transfer the text across so we have the correct name
             data = QtCore.QString(event.mimeData().data("text/plain"))
@@ -2139,35 +2229,31 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.markerList.append(item) #Add Item to the main Marker list
             self.scene().addItem(item)
             self.dragItem = item #set set the gv DragItem
-            # print self.markerList
-            # item.store()
-
-            # xml = FileControl.XMLMan()
-            # xml.setLoad('FaceFiles/test.xml')
-            # item.read(xml.getTree())
             self.markerCount += 1
 
-    # def mousePressEvent(self, mouseEvent):
-    #     scene = self.scene()
-    #     selGuides = []
-    #     if mouseEvent.button() == QtCore.Qt.LeftButton:
-    #         possibleItems = self.items(mouseEvent.pos())
-    #         for item in possibleItems:
-    #            if type(item) == GuideMarker: selGuides.append(item) #The first item in this list is the top layer item, and always the one that is interacted with
-        
-    #     modifiers = QtGui.QApplication.keyboardModifiers()
-    #     ctrlPressed = (modifiers == QtCore.Qt.ControlModifier) #detect if ctrl is being pressed
-    #     if len(selGuides) != 0: self.processMarkerSelection(selGuides[0], ctrlPressed) #Check there is an item selected
-    #     else: self.markerActiveList = [] # No item Marker has been selected so the selection list is cleared.
-    #     # markerIndexes = []
-    #     # for item in self.markerActiveList: markerIndexes.append(item.getIndex())
-    #     # print str(markerIndexes)
-    #     return QtGui.QGraphicsView.mousePressEvent(self, mouseEvent)
+    def dragConstraintItem(self, event, data):
+            event.acceptProposedAction()
+            #Create a new QGraphicsItem and transfer the text across so we have the correct name
+            data = QtCore.QString(event.mimeData().data("text/plain"))
+            item = buildGuideItem(data)
+            item.setPos(self.mapToScene(event.pos()))
+            item.setAlpha(0.5)
+            self.scene().addItem(item)
+            self.dragItem = item #set set the gv DragItem
+
 
     def mousePressEvent(self, mouseEvent):
         scene = self.scene()
         if mouseEvent.button() == QtCore.Qt.LeftButton:
             pass
+            # for item in scene.items(QtCore.Qt.DescendingOrder): print str(type(item)) + " " + str(item.zValue())
+            # possibleItems = self.items(mouseEvent.pos())
+            # for item in possibleItems:
+            #     print str(type(item)) + " " + str(item.zValue())
+            # print "\n"
+            # stacked = self.sortSceneOrder()
+            # for item in stacked: print str(type(item)) + " " + str(item.zValue())
+
             # if mouseEvent.modifiers() & QtCore.Qt.ControlModifier:
             #     self.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
         return QtGui.QGraphicsView.mousePressEvent(self, mouseEvent)

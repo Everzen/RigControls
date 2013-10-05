@@ -510,6 +510,7 @@ class ControlPin(QtGui.QGraphicsItem):
         self.scale = 1
         self.scaleOffset = 2.5
         self.wireGroup = None
+        self.constraintItem = None
 
         self.setPos(cPos)
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
@@ -562,6 +563,13 @@ class ControlPin(QtGui.QGraphicsItem):
 
     def setWireGroup(self, wireGroup):
         self.wireGroup = wireGroup
+
+    def getConstraintItem(self):
+        return self.constraintItem
+
+    def setConstraintItem(self, item):
+        if type(item) == ConstraintLine or type(item) == ConstraintRect or type(item) == ConstraintEllipse:
+            self.constraintItem = item
 
     def drawWireControl(self, painter):
         wCurve1 = QtGui.QPainterPath()
@@ -977,18 +985,7 @@ class Node(QtGui.QGraphicsItem):
         self.pinTieIndex = None
 
         self.wireGroup = None
-        
-        self.restraintDef = restraintDef
-        self.move_restrict_circle = None
-        self.operatorClass = operatorClass
-
-        # if self.restraintDef:
-        #     self.move_restrict_circle = QtGui.QGraphicsEllipseItem(2*self.restraintDef["centerOffset"][0],2*self.restraintDef["centerOffset"][1], 2*self.restraintDef["radius"],2*self.restraintDef["radius"])
-        # offsetPos = self.pos() - QPVec(self.restraintDef["center"])
         self.setPos(nPos)
-        if self.operatorClass:
-            self.operatorClass.setPos([offsetPos.x(),offsetPos.y()]) #Set colourGrabber position
-            self.operatorClass.mouseMoveExecute() # Set the initial colour
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
     def store(self):
@@ -1170,17 +1167,8 @@ class Node(QtGui.QGraphicsItem):
         # print "Node Pos: " + str(self.pos())
         QtGui.QGraphicsItem.mouseReleaseEvent(self, event)
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, mouseEvent):
         # check of mouse moved within the restricted area for the item 
-        if self.restraintDef:
-            if self.move_restrict_circle.contains(event.scenePos()):
-                QtGui.QGraphicsItem.mouseMoveEvent(self, event)
-                if self.operatorClass:
-                    pass
-                    # nodePos = self.pos() - QPVec(self.restraintDef["center"])
-                    # # print "Node Pos " + str(self.index) + ": " + str(nodePos.x()) + "," + str(nodePos.y())
-                    # self.operatorClass.setPos(npVec(nodePos))
-                    # self.operatorClass.mouseMoveExecute() #Execute our defined operator class through the move event
         else: QtGui.QGraphicsItem.mouseMoveEvent(self, event)
 ###########################################################################################################################
 #RESTRICTION ITEMS
@@ -1390,6 +1378,8 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.opRot = None
         self.pin = None
         self.pinIndex = 0
+        self.node = None
+        self.nodeIndex = 0
         self.setZValue(2)
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
@@ -1442,7 +1432,23 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
             self.setParentItem(pin)
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PIN ALLOCATION"
-    
+
+    def getNodeIndex(self):
+        return self.nodeIndex
+
+    def setNodeIndex(self, index):
+        self.nodeIndex = index
+
+    def getNode(self):
+        return self.node
+
+    def setNode(self, node):
+        if type(node) == Node:
+            self.node = node
+            self.setNodeIndex(node.getIndex())
+        else: 
+            print "WARNING : INVALID OBJECT WAS PASSED TO CONSTRAINITEM FOR CONSTRAINT ALLOCATION"
+
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust - self.extension-3),
@@ -1530,6 +1536,9 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         else:
             return QtGui.QGraphicsView.mouseMoveEvent(self, mouseEvent)
 
+    def constrainMovement(self, mouseEvent):
+        if self.contains(mouseEvent.scenePos()):
+            QtGui.QGraphicsItem.mouseMoveEvent(self, event)
 
 
 class ConstraintRect(QtGui.QGraphicsRectItem):
@@ -2209,6 +2218,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 dropNodes[0].goHome()
                 self.dragItem.setPin(dropNodes[0].getPin())
                 self.dragItem.setPos(QtCore.QPointF(0,0))
+                self.dragItem.setNode(dropNodes[0])
             else:
                 scene.removeItem(self.dragItem) #We missed so delete the item
                 self.dragItem = None

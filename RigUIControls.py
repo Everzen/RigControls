@@ -1152,7 +1152,8 @@ class Node(QtGui.QGraphicsItem):
                 self.pinTie().drawTie()
             for rigCurve in self.rigCurveList:
                 rigCurve().buildCurve()
-        # print "Item new position :" + str(self.pos().x()) + ", " + str(self.pos().y())
+            if type(self.getPin().getConstraintItem()) == ConstraintLine: # We have the special case of the ConstraintLine in place
+                return self.mapFromScene(self.getPin().getConstraintItem().constrainItemChangedMovement(self.mapToScene(value.toPointF()))) #get the constraint cordinates and map them back to our local space
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
     def mousePressEvent(self, event):
@@ -1187,7 +1188,7 @@ class OpsRotation(QtGui.QGraphicsItem):
         return self.scale
 
     def setScale(self, scale):
-        self.scale = scaleOffset
+        self.scale = scale
 
     def getLength(self):
         return self.length
@@ -1881,10 +1882,19 @@ class ConstraintLine(QtGui.QGraphicsItem):
         # transform.translate(-arrow_x, -arrow_y)
         self.setTransform(transform)
 
-    def constrainMovement(self, mouseEvent): #New rules need to be written for constraining the point across the line
-        if self.contains(self.mapFromScene(mouseEvent.scenePos())): # make sure the incoming cordinates are map to the constraint Item for processing "contains"
-            return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)
+    def constrainMovement(self, mouseEvent): #Simple return since the Line Constraint operates on Item Changed
+        return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)
 
+    def constrainItemChangedMovement(self, eventPos): #New rules need to be written for constraining the point across the line
+        localPos = self.mapFromScene(eventPos)
+        # print "EventPos = "  + str(eventPos)
+        yPos = localPos.y()
+        # print "localPos = "  + str(yPos)
+        if yPos < -2*self.headLength: yPos = -2*self.headLength
+        elif yPos > 2*self.tailLength: yPos = 2*self.tailLength
+        # print "AdjustedPos = "  + str(yPos)
+        # print "Value passing back : " + str(self.mapToScene(QtCore.QPointF(0,yPos)))
+        return self.mapToScene(QtCore.QPointF(0,yPos))
 
 ###########################################################################################################################
 class RigGraphicsView(QtGui.QGraphicsView):

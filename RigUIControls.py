@@ -571,6 +571,10 @@ class ControlPin(QtGui.QGraphicsItem):
         if type(item) == ConstraintLine or type(item) == ConstraintRect or type(item) == ConstraintEllipse:
             self.constraintItem = item
 
+    # def removeConstrainItem(self): 
+    #     """Function to clear the contraintItem from the node/pin system, but it will not remove it from the scene"""
+    #     if self.contraintItem: self.contraintItem = None
+
     def drawWireControl(self, painter):
         wCurve1 = QtGui.QPainterPath()
 
@@ -1314,7 +1318,9 @@ class OpsCross(QtGui.QGraphicsItem):
         # painter.drawRect(self.boundingRect())
 
     def mousePressEvent(self, event):
-        if self.parentItem().getNode(): self.parentItem().getNode().goHome() #If we are adjusting the constraint area, then first send the node home
+        if self.parentItem().getNode(): 
+            self.parentItem().getNode().goHome() #If we are adjusting the constraint area, then first send the node home
+            self.scene().clearSelection() #if we are manipulating this constraint area, then all other scene items should be deselected
         QtGui.QGraphicsItem.mousePressEvent(self, event)
 
     def mouseMoveEvent(self, event):
@@ -1375,6 +1381,7 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.width = 25
         self.height = 25
         self.alpha = 1.0
+        self.ghostArea = False
         QtGui.QGraphicsEllipseItem.__init__(self, -self.width, -self.height, 2*self.width, 2*self.height) 
         self.extension = 15.0
         self.opX = None
@@ -1419,6 +1426,14 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.opX.setAlpha(float(alpha))
         self.opRot.setAlpha(float(alpha))
 
+    def isGhostArea(self):
+        return self.ghostArea
+
+    def setGhostArea(self, ghost):
+        self.ghostArea = bool(ghost)
+        self.opX.setVisible(not bool(ghost))
+        self.opRot.setVisible(not bool(ghost))
+
     def getPinIndex(self):
         return self.pinIndex
 
@@ -1452,6 +1467,12 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO CONSTRAINITEM FOR CONSTRAINT ALLOCATION"
 
+    def lock(self):
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False)  
+        self.opX.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
+
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust - self.extension-3),
@@ -1461,21 +1482,25 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.prepareGeometryChange()
         self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25*self.alpha))) #shade in the circle
         pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
-        self.setPen(pen)
+        if not self.ghostArea: self.setPen(pen)
+        else: 
+            self.setPen(QtGui.QPen(QtCore.Qt.NoPen))
+            self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,15*self.alpha))) #shade in the circle
         QtGui.QGraphicsEllipseItem.paint(self, painter, option, widget)
-        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
-        painter.setPen(pen)
-        painter.drawLine(0,self.scale*self.height - 2,0,self.scale*-self.height-self.extension) 
-        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
-        painter.setPen(pen)
-        if self.width > 5:
-            painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
-            painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
-        else:
-            painter.drawLine(-self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
-            painter.drawLine(self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
-        if self.width > 3: painter.drawLine(3,0,-3,0)
-        else: painter.drawLine(self.width,0,-self.width,0)
+        if not self.ghostArea:
+            pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
+            painter.setPen(pen)
+            painter.drawLine(0,self.scale*self.height - 2,0,self.scale*-self.height-self.extension) 
+            pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
+            painter.setPen(pen)
+            if self.width > 5:
+                painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
+                painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
+            else:
+                painter.drawLine(-self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
+                painter.drawLine(self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
+            if self.width > 3: painter.drawLine(3,0,-3,0)
+            else: painter.drawLine(self.width,0,-self.width,0)
 
     def redraw(self, dimPos):
         self.width = abs(dimPos.x())
@@ -1550,6 +1575,7 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.alpha = 1.0
         self.width = 25
         self.height = 25
+        self.ghostArea = False
         QtGui.QGraphicsRectItem.__init__(self, -self.width , -self.height, 2*self.width, 2*self.height) 
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
@@ -1592,6 +1618,14 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.opX.setAlpha(float(alpha))
         self.opRot.setAlpha(float(alpha))
 
+    def isGhostArea(self):
+        return self.ghostArea
+
+    def setGhostArea(self, ghost):
+        self.ghostArea = bool(ghost)
+        self.opX.setVisible(not bool(ghost))
+        self.opRot.setVisible(not bool(ghost))
+
     def getPinIndex(self):
         return self.pinIndex
 
@@ -1625,6 +1659,12 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO CONSTRAINITEM FOR CONSTRAINT ALLOCATION"
 
+    def lock(self):
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False)  
+        self.opX.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
+
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust - self.extension),
@@ -1633,23 +1673,25 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
     def paint(self, painter, option, widget):
         self.prepareGeometryChange()
         pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
-        self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25*self.alpha))) #shade in the circle
-        self.setPen(pen)
-        painter.setPen(pen)
+        self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,25*self.alpha))) #shade in the rect
+        if not self.ghostArea: self.setPen(pen)
+        else: 
+            self.setPen(QtGui.QPen(QtCore.Qt.NoPen))
+            self.setBrush(QtGui.QBrush(QtGui.QColor(255,20,0,15*self.alpha))) #shade in the rect
         QtGui.QGraphicsRectItem.paint(self, painter, option, widget)
-        # painter.drawLine(0,self.scale*-self.height - 2,0,self.scale*-self.height-self.extension) 
-        # painter.drawLine(0,self.scale*-self.height + 2,0,self.scale*self.height -2)
-        painter.drawLine(0,self.scale*self.height - 2,0,self.scale*-self.height-self.extension)  
-        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
-        painter.setPen(pen)
-        if self.width > 5:
-            painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
-            painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
-        else:
-            painter.drawLine(-self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
-            painter.drawLine(self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
-        if self.width > 3: painter.drawLine(3,0,-3,0)
-        else: painter.drawLine(self.width,0,-self.width,0)
+
+        if not self.ghostArea:
+            painter.drawLine(0,self.scale*self.height - 2,0,self.scale*-self.height-self.extension)  
+            pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
+            painter.setPen(pen)
+            if self.width > 5:
+                painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
+                painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
+            else:
+                painter.drawLine(-self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
+                painter.drawLine(self.width,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
+            if self.width > 3: painter.drawLine(3,0,-3,0)
+            else: painter.drawLine(self.width,0,-self.width,0)
 
 
     def redraw(self, dimPos):
@@ -1725,6 +1767,7 @@ class ConstraintLine(QtGui.QGraphicsItem):
         self.alpha = 1.0
         self.headLength = 25
         self.tailLength = 25
+        self.ghostArea = False
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
@@ -1768,6 +1811,15 @@ class ConstraintLine(QtGui.QGraphicsItem):
     def setTailLength(self, tailLength):
         self.tailLength = tailLength
 
+    def isGhostArea(self):
+        return self.ghostArea
+
+    def setGhostArea(self, ghost):
+        self.ghostArea = bool(ghost)
+        self.opXHead.setVisible(not bool(ghost))
+        self.opXTail.setVisible(not bool(ghost))
+        self.opRot.setVisible(not bool(ghost))
+
     def setAlpha(self, alpha):
         self.alpha = float(alpha)
         self.opXHead.setAlpha(float(alpha))
@@ -1807,6 +1859,13 @@ class ConstraintLine(QtGui.QGraphicsItem):
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO CONSTRAINITEM FOR CONSTRAINT ALLOCATION"
 
+    def lock(self):
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False)  
+        self.opXHead.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
+        self.opXTail.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
+
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-5 - adjust), self.scale*(-self.headLength - adjust +1 ),
@@ -1816,14 +1875,10 @@ class ConstraintLine(QtGui.QGraphicsItem):
         # QtGui.QGraphicsRectItem.paint(self, painter, option, widget)
         self.prepareGeometryChange()
         pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
-        painter.setPen(pen)
-        # painter.drawLine(0,0.98*self.scale*self.tailLength,0,0.98*self.scale*-self.headLength) 
-        painter.drawLine(0,1*self.scale*self.tailLength,0,1*self.scale*-self.headLength) 
+        if self.ghostArea: pen = QtGui.QPen(QtGui.QColor(0,0,0,50*self.alpha), 0.25, QtCore.Qt.SolidLine)
 
-        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
-        # painter.drawLine(-5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))     
-        # painter.drawLine(5,-(self.scale*self.height+self.extension-5),0,-(self.scale*self.height+self.extension))
+        painter.drawLine(0,1*self.scale*self.tailLength,0,1*self.scale*-self.headLength) 
         painter.drawLine(5,self.scale*-self.headLength,-5,self.scale*-self.headLength)
         painter.drawLine(5,self.scale*self.tailLength,-5,self.scale*self.tailLength)
         painter.drawLine(3,0,-3,0)
@@ -2320,7 +2375,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 self.dragItem.setPin(dropNodes[0].getPin()) # Add the constraint Item to the Pin
                 self.dragItem.setPos(QtCore.QPointF(0,0))
                 self.dragItem.setNode(dropNodes[0]) #Add the Node to the ConstraintItem
+                if dropNodes[0].getPin().getConstraintItem():  # Check to see if the node already has a contraint Item, if it does then remove it so it can be replaced
+                    scene.removeItem(dropNodes[0].getPin().getConstraintItem())
+                    cItem = dropNodes[0].getPin().getConstraintItem()
+                    del cItem
                 dropNodes[0].getPin().setConstraintItem(self.dragItem) #Add the constraint Item to the pin
+                self.dragItem.lock() #lock Movement so it cannot be dragged around
             else:
                 scene.removeItem(self.dragItem) #We missed so delete the item
                 self.dragItem = None
@@ -2452,24 +2512,31 @@ class RigGraphicsView(QtGui.QGraphicsView):
         menu.addAction('Go Home')
         menu.addSeparator()
         menu.addAction('Reset Wire Group')
+        menu.addSeparator()
+        if item.getPin().getConstraintItem(): #Check the Node has a constraint item
+            constrainMenu = QtGui.QMenu()
+            constrainMenu.setStyleSheet(self.styleData)
+            constrainMenu.setTitle("Constraint Area")
+            constrainMenu.addAction('Show')
+            constrainMenu.addAction('Ghost')
+            constrainMenu.addAction('Hide')
+            menu.addMenu(constrainMenu)
+           
         action = menu.exec_(event.globalPos())
         if action:
             if action.text() == 'Go Home':
                 item.goHome()
-            if action.text() == 'Reset Wire Group':
+            elif action.text() == 'Reset Wire Group':
                 item.resetWireGroup()
-
-    # def mouseReleaseEvent(self, mouseEvent):
-    #     if len(self.scene().selectedItems()) > 0 and len(self.markerActiveList) == 0: #A drag selection has occured. reset Marker list to selection
-    #         for marker in self.scene().selectedItems():
-    #             self.markerActiveList.append(marker)
-
-    #     if self.markerActiveList[0] == "ctrlCase": self.markerActiveList = [] #Sepcial case where last selected item has been deselected with a ctrl click
-
-    #     markerIndexes = []
-    #     for item in self.markerActiveList: markerIndexes.append(item.getIndex())
-    #     print str(markerIndexes)
-    #     return QtGui.QGraphicsView.mouseReleaseEvent(self, mouseEvent)
+            elif action.text() == 'Show':
+                item.getPin().getConstraintItem().setGhostArea(False)
+                item.getPin().getConstraintItem().setVisible(True)
+            elif action.text() == 'Ghost':
+                item.getPin().getConstraintItem().setGhostArea(True)
+                item.getPin().getConstraintItem().setVisible(True)   
+            elif action.text() == 'Hide':
+                item.getPin().getConstraintItem().setGhostArea(False)
+                item.getPin().getConstraintItem().setVisible(False) 
 
 
 class FaceGVCapture():

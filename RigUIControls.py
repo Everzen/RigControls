@@ -1243,6 +1243,7 @@ class OpsRotation(QtGui.QGraphicsItem):
             s_coords = self.constraintItem.sceneCoordinates(self.mapToScene(event.pos()))
             theta_deg = self.constraintItem.calculateAngle(s_coords)   
             self.constraintItem.doTransform(theta_deg, s_coords[2], s_coords[3])
+
         # QtGui.QGraphicsItem.mouseMoveEvent(self, event)
 
 
@@ -1530,7 +1531,10 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         # transform.translate(arrow_x, arrow_y)
         transform.rotate(theta_deg)
         # transform.translate(-arrow_x, -arrow_y)
-        self.setTransform(transform)
+        # self.setTransform(transform)
+        if self.getPin():
+            self.getPin().setTransform(transform) #Instead of rotating the constraint area, lets rotate the pin which is the parent of everything
+
 
     def mouseMoveEvent(self, mouseEvent):
         if self.pin == None: return QtGui.QGraphicsEllipseItem.mouseMoveEvent(self, mouseEvent) #If there is no pin we are free to move, else we are locked to a pin
@@ -1702,7 +1706,12 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         # transform.translate(arrow_x, arrow_y)
         transform.rotate(theta_deg)
         # transform.translate(-arrow_x, -arrow_y)
-        self.setTransform(transform)
+        # self.setTransform(transform)
+        if self.getPin():
+            self.getPin().setTransform(transform) #Instead of rotating the constraint area, lets rotate the pin which is the parent of everything
+
+    def mouseMoveEvent(self, mouseEvent):
+        if self.pin == None: return QtGui.QGraphicsEllipseItem.mouseMoveEvent(self, mouseEvent) #If there is no pin we are free to move, else we are locked to a pin
 
     def constrainMovement(self, mouseEvent):
         if self.contains(self.mapFromScene(mouseEvent.scenePos())): # make sure the incoming cordinates are map to the constraint Item for processing "contains"
@@ -1880,7 +1889,12 @@ class ConstraintLine(QtGui.QGraphicsItem):
         # transform.translate(arrow_x, arrow_y)
         transform.rotate(theta_deg)
         # transform.translate(-arrow_x, -arrow_y)
-        self.setTransform(transform)
+        # self.setTransform(transform)
+        if self.getPin():
+            self.getPin().setTransform(transform) #Instead of rotating the constraint area, lets rotate the pin which is the parent of everything
+
+    def mouseMoveEvent(self, mouseEvent):
+        if self.pin == None: return QtGui.QGraphicsEllipseItem.mouseMoveEvent(self, mouseEvent) #If there is no pin we are free to move, else we are locked to a pin
 
     def constrainMovement(self, mouseEvent): #Simple return since the Line Constraint operates on Item Changed
         return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)

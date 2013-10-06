@@ -529,7 +529,6 @@ class ControlPin(QtGui.QGraphicsItem):
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
         xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
         xml.SubElement(attributes, 'attribute', name = 'rotation', value = str(self.rotation()))
-        #At some point here we probably need to store the rotation of the pin! 
 
         #Now Store the constraint Information add it to the XML
         constraintXml = xml.SubElement(pinRoot,'ConstraintItem')
@@ -555,18 +554,22 @@ class ControlPin(QtGui.QGraphicsItem):
                 # transform.rotate(float(a.attrib['value']))
                 # transform.translate(-arrow_x, -arrow_y)
                 # self.setTransform(transform)
-                self.rotate(float(a.attrib['value']))
+                # self.rotate(float(a.attrib['value']))
+                self.setRotation(float(a.attrib['value']))
 
 
         #Now read in the constraint Item information
         constraintXML = pinXml.findall('ConstraintItem')
         for cItemXml in constraintXML[0]:
-            if cItemXml.tag == "ConstraintEllipse": #We have an ConstraintEllipse so lets build one and load in the settings
-                cEllipse = ConstraintEllipse()
-                cEllipse.setPin(self)
-                cEllipse.read(cItemXml)
-                self.setConstraintItem(cEllipse)
-                #We still have not set the node that the constraint is controlling
+            cItem = None
+            if cItemXml.tag == "ConstraintEllipse": cItem = ConstraintEllipse() #We have an ConstraintEllipse so lets build one and load in the settings
+            elif cItemXml.tag == "ConstraintRect": cItem = ConstraintRect() #We have an ConstraintRect so lets build one and load in the settings
+            elif cItemXml.tag == "ConstraintLine": cItem = ConstraintLine() #We have an ConstraintLine so lets build one and load in the settings
+            
+            if cItem:
+                cItem.setPin(self)
+                cItem.read(cItemXml)
+                self.setConstraintItem(cItem)
 
     def setIndex(self,value):
         self.index = value
@@ -1511,7 +1514,8 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
             elif a.attrib['name'] == 'pos': 
                 newPos = a.attrib['value'].split(",")
                 self.setPos(float(newPos[0]), float(newPos[1]))
-            #The Ops Cross and OpsRot are created, so hunt through the XML and make sure all their attributes are loaded in
+
+        #The Ops Cross and OpsRot are created, so hunt through the XML and make sure all their attributes are loaded in
         OpsItemsXml = ConstraintEllipseXml.findall('OpsItems')
         for itemXml in OpsItemsXml[0]: #This should only find One OpsCross
             if itemXml.tag == "OpsCross": self.opX.read(itemXml)
@@ -1700,11 +1704,11 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.width = 25
         self.height = 25
         self.ghostArea = False
+        self.extension = 15.0
         QtGui.QGraphicsRectItem.__init__(self, -self.width , -self.height, 2*self.width, 2*self.height) 
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
-        self.extension = 15.0
         self.opX = None
         self.pin = None
         self.pinIndex = 0
@@ -1721,6 +1725,53 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.opRot = OpsRotation(self)
         self.opRot.setParentItem(self)
         self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
+
+    def store(self):
+        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        ConstraintRectXml = xml.Element('ConstraintRect')
+        attributes = xml.SubElement(ConstraintRectXml,'attributes')
+        xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
+        xml.SubElement(attributes, 'attribute', name = 'alpha', value = str(self.getAlpha()))
+        xml.SubElement(attributes, 'attribute', name = 'height', value = str(self.getHeight()))
+        xml.SubElement(attributes, 'attribute', name = 'width', value = str(self.getWidth()))
+        xml.SubElement(attributes, 'attribute', name = 'ghostArea', value = str(self.isGhostArea()))
+        xml.SubElement(attributes, 'attribute', name = 'extension', value = str(self.getExtension()))
+        xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
+        xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
+        xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
+        
+        #Now record the xml for the OpCross
+        OpsItemsXml = xml.SubElement(ConstraintRectXml,'OpsItems')
+        OpCXml = self.opX.store()
+        OpsItemsXml.append(OpCXml)
+        OpRXml = self.opRot.store()
+        OpsItemsXml.append(OpRXml)
+        return ConstraintRectXml
+
+    def read(self, ConstraintRectXml):
+        """A function to read in a block of XML and set all major attributes accordingly"""
+        for a in ConstraintRectXml.findall( 'attributes/attribute'):
+            if a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
+            elif a.attrib['name'] == 'alpha': self.setAlpha(float(a.attrib['value']))
+            elif a.attrib['name'] == 'height': self.setHeight(float(a.attrib['value']))
+            elif a.attrib['name'] == 'width': self.setWidth(float(a.attrib['value']))
+            elif a.attrib['name'] == 'extension': self.setExtension(float(a.attrib['value']))
+            elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
+            elif a.attrib['name'] == 'pos': 
+                newPos = a.attrib['value'].split(",")
+                self.setPos(float(newPos[0]), float(newPos[1]))
+            #The Ops Cross and OpsRot are created, so hunt through the XML and make sure all their attributes are loaded in
+        OpsItemsXml = ConstraintRectXml.findall('OpsItems')
+        for itemXml in OpsItemsXml[0]: #This should only find One OpsCross
+            if itemXml.tag == "OpsCross": self.opX.read(itemXml)
+            if itemXml.tag == "OpsRot": self.opRot.read(itemXml)
+        self.redraw(self.opX.pos())
+        self.lock()
+
+        for a in ConstraintRectXml.findall( 'attributes/attribute'): #Finsh by setting and ghost visibility states
+            if a.attrib['name'] == 'ghostArea': self.setGhostArea(str(a.attrib['value']) == 'True')
+            elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
+        self.update()
 
     def getScale(self):
         return self.scale
@@ -1739,6 +1790,12 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
 
     def setHeight(self,height):
         self.height = height
+
+    def getExtension(self):
+        return self.extension
+
+    def setExtension(self,extension):
+        self.extension = extension
 
     def getAlpha(self):
         return self.alpha
@@ -1874,13 +1931,8 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         return (theta_deg + 90)
 
     def doTransform(self, theta_deg, arrow_x, arrow_y):
-        transform = QtGui.QTransform()
-        # transform.translate(arrow_x, arrow_y)
-        transform.rotate(theta_deg)
-        # transform.translate(-arrow_x, -arrow_y)
-        # self.setTransform(transform)
         if self.getPin():
-            self.getPin().setTransform(transform) #Instead of rotating the constraint area, lets rotate the pin which is the parent of everything
+            self.getPin().setRotation(theta_deg)
 
     def mouseMoveEvent(self, mouseEvent):
         if self.pin == None: return QtGui.QGraphicsEllipseItem.mouseMoveEvent(self, mouseEvent) #If there is no pin we are free to move, else we are locked to a pin
@@ -1929,6 +1981,55 @@ class ConstraintLine(QtGui.QGraphicsItem):
         self.opRot.setParentItem(self)
         self.opRot.setPos(QtCore.QPointF(0,-self.headLength - self.crossOffset - 9))
 
+    def store(self):
+        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        ConstraintLineXml = xml.Element('ConstraintLine')
+        attributes = xml.SubElement(ConstraintLineXml,'attributes')
+        xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
+        xml.SubElement(attributes, 'attribute', name = 'alpha', value = str(self.getAlpha()))
+        xml.SubElement(attributes, 'attribute', name = 'headLength', value = str(self.getHeadLength()))
+        xml.SubElement(attributes, 'attribute', name = 'tailLength', value = str(self.getTailLength()))
+        xml.SubElement(attributes, 'attribute', name = 'ghostArea', value = str(self.isGhostArea()))
+        xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
+        xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
+        xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
+        
+        #Now record the xml for the OpCross
+        OpsItemsXml = xml.SubElement(ConstraintLineXml,'OpsItems')
+        OpCHeadXml = self.opXHead.store()
+        OpsItemsXml.append(OpCHeadXml)
+        OpCTailXml = self.opXTail.store()
+        OpsItemsXml.append(OpCTailXml)
+        OpRXml = self.opRot.store()
+        OpsItemsXml.append(OpRXml)
+        return ConstraintLineXml
+
+    def read(self, ConstraintLineXml):
+        """A function to read in a block of XML and set all major attributes accordingly"""
+        for a in ConstraintLineXml.findall( 'attributes/attribute'):
+            if a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
+            elif a.attrib['name'] == 'alpha': self.setAlpha(float(a.attrib['value']))
+            elif a.attrib['name'] == 'headLength': self.setHeadLength(float(a.attrib['value']))
+            elif a.attrib['name'] == 'tailLength': self.setTailLength(float(a.attrib['value']))
+            elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
+            elif a.attrib['name'] == 'pos': 
+                newPos = a.attrib['value'].split(",")
+                self.setPos(float(newPos[0]), float(newPos[1]))
+            #The Ops Cross and OpsRot are created, so hunt through the XML and make sure all their attributes are loaded in
+        OpsItemsXml = ConstraintLineXml.findall('OpsItems')
+        for index, itemXml in enumerate(OpsItemsXml[0]): #This will return two OpsCross, the first is the head, the second is the tail
+            if itemXml.tag == "OpsCross" and index == 0: self.opXHead.read(itemXml)
+            elif itemXml.tag == "OpsCross" and index == 1: self.opXTail.read(itemXml)
+            elif itemXml.tag == "OpsRot": self.opRot.read(itemXml)
+        self.redraw(0) #Redraw for both the head and tail OpCrosses
+        self.redraw(1)
+        self.lock()
+
+        for a in ConstraintLineXml.findall( 'attributes/attribute'): #Finsh by setting and ghost visibility states
+            if a.attrib['name'] == 'ghostArea': self.setGhostArea(str(a.attrib['value']) == 'True')
+            elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
+        self.update()
+
     def getScale(self):
         return self.scale
 
@@ -1955,6 +2056,9 @@ class ConstraintLine(QtGui.QGraphicsItem):
         self.opXHead.setVisible(not bool(ghost))
         self.opXTail.setVisible(not bool(ghost))
         self.opRot.setVisible(not bool(ghost))
+
+    def getAlpha(self):
+        return self.alpha
 
     def setAlpha(self, alpha):
         self.alpha = float(alpha)
@@ -2011,7 +2115,7 @@ class ConstraintLine(QtGui.QGraphicsItem):
         # QtGui.QGraphicsRectItem.paint(self, painter, option, widget)
         self.prepareGeometryChange()
         pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
-        if self.ghostArea: pen = QtGui.QPen(QtGui.QColor(0,0,0,50*self.alpha), 0.25, QtCore.Qt.SolidLine)
+        if self.ghostArea: pen = QtGui.QPen(QtGui.QColor(0,0,0,100*self.alpha), 0.25, QtCore.Qt.SolidLine)
 
         painter.setPen(pen)
         painter.drawLine(0,1*self.scale*self.tailLength,0,1*self.scale*-self.headLength) 
@@ -2076,13 +2180,8 @@ class ConstraintLine(QtGui.QGraphicsItem):
         return (theta_deg + 90)
 
     def doTransform(self, theta_deg, arrow_x, arrow_y):
-        transform = QtGui.QTransform()
-        # transform.translate(arrow_x, arrow_y)
-        transform.rotate(theta_deg)
-        # transform.translate(-arrow_x, -arrow_y)
-        # self.setTransform(transform)
         if self.getPin():
-            self.getPin().setTransform(transform) #Instead of rotating the constraint area, lets rotate the pin which is the parent of everything
+            self.getPin().setRotation(theta_deg)
 
     def mouseMoveEvent(self, mouseEvent):
         if self.pin == None: return QtGui.QGraphicsEllipseItem.mouseMoveEvent(self, mouseEvent) #If there is no pin we are free to move, else we are locked to a pin

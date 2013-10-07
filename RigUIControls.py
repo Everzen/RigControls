@@ -387,7 +387,8 @@ class WireGroup():
             newNode = Node(QPVec([0,0])) #Create new Node with Arbitray pos
             self.nodes.append(newNode)
             newNode.read(n)
-            newNode.setPin(self.findPin(newNode.getPinIndex()))
+            newNode.setPin(self.findPin(newNode.getPinIndex())) #Set the pin for Node
+            self.findPin(newNode.getPinIndex()).setNode(newNode) # Set the Node for the Pin
             newNode.setWireGroup(self)
             if newNode.getPin().getConstraintItem(): #We have a constraint Item so make sure we set the node for it
                 newNode.getPin().getConstraintItem().setNode(newNode)
@@ -446,6 +447,7 @@ class WireGroup():
             node = Node(QtCore.QPointF(0,0))
             node.setIndex(p.getIndex())
             node.setPin(p)
+            p.setNode(node)
             node.setWireGroup(self)
             self.nodes.append(node)
             # self.scene.addItem(node)
@@ -461,7 +463,9 @@ class WireGroup():
                     # n.setPinIndex(index)
                     self.pinTies.append(pT)
                     n.setPinTie(pT)
+                    pin.setPinTie(pT)
                     self.scene.addItem(pT)
+                    pin.activate() #Now that all pins, ties and Nodes are in place
                 else: print "WARNING : NO PIN TIES DRAWN SINCE NO MATCHING PIN WAS FOUND FOR NODE"
         else:
             print "WARNING : NO PIN TIES DRAWN SINCE THERE WERE INSUFFICIENT NODES OR UNEQUAL NODES AND PINS"
@@ -506,17 +510,22 @@ class WireGroup():
 
 class ControlPin(QtGui.QGraphicsItem):
     def __init__(self, cPos, control = None):
-        super(ControlPin, self).__init__()
-        # self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
+        super(ControlPin, self).__init__()      
         self.index = 0 
         self.scale = 1
         self.scaleOffset = 2.5
         self.wireGroup = None
         self.constraintItem = None
+        self.active = True
+        self.node = None
+        self.pinTie = None
 
         self.setPos(cPos)
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
+        f=open('darkorange.stylesheet', 'r')  #Set up Style Sheet for customising anything within the Graphics View
+        self.styleData = f.read()
+        f.close()
 
     def store(self):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
@@ -525,6 +534,7 @@ class ControlPin(QtGui.QGraphicsItem):
         xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
         xml.SubElement(attributes, 'attribute', name = 'scaleOffset', value = str(self.getScaleOffset()))
+        xml.SubElement(attributes, 'attribute', name = 'active', value = str(self.isActive()))
         xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
         xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
@@ -549,13 +559,8 @@ class ControlPin(QtGui.QGraphicsItem):
                 newPos = a.attrib['value'].split(",")
                 self.setPos(float(newPos[0]), float(newPos[1]))
             elif a.attrib['name'] == 'rotation': 
-                # transform = QtGui.QTransform()
-                # transform.translate(arrow_x, arrow_y)
-                # transform.rotate(float(a.attrib['value']))
-                # transform.translate(-arrow_x, -arrow_y)
-                # self.setTransform(transform)
-                # self.rotate(float(a.attrib['value']))
                 self.setRotation(float(a.attrib['value']))
+            elif a.attrib['name'] == 'active': self.setActive(str(a.attrib['value']) == 'True') #At the very end check the active state of the pin
 
 
         #Now read in the constraint Item information
@@ -602,9 +607,48 @@ class ControlPin(QtGui.QGraphicsItem):
         if type(item) == ConstraintLine or type(item) == ConstraintRect or type(item) == ConstraintEllipse:
             self.constraintItem = item
 
-    # def removeConstrainItem(self): 
-    #     """Function to clear the contraintItem from the node/pin system, but it will not remove it from the scene"""
-    #     if self.contraintItem: self.contraintItem = None
+    def isActive(self):
+        return self.active
+
+    def setActive(self, active):
+        self.active = active
+
+    def activate(self):
+        if not self.active: 
+            delConstraintItem = QtGui.QMessageBox()
+            delConstraintItem.setStyleSheet(self.styleData)
+            delConstraintItem.setWindowTitle("Pin Deactivation")
+            delConstraintItem.setText("Are you sure you want to deactivate the pin? There is a constraint Item present, and this item will be removed if you continue.")
+            delConstraintItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+            delConstraintItem.setDefaultButton(QtGui.QMessageBox.No)
+            response = QtGui.QMessageBox.Yes
+            if self.constraintItem: response = delConstraintItem.exec_()
+            if response == QtGui.QMessageBox.Yes:
+                self.scaleOffset = 1.0
+                self.getNode().goHome()
+                self.getNode().setVisible(False)
+                self.getPinTie().setVisible(False)
+                if self.constraintItem: #Remove the constraint Item if it is there.  
+                    self.scene().removeItem(self.constraintItem)
+                    self.constraintItem = None
+        else: 
+            self.scaleOffset = 2.5
+            self.getNode().setVisible(True)
+            self.getPinTie().setVisible(True)            
+            self.update()
+
+    def getNode(self):
+        return self.node
+
+    def setNode(self, node):
+        # print "Node is : " + str(node)
+        if type(node) == Node: self.node = node
+
+    def getPinTie(self):
+        return self.pinTie
+
+    def setPinTie(self, pinTie):
+        if type(pinTie) == PinTie: self.pinTie = pinTie
 
     def drawWireControl(self, painter):
         wCurve1 = QtGui.QPainterPath()
@@ -644,13 +688,14 @@ class ControlPin(QtGui.QGraphicsItem):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
         pen = QtGui.QPen(QtCore.Qt.black, 0.5, QtCore.Qt.SolidLine)
         painter.setPen(pen)
-        # painter.drawLine(self.scale*self.scaleOffset*-3,self.scale*self.scaleOffset*-3,self.scale*self.scaleOffset*3,self.scale*self.scaleOffset*3)
-        # painter.drawLine(self.scale*self.scaleOffset*-3,self.scale*self.scaleOffset*3,self.scale*self.scaleOffset*3,self.scale*self.scaleOffset*-3)
+
         painter.drawLine(0,self.scale*self.scaleOffset*3.0,0,self.scale*self.scaleOffset*-3.0)
         painter.drawLine(self.scale*self.scaleOffset*-3.0,0,self.scale*self.scaleOffset*3.0,0)
+        
+        if self.active:
+            #Now add wire details if needed
+            self.drawWireControl(painter)
 
-        #Now add wire details if needed
-        self.drawWireControl(painter)
 
     def boundingRect(self):
         adjust = 5
@@ -726,7 +771,7 @@ class PinTie(QtGui.QGraphicsItem):
 class GuideMarker(QtGui.QGraphicsItem):
     def __init__(self):
         super(GuideMarker, self).__init__()
-        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
         ####MARKER IDENTIFIERS####################################
         self.index = None        
@@ -736,7 +781,7 @@ class GuideMarker(QtGui.QGraphicsItem):
         self.alpha = 1.0
         self.colourList = [QtGui.QColor(255,0,0), QtGui.QColor(0,255,0), QtGui.QColor(0,0,255), QtGui.QColor(0,255,255), QtGui.QColor(255,0,255), QtGui.QColor(255,255,0), QtGui.QColor(255,125,0), QtGui.QColor(125,255,0),QtGui.QColor(255,0,125),QtGui.QColor(125,0,255),QtGui.QColor(0,255,125),QtGui.QColor(0,125,255),QtGui.QColor(255,125,125),QtGui.QColor(125,255,125),QtGui.QColor(125,125,255),QtGui.QColor(255,255,125),QtGui.QColor(255,125,255),QtGui.QColor(125,255,255)]
         self.guideColourIndex = 0
-        self.setZValue(11) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
+        self.setZValue(20) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
         # self.setPos(QtCore.QPointF(50,50))
         # self.move_restrict_rect = QtGui.QGraphicsRectItem(50,50,,410)
@@ -1468,7 +1513,8 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.setZValue(2)
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
-        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)       
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True) 
+        self.setFlag(QtGui.QGraphicsItem.ItemStacksBehindParent,True)      
         self.initBuild()
 
     def initBuild(self):
@@ -1709,6 +1755,7 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemStacksBehindParent,True)      
         self.opX = None
         self.pin = None
         self.pinIndex = 0
@@ -1953,6 +2000,7 @@ class ConstraintLine(QtGui.QGraphicsItem):
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemStacksBehindParent,True)      
         self.crossOffset = 7
         self.opXHead = None
         self.opXTail = None
@@ -2692,13 +2740,15 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def contextMenuEvent(self, event):
         scene = self.scene()
         items = self.items(event.pos())
+        # for item in items: print "Hit " + str(item)
+        print "\n"
         if len(items) != 0:
             if type(items[0]) == GuideMarker:
                 self.guideMarkerContextMenu(event,items[0])
             elif type(items[0]) == Node:
                 self.nodeContextMenu(event,items[0])
             elif type(items[0]) == ControlPin:
-                pass
+                self.pinContextMenu(event,items[0])
             elif type(items[0]) == ReflectionLine:
                 self.reflectionLineContextMenu(event,items[0])
                 # menu.addAction('ControlPin')
@@ -2755,7 +2805,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
             constrainMenu.addAction('Ghost')
             constrainMenu.addAction('Hide')
             menu.addMenu(constrainMenu)
-           
+        # menu.addSeparator()
+
         action = menu.exec_(event.globalPos())
         if action:
             if action.text() == 'Go Home':
@@ -2772,6 +2823,21 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.getPin().getConstraintItem().setGhostArea(False)
                 item.getPin().getConstraintItem().setVisible(False) 
 
+    def pinContextMenu(self,event,item):
+        scene = self.scene()
+        menu = QtGui.QMenu()
+        menu.setStyleSheet(self.styleData)
+        if item.isActive(): menu.addAction('Deactivate')
+        else: menu.addAction('Activate')
+
+        action = menu.exec_(event.globalPos())
+        if action:
+            if action.text() == 'Activate':
+                item.setActive(True)
+                item.activate()
+            elif action.text() == 'Deactivate':
+                item.setActive(False)
+                item.activate()         
 
 class FaceGVCapture():
     def __init__(self, faceGView):

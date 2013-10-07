@@ -508,6 +508,60 @@ class WireGroup():
         self.curve = None 
 
 
+class SuperNodeGroup():
+    def __init__(self, nPos, rigGView):
+        #LIST OF ATTRIBUTES
+        self.name = ""
+        self.colour = QtGui.QColor(0,0,0)
+        self.scale = 1.0 #Not implemented, but it is stored, so could be used to drive the size of the setup of the wiregroup
+        self.locked = True
+        self.superNode = None
+        self.pin = None
+        self.pinTie = None
+        self.scene = rigGView.scene()
+        self.initBuild(nPos)
+
+    def initBuild(self, nPos):
+        #Create pin, SuperNode and PinTie from start position
+        cP = ControlPin(nPos) #Build Pin
+        cP.setWireGroup(self)
+        self.pin = cP
+
+        sNode = SuperNode(QtCore.QPointF(0,0)) #Build SuperNode
+        sNode.setPin(cP)
+        cP.setNode(sNode)
+        self.superNode = sNode
+        sNode.setWireGroup(self)
+        
+        pT = PinTie(sNode, cP)
+        sNode.setPinTie(pT)
+        cP.setPinTie(pT)
+        self.pinTie = pT
+
+        self.scene.addItem(cP)
+        self.scene.addItem(pT)
+        cP.setLocked(False)
+
+    def getSuperNode(self):
+        return self.superNode
+
+    def setSuperNode(self, superNode):
+        # print "Node is : " + str(node)
+        if type(superNode) == superNode: self.superNode = superNode
+
+    def getPin(self):
+        return self.pin
+
+    def setPin(self, pin):
+        if type(pin) == ControlPin: self.pin = pin
+
+    def getPinTie(self):
+        return self.pinTie
+
+    def setPinTie(self, pinTie):
+        if type(pinTie) == PinTie: self.pinTie = pinTie
+
+
 class ControlPin(QtGui.QGraphicsItem):
     def __init__(self, cPos, control = None):
         super(ControlPin, self).__init__()      
@@ -519,6 +573,7 @@ class ControlPin(QtGui.QGraphicsItem):
         self.active = True
         self.node = None
         self.pinTie = None
+        self.locked = True
 
         self.setPos(cPos)
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
@@ -539,6 +594,7 @@ class ControlPin(QtGui.QGraphicsItem):
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
         xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
         xml.SubElement(attributes, 'attribute', name = 'rotation', value = str(self.rotation()))
+        xml.SubElement(attributes, 'attribute', name = 'locked', value = str(self.isLocked()))
 
         #Now Store the constraint Information add it to the XML
         constraintXml = xml.SubElement(pinRoot,'ConstraintItem')
@@ -561,6 +617,7 @@ class ControlPin(QtGui.QGraphicsItem):
             elif a.attrib['name'] == 'rotation': 
                 self.setRotation(float(a.attrib['value']))
             elif a.attrib['name'] == 'active': self.setActive(str(a.attrib['value']) == 'True') #At the very end check the active state of the pin
+            elif a.attrib['name'] == 'locked': self.setLocked(str(a.attrib['value']) == 'True') #At the very end check the locked
 
 
         #Now read in the constraint Item information
@@ -650,6 +707,15 @@ class ControlPin(QtGui.QGraphicsItem):
     def setPinTie(self, pinTie):
         if type(pinTie) == PinTie: self.pinTie = pinTie
 
+    def isLocked(self):
+        return self.locked
+
+    def setLocked(self, locked):
+        self.locked = bool(locked)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable, not self.locked)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges, not self.locked)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, not self.locked)
+
     def drawWireControl(self, painter):
         wCurve1 = QtGui.QPainterPath()
 
@@ -701,6 +767,15 @@ class ControlPin(QtGui.QGraphicsItem):
         adjust = 5
         return QtCore.QRectF(self.scale*self.scaleOffset*(-3 - adjust), self.scale*self.scaleOffset*(-3 - adjust),
                              self.scale*self.scaleOffset*(6 + adjust), self.scale*self.scaleOffset*(6 + adjust))
+
+    def itemChange(self, change, value):
+        if change == QtGui.QGraphicsItem.ItemPositionChange:
+            if self.pinTie:
+                self.pinTie.drawTie()
+            if self.getNode():
+                for rigCurve in self.getNode().rigCurveList:
+                    rigCurve().buildCurve()
+        return QtGui.QGraphicsItem.itemChange(self, change, value)
 
 
 class PinTie(QtGui.QGraphicsItem):
@@ -1044,7 +1119,7 @@ class RigCurve(QtGui.QGraphicsItem):
 
 ###Nodes for selection in the Graphics View
 class Node(QtGui.QGraphicsItem):
-    def __init__(self, nPos, restraintDef=None, moveThreshold=5, operatorClass = None):
+    def __init__(self, nPos):
         QtGui.QGraphicsItem.__init__(self)
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
@@ -1251,6 +1326,15 @@ class Node(QtGui.QGraphicsItem):
         if self.getPin().getConstraintItem():
             return self.getPin().getConstraintItem().constrainMovement(mouseEvent)
         else: QtGui.QGraphicsItem.mouseMoveEvent(self, mouseEvent)
+
+
+###Nodes for selection in the Graphics View
+class SuperNode(Node):
+    def __init__(self, nPos):
+        Node.__init__(self,nPos)
+
+
+
 
 ###########################################################################################################################
 #RESTRICTION ITEMS
@@ -2309,6 +2393,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # line = ConstraintLine(50,25)
         # line.setPos(200,350)
 
+        testSuperNode = SuperNodeGroup(QtCore.QPointF(50,25),self)
+        # self.scene().addItem(testSuperNode)
+
         # self.scene().addItem(el)
         # self.scene().addItem(rect)
         # self.scene().addItem(line)
@@ -2741,7 +2828,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
         scene = self.scene()
         items = self.items(event.pos())
         # for item in items: print "Hit " + str(item)
-        print "\n"
         if len(items) != 0:
             if type(items[0]) == GuideMarker:
                 self.guideMarkerContextMenu(event,items[0])
@@ -2829,6 +2915,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
         menu.setStyleSheet(self.styleData)
         if item.isActive(): menu.addAction('Deactivate')
         else: menu.addAction('Activate')
+        menu.addSeparator()
+        if item.isLocked(): menu.addAction('Unlock')
+        else: menu.addAction('Lock')
 
         action = menu.exec_(event.globalPos())
         if action:
@@ -2837,7 +2926,11 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.activate()
             elif action.text() == 'Deactivate':
                 item.setActive(False)
-                item.activate()         
+                item.activate() 
+            elif action.text() == 'Unlock':
+                item.setLocked(False)    
+            elif action.text() == 'Lock':
+                item.setLocked(True)                  
 
 class FaceGVCapture():
     def __init__(self, faceGView):

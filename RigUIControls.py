@@ -1332,8 +1332,53 @@ class Node(QtGui.QGraphicsItem):
 class SuperNode(Node):
     def __init__(self, nPos):
         Node.__init__(self,nPos)
+        self.form = "arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
+        self.path = None
+        self.alpha = 1.0
+        self.path = QtGui.QPainterPath()
+        self.initBuild()
 
+    def initBuild(self):
+        self.scaleOffset = 2
 
+    def drawArrow_4Point(self, painter, option, widget):
+        pen = QtGui.QPen(QtGui.QColor(255,20,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        self.path = QtGui.QPainterPath()
+        self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(9*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(9*self.scaleOffset*self.scale,6*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(15*self.scaleOffset*self.scale,0*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(9*self.scaleOffset*self.scale,-6*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(9*self.scaleOffset*self.scale,-3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,-3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,-9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(6*self.scaleOffset*self.scale,-9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(0*self.scaleOffset*self.scale,-15*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-6*self.scaleOffset*self.scale,-9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-3*self.scaleOffset*self.scale,-9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-3*self.scaleOffset*self.scale,-3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-9*self.scaleOffset*self.scale,-3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-9*self.scaleOffset*self.scale,-6*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-15*self.scaleOffset*self.scale,0*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-9*self.scaleOffset*self.scale,6*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-9*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-3*self.scaleOffset*self.scale,9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-6*self.scaleOffset*self.scale,9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(0*self.scaleOffset*self.scale,15*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(6*self.scaleOffset*self.scale,9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+
+    def boundingRect(self):
+        return self.path.boundingRect()
+
+    def paint(self, painter, option, widget):
+        if self.form == "arrow_4Point":
+            self.drawArrow_4Point(painter, option, widget)
+            painter.strokePath(self.path, painter.pen())
+        else: return Node.paint(self, painter, option, widget)
 
 
 ###########################################################################################################################

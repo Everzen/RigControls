@@ -194,9 +194,15 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         self.ellipseConstraintCreate = RigUIControls.DragItemButton("GuideMarker")
         self.createConstraints = QtGui.QLabel("Constraints")
+        self.createControls = QtGui.QLabel("   Controls")
         self.ellipseConstraintCreate = RigUIControls.DragItemButton("ConstraintEllipse")
         self.rectConstraintCreate = RigUIControls.DragItemButton("ConstraintRect")
         self.lineConstraintCreate = RigUIControls.DragItemButton("ConstraintLine")
+
+        self.arrowControl_four = RigUIControls.DragSuperNodeButton("Arrow_4Point")
+        self.arrowControl_side = RigUIControls.DragSuperNodeButton("Arrow_sidePoint")
+        self.arrowControl_upDown = RigUIControls.DragSuperNodeButton("Arrow_upDownPoint")
+
 
         # creationBox.addWidget(self.createItems)
         creationBox.addWidget(self.markerCreate)
@@ -205,6 +211,10 @@ class RigFaceSetup(QtGui.QMainWindow):
         creationBox.addWidget(self.ellipseConstraintCreate)
         creationBox.addWidget(self.rectConstraintCreate)
         creationBox.addWidget(self.lineConstraintCreate)
+        creationBox.addWidget(self.createControls)
+        creationBox.addWidget(self.arrowControl_four)
+        creationBox.addWidget(self.arrowControl_side)
+        creationBox.addWidget(self.arrowControl_upDown)
         creationBox.addStretch(1)
 
         #Options DockWidget

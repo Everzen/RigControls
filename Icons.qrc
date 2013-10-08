@@ -18,5 +18,14 @@
     <file>images/ConstraintLine.png</file>
     <file>images/ConstraintLine_Hover.png</file>
     <file>images/ConstraintLine_Pressed.png</file>
+    <file>images/Arrow_4Point.png</file>
+    <file>images/Arrow_4Point_Hover.png</file>
+    <file>images/Arrow_4Point_Pressed.png</file>
+    <file>images/Arrow_sidePoint.png</file>
+    <file>images/Arrow_sidePoint_Hover.png</file>
+    <file>images/Arrow_sidePoint_Pressed.png</file>
+    <file>images/Arrow_upDownPoint.png</file>
+    <file>images/Arrow_upDownPoint_Hover.png</file>
+    <file>images/Arrow_upDownPoint_Pressed.png</file>
   </qresource>
 </RCC>

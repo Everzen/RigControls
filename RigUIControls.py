@@ -261,7 +261,6 @@ class WireGroupButton(QtGui.QPushButton):
 
 
 class DragItemButton(QtGui.QPushButton):
-
     def __init__(self, itemName, parent=None):
         super(DragItemButton, self).__init__(parent)
         self.setMouseTracking(True)
@@ -322,6 +321,44 @@ class DragItemButton(QtGui.QPushButton):
         # print "start drag text : " + str(self.itemName)
         dropAction = drag.start(QtCore.Qt.MoveAction)
 
+
+
+class DragSuperNodeButton(DragItemButton):
+    def __init__(self, form, parent=None):
+        self.form = str(form)
+        DragItemButton.__init__(self,"SuperNode")
+        
+
+    def validImageFile(self,state=""):
+        imageFile = ""
+        imageFileCss = ""
+        if state == "hover":
+            imageFile = 'images/' + self.form + '_Hover.png'
+            imageFileCss = 'image: url(:/' + imageFile + ');'
+        elif state == "pressed":
+            imageFile = 'images/' + self.form + '_Pressed.png'
+            imageFileCss = 'image: url(:/' + imageFile + ');'
+        else:
+            imageFile = 'images/' + self.form + '.png'
+            imageFileCss = 'image: url(:/' + imageFile + ');'
+
+        if os.path.exists(imageFile): #create icon and add to button
+            self.imageFile = imageFile
+            return imageFileCss
+        else:
+            print "WARNING : No valid image file has been found"
+
+
+    def mouseMoveEvent(self, e):
+        if e.buttons() != QtCore.Qt.LeftButton:
+            return
+        mimeData = QtCore.QMimeData()
+        mimeData.setData("text/plain", str(self.itemName) + "_" + self.form)
+        drag = QtGui.QDrag(self)
+        drag.setMimeData(mimeData)
+        drag.setHotSpot(e.pos() - self.rect().topLeft())
+        # print "start drag text : " + str(self.itemName)
+        dropAction = drag.start(QtCore.Qt.MoveAction)
 
 
 
@@ -509,12 +546,13 @@ class WireGroup():
 
 
 class SuperNodeGroup():
-    def __init__(self, nPos, rigGView):
+    def __init__(self, nPos, form, rigGView):
         #LIST OF ATTRIBUTES
         self.name = ""
         self.colour = QtGui.QColor(0,0,0)
         self.scale = 1.0 #Not implemented, but it is stored, so could be used to drive the size of the setup of the wiregroup
         self.locked = True
+        self.form = form
         self.superNode = None
         self.pin = None
         self.pinTie = None
@@ -528,6 +566,7 @@ class SuperNodeGroup():
         self.pin = cP
 
         sNode = SuperNode(QtCore.QPointF(0,0)) #Build SuperNode
+        sNode.setForm(self.form)
         sNode.setPin(cP)
         cP.setNode(sNode)
         self.superNode = sNode
@@ -1332,7 +1371,7 @@ class Node(QtGui.QGraphicsItem):
 class SuperNode(Node):
     def __init__(self, nPos):
         Node.__init__(self,nPos)
-        self.form = "arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
+        self.form = "Arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
         self.path = None
         self.alpha = 1.0
         self.path = QtGui.QPainterPath()
@@ -1341,8 +1380,15 @@ class SuperNode(Node):
     def initBuild(self):
         self.scaleOffset = 2
 
+    def getForm(self):
+        return self.form
+
+    def setForm(self,form):
+        self.form = str(form)
+        self.update()
+
     def drawArrow_4Point(self, painter, option, widget):
-        pen = QtGui.QPen(QtGui.QColor(255,20,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(250,160,100,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         self.path = QtGui.QPainterPath()
         self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
@@ -1371,14 +1417,56 @@ class SuperNode(Node):
         self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,9*self.scaleOffset*self.scale))
         self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
 
+    def drawArrow_sidePoint(self, painter, option, widget):
+        pen = QtGui.QPen(QtGui.QColor(250,160,100,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        self.path = QtGui.QPainterPath()
+        self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(9*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(9*self.scaleOffset*self.scale,6*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(15*self.scaleOffset*self.scale,0*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(9*self.scaleOffset*self.scale,-6*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(9*self.scaleOffset*self.scale,-3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,-3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-3*self.scaleOffset*self.scale,-3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-9*self.scaleOffset*self.scale,-3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-9*self.scaleOffset*self.scale,-6*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-15*self.scaleOffset*self.scale,0*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-9*self.scaleOffset*self.scale,6*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-9*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+
+    def drawArrow_upDownPoint(self, painter, option, widget):
+        pen = QtGui.QPen(QtGui.QColor(250,160,100,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        self.path = QtGui.QPainterPath()
+        self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,-3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,-9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(6*self.scaleOffset*self.scale,-9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(0*self.scaleOffset*self.scale,-15*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-6*self.scaleOffset*self.scale,-9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-3*self.scaleOffset*self.scale,-9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-3*self.scaleOffset*self.scale,-3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-3*self.scaleOffset*self.scale,9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(-6*self.scaleOffset*self.scale,9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(0*self.scaleOffset*self.scale,15*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(6*self.scaleOffset*self.scale,9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,9*self.scaleOffset*self.scale))
+        self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
+
     def boundingRect(self):
         return self.path.boundingRect()
 
     def paint(self, painter, option, widget):
-        if self.form == "arrow_4Point":
-            self.drawArrow_4Point(painter, option, widget)
-            painter.strokePath(self.path, painter.pen())
+        if self.form == "Arrow_4Point": self.drawArrow_4Point(painter, option, widget)
+        elif self.form == "Arrow_sidePoint": self.drawArrow_sidePoint(painter, option, widget)
+        elif self.form == "Arrow_upDownPoint": self.drawArrow_upDownPoint(painter, option, widget)
         else: return Node.paint(self, painter, option, widget)
+        painter.strokePath(self.path, painter.pen())
+
 
 
 ###########################################################################################################################
@@ -1770,7 +1858,7 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         return self.node
 
     def setNode(self, node):
-        if type(node) == Node:
+        if type(node) == Node or type(node) == SuperNode:
             self.node = node
             self.setNodeIndex(node.getIndex())
         else: 
@@ -1869,6 +1957,7 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
 
     def constrainMovement(self, mouseEvent):
         if self.contains(self.mapFromScene(mouseEvent.scenePos())): # make sure the incoming cordinates are map to the constraint Item for processing "contains"
+            print "node is : " + str(self.node)
             return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)
 
 
@@ -2016,7 +2105,7 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         return self.node
 
     def setNode(self, node):
-        if type(node) == Node:
+        if type(node) == Node or type(node) == SuperNode:
             self.node = node
             self.setNodeIndex(node.getIndex())
         else: 
@@ -2270,7 +2359,7 @@ class ConstraintLine(QtGui.QGraphicsItem):
         return self.node
 
     def setNode(self, node):
-        if type(node) == Node:
+        if type(node) == Node or type(node) == SuperNode:
             self.node = node
             self.setNodeIndex(node.getIndex())
         else: 
@@ -2364,7 +2453,8 @@ class ConstraintLine(QtGui.QGraphicsItem):
         if self.pin == None: return QtGui.QGraphicsEllipseItem.mouseMoveEvent(self, mouseEvent) #If there is no pin we are free to move, else we are locked to a pin
 
     def constrainMovement(self, mouseEvent): #Simple return since the Line Constraint operates on Item Changed
-        return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)
+        if type(self.node) == Node or type(self.node) == SuperNode:
+            return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)
 
     def constrainItemChangedMovement(self, eventPos): #New rules need to be written for constraining the point across the line
         localPos = self.mapFromScene(eventPos)
@@ -2438,7 +2528,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # line = ConstraintLine(50,25)
         # line.setPos(200,350)
 
-        testSuperNode = SuperNodeGroup(QtCore.QPointF(50,25),self)
+        testSuperNode = SuperNodeGroup(QtCore.QPointF(50,25), "Arrow_4Point" ,self)
         # self.scene().addItem(testSuperNode)
 
         # self.scene().addItem(el)
@@ -2751,11 +2841,17 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if (event.mimeData().hasFormat('text/plain')):
             data = QtCore.QString(event.mimeData().data('text/plain'))
             event.accept()
+            print data
             if data == "GuideMarker":
                 self.dragGuideMarker(event, data)
             elif data == "ConstraintLine" or data == "ConstraintRect" or data == "ConstraintEllipse":
                 self.dragConstraintItem(event, data)
-
+            elif data == "SuperNode_Arrow_4Point":
+                self.dragSuperNode(event,"Arrow_4Point")
+            elif data == "SuperNode_Arrow_sidePoint":
+                self.dragSuperNode(event,"Arrow_sidePoint")
+            elif data == "SuperNode_Arrow_upDownPoint":
+                self.dragSuperNode(event,"Arrow_upDownPoint")
         else:
             event.ignore()
 
@@ -2782,7 +2878,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if type(self.dragItem) == ConstraintLine or type(self.dragItem) == ConstraintRect or type(self.dragItem) == ConstraintEllipse:
             possibleItems = self.items(event.pos())
             for item in possibleItems:
-                if type(item) == Node: dropNodes.append(item)
+                if type(item) == Node or type(item) == SuperNode: dropNodes.append(item)
     
             if len(dropNodes) != 0 :
                 dropNodes[0].goHome()
@@ -2827,6 +2923,14 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.scene().addItem(item)
             self.dragItem = item #set set the gv DragItem
 
+    def dragSuperNode(self, event, form):
+            event.acceptProposedAction()
+            #Create a new QGraphicsItem and transfer the text across so we have the correct name
+            item = SuperNodeGroup(self.mapToScene(event.pos()), form, self)
+            # item.setPos(self.mapToScene(event.pos()))
+            # item.setAlpha(0.5)
+            # self.scene().addItem(item)
+            self.dragItem = item.getPin() #set set the gv DragItem
 
     def mousePressEvent(self, mouseEvent):
         scene = self.scene()
@@ -2876,7 +2980,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if len(items) != 0:
             if type(items[0]) == GuideMarker:
                 self.guideMarkerContextMenu(event,items[0])
-            elif type(items[0]) == Node:
+            elif type(items[0]) == Node or type(items[0]) == SuperNode:
                 self.nodeContextMenu(event,items[0])
             elif type(items[0]) == ControlPin:
                 self.pinContextMenu(event,items[0])
@@ -2926,8 +3030,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
         menu.setStyleSheet(self.styleData)
         menu.addAction('Go Home')
         menu.addSeparator()
-        menu.addAction('Reset Wire Group')
-        menu.addSeparator()
+        if type(item) == Node: 
+            menu.addAction('Reset Wire Group')
+            menu.addSeparator()
         if item.getPin().getConstraintItem(): #Check the Node has a constraint item
             constrainMenu = QtGui.QMenu()
             constrainMenu.setStyleSheet(self.styleData)

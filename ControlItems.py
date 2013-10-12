@@ -194,6 +194,7 @@ class WireGroup():
 
     def setName(self, newName):
         self.name = str(newName)
+        for node in self.nodes: node.setWireName(newName)
 
     def getColour(self):
         return self.colour
@@ -779,7 +780,8 @@ class Node(QtGui.QGraphicsItem):
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
         xml.SubElement(attributes, 'attribute', name = 'pinIndex', value = str(self.getPinIndex()))
         xml.SubElement(attributes, 'attribute', name = 'pinTieIndex', value = str(self.getPinTieIndex()))
-        xml.SubElement(attributes, 'attribute', name = 'wireName', value = str(self.setWireName()))
+        xml.SubElement(attributes, 'attribute', name = 'wireName', value = str(self.getWireName()))
+        xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.getColour().red()) + "," + str(self.getColour().green()) + "," + str(self.getColour().blue())))
         xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
         xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
@@ -814,6 +816,9 @@ class Node(QtGui.QGraphicsItem):
                     newPos = a.attrib['value'].split(",")
                     self.setBezierHandles([float(newPos[0]), float(newPos[1])],1)
                 else: self.setBezierHandles(None,1)
+            elif a.attrib['name'] == 'colour':
+                newColour = a.attrib['value'].split(",")
+                self.setColour(QtGui.QColor(float(newColour[0]), float(newColour[1]),float(newColour[2])))                
 
     def setIndex(self,value):
         self.index = value
@@ -850,6 +855,12 @@ class Node(QtGui.QGraphicsItem):
 
     def setWireName(self,name):
         self.wireName = str(name)
+
+    def getColour(self):
+        return self.colour
+
+    def setColour(self, colour):
+        if type(colour) == QtGui.QColor: self.colour = colour
 
     def addRigCurve(self, rigCurve):
         self.rigCurveList.append(weakref.ref(rigCurve))
@@ -963,6 +974,7 @@ class SuperNode(Node):
         self.form = "Arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
         self.path = None
         self.alpha = 1.0
+        self.colour = QtGui.QColor(250,160,100,255*self.alpha)
         self.path = QtGui.QPainterPath()
         self.initBuild()
 
@@ -976,8 +988,11 @@ class SuperNode(Node):
         self.form = str(form)
         self.update()
 
+    def setColour(self,colour):
+        if type(colour) == QtGui.QColor: self.colour = QtGui.QColor(colour.red(), colour.green(), colour.blue(), 255*self.alpha)
+
     def drawArrow_4Point(self, painter, option, widget):
-        pen = QtGui.QPen(QtGui.QColor(250,160,100,255*self.alpha), 1, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(self.colour, 1, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         self.path = QtGui.QPainterPath()
         self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
@@ -1007,7 +1022,7 @@ class SuperNode(Node):
         self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
 
     def drawArrow_sidePoint(self, painter, option, widget):
-        pen = QtGui.QPen(QtGui.QColor(250,160,100,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(self.colour, 1, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         self.path = QtGui.QPainterPath()
         self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
@@ -1027,7 +1042,7 @@ class SuperNode(Node):
         self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
 
     def drawArrow_upDownPoint(self, painter, option, widget):
-        pen = QtGui.QPen(QtGui.QColor(250,160,100,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(self.colour, 1, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         self.path = QtGui.QPainterPath()
         self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
@@ -2060,7 +2075,7 @@ class ConstraintLine(QtGui.QGraphicsItem):
 class SkinningEllipse(QtGui.QGraphicsEllipseItem):
     def __init__(self):
         self.scale = 1.0
-        self.width = 25
+        self.width = 50
         self.alpha = 1.0
         self.ghostArea = False
         self.extension = 8
@@ -2075,7 +2090,7 @@ class SkinningEllipse(QtGui.QGraphicsEllipseItem):
         self.setZValue(2)
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
-        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True) 
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
         self.setFlag(QtGui.QGraphicsItem.ItemStacksBehindParent,True)      
         self.initBuild()
 
@@ -2162,7 +2177,6 @@ class SkinningEllipse(QtGui.QGraphicsEllipseItem):
     def setAlpha(self, alpha):
         self.alpha = float(alpha)
         self.opX.setAlpha(float(alpha))
-        self.opRot.setAlpha(float(alpha))
 
     def isGhostArea(self):
         return self.ghostArea

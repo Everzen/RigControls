@@ -27,5 +27,8 @@
     <file>images/Arrow_upDownPoint.png</file>
     <file>images/Arrow_upDownPoint_Hover.png</file>
     <file>images/Arrow_upDownPoint_Pressed.png</file>
+    <file>images/SkinningEllipse.png</file>
+    <file>images/SkinningEllipse_Hover.png</file>
+    <file>images/SkinningEllipse_Pressed.png</file>
   </qresource>
 </RCC>

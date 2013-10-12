@@ -250,19 +250,30 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def addWireGroup(self):
         """Function that looks at the makerSelection List and tried to build a Wire Rig"""
         if len(self.markerActiveList) > 2:
-            posList = []
-            for m in self.markerActiveList: posList.append(m.pos())
-            newWireGroup = WireGroup(self)
-            newWireGroup.buildFromPositions(posList)
-            newWireGroup.setScale(self.markerScale)
-            self.wireGroups.append(newWireGroup)
-            for m in self.markerActiveList: 
-                m.setActive(False) 
-                m.setSelected(False) #Deactivate all markers and deselect them
-            self.markerActiveList = [] #Reset the Marker List
+            unique = True
+            wireName, ok = QtGui.QInputDialog.getText(self, 'Wire Group Name', 'Enter a unique Wire Group Name:')
+            while not self.checkUniqueWireGroup(wireName):
+                wireName, ok = QtGui.QInputDialog.getText(self, 'Wire Group Name', 'The name was not unique. Please Enter a unique Wire Group Name:')
+            if ok:
+                posList = []
+                for m in self.markerActiveList: posList.append(m.pos())
+                newWireGroup = WireGroup(self)
+                newWireGroup.buildFromPositions(posList)
+                newWireGroup.setScale(self.markerScale)
+                newWireGroup.setName(str(wireName))
+                self.wireGroups.append(newWireGroup)
+                for m in self.markerActiveList: 
+                    m.setActive(False) 
+                    m.setSelected(False) #Deactivate all markers and deselect them
+                self.markerActiveList = [] #Reset the Marker List
         else:
             print "WARNING : THERE ARE NOT ENOUGH MARKERS SELECTED TO CREATE A WIRE GROUP"
 
+    def checkUniqueWireGroup(self, wireName):
+        unique = True
+        for wireGroup in self.wireGroups: 
+            if wireName == wireGroup.getName(): unique = False
+        return unique
 
     def showItem(self,state,objectType):
         """Function to hide and show markers"""
@@ -407,6 +418,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 self.dragSuperNode(event,"Arrow_sidePoint")
             elif data == "SuperNode_Arrow_upDownPoint":
                 self.dragSuperNode(event,"Arrow_upDownPoint")
+            elif data == "SkinningEllipse":
+                self.dragSkinningEllipse(event)
         else:
             event.ignore()
 
@@ -450,6 +463,22 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 scene.removeItem(self.dragItem) #We missed so delete the item
                 self.dragItem = None
 
+        if type(self.dragItem) == SkinningEllipse:
+            possibleItems = self.items(event.pos())
+            for item in possibleItems:
+                if type(item) == SuperNode: dropNodes.append(item)
+
+            if len(dropNodes) != 0 :
+                dropNodes[0].goHome()
+                self.dragItem.setPin(dropNodes[0].getPin()) # Add the constraint Item to the Pin
+                self.dragItem.setPos(QtCore.QPointF(0,0))
+                self.dragItem.setNode(dropNodes[0]) #Add the Node to the ConstraintItem
+                # dropNodes[0].getPin().setConstraintItem(self.dragItem) #Add the constraint Item to the pin
+                self.dragItem.lock() #lock Movement so it cannot be dragged around
+            else:
+                scene.removeItem(self.dragItem) #We missed so delete the item
+                self.dragItem = None
+
         if self.dragItem:
             self.dragItem.setAlpha(1.0)
             self.dragItem = None #reset the gv dragItem
@@ -486,6 +515,15 @@ class RigGraphicsView(QtGui.QGraphicsView):
             # item.setAlpha(0.5)
             # self.scene().addItem(item)
             self.dragItem = item.getPin() #set set the gv DragItem
+
+
+    def dragSkinningEllipse(self, event):
+        event.acceptProposedAction()
+        item = SkinningEllipse()
+        item.setPos(self.mapToScene(event.pos()))
+        item.setAlpha(0.5)
+        self.dragItem = item #set set the gv DragItem
+        self.scene().addItem(item)
 
     def mousePressEvent(self, mouseEvent):
         scene = self.scene()
@@ -596,7 +634,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
             constrainMenu.addAction('Ghost')
             constrainMenu.addAction('Hide')
             menu.addMenu(constrainMenu)
-        # menu.addSeparator()
+        menu.addSeparator()
+        menu.addAction("Set Colour")
 
         action = menu.exec_(event.globalPos())
         if action:
@@ -613,6 +652,15 @@ class RigGraphicsView(QtGui.QGraphicsView):
             elif action.text() == 'Hide':
                 item.getPin().getConstraintItem().setGhostArea(False)
                 item.getPin().getConstraintItem().setVisible(False) 
+            elif action.text() == 'Set Colour':
+                newCol = QtGui.QColorDialog.getColor()
+                if newCol.isValid():
+                    if type(item) == Node: #If we are a node in a wire group then set all the node colours
+                        if item.wireGroup:
+                            for node in item.wireGroup.nodes: node.setColour(newCol)
+                        else: item.setColour(newCol)
+                    else: item.setColour(newCol)
+
 
     def pinContextMenu(self,event,item):
         scene = self.scene()

@@ -213,7 +213,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         creationBox.addWidget(self.lineConstraintCreate)
         creationBox.addWidget(self.createControls)
         creationBox.addWidget(self.arrowControl_four)
-        creationBox.addWidget(self.arrowControl_side)
+        # creationBox.addWidget(self.arrowControl_side)
         creationBox.addWidget(self.arrowControl_upDown)
         creationBox.addStretch(1)
 

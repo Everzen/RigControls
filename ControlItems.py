@@ -235,6 +235,7 @@ class WireGroup():
             node.setPin(p)
             p.setNode(node)
             node.setWireGroup(self)
+            node.setWireName(self.name)
             self.nodes.append(node)
             # self.scene.addItem(node)
 
@@ -756,6 +757,8 @@ class Node(QtGui.QGraphicsItem):
 
         self.scaleOffset = 7
         self.scale = 1.0
+        self.wireName = ""
+        self.colour = QtGui.QColor(25,25,255,150)
         # self.pin.append(weakref.ref(pin))
         self.pin = None
         self.pinIndex = None
@@ -776,6 +779,7 @@ class Node(QtGui.QGraphicsItem):
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
         xml.SubElement(attributes, 'attribute', name = 'pinIndex', value = str(self.getPinIndex()))
         xml.SubElement(attributes, 'attribute', name = 'pinTieIndex', value = str(self.getPinTieIndex()))
+        xml.SubElement(attributes, 'attribute', name = 'wireName', value = str(self.setWireName()))
         xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
         xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
@@ -794,6 +798,7 @@ class Node(QtGui.QGraphicsItem):
             elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
             elif a.attrib['name'] == 'pinIndex': self.setPinIndex(int(a.attrib['value']))
             elif a.attrib['name'] == 'pinTieIndex': self.setPinTieIndex(int(a.attrib['value']))
+            elif a.attrib['name'] == 'wireName': self.setWireName(str(a.attrib['value']))
             elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
             elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
             elif a.attrib['name'] == 'pos': 
@@ -840,6 +845,11 @@ class Node(QtGui.QGraphicsItem):
     def setPinTieIndex(self, index):
         self.pinTieIndex = index
 
+    def getWireName(self):
+        return self.wireName
+
+    def setWireName(self,name):
+        self.wireName = str(name)
 
     def addRigCurve(self, rigCurve):
         self.rigCurveList.append(weakref.ref(rigCurve))
@@ -908,20 +918,14 @@ class Node(QtGui.QGraphicsItem):
         if self.isSelected(): cColour = QtGui.QColor(220,220,255,150)
         pen = QtGui.QPen(cColour, 1, QtCore.Qt.SolidLine)
         painter.setPen(pen)
+        gradient = QtGui.QRadialGradient(0, 0, self.scale*self.radius/2)
+        gradient.setColorAt(0, self.colour)
+        gradient.setColorAt(0.2, self.colour)
+        gradient.setColorAt(0.3, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(), 125))
+        gradient.setColorAt(1.0, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(), 10))
+        painter.setBrush(QtGui.QBrush(gradient))
         # painter.setBrush(QtCore.Qt.lightGray)
         painter.drawEllipse(-self.radius*self.scale, -self.radius*self.scale, 2*self.radius*self.scale, 2*self.radius*self.scale)
-        gradient = QtGui.QRadialGradient(0, 0, self.scale*self.radius/2)
-        if option.state & QtGui.QStyle.State_Sunken: # selected
-            cColour = QtGui.QColor(50,255,255,150)
-            gradient.setColorAt(0, cColour)
-            gradient.setColorAt(0.6, cColour)
-            gradient.setColorAt(1, QtGui.QColor(cColour.red(), cColour.green(), cColour.blue(), 20))
-        else:
-            cColour = QtGui.QColor(QtCore.Qt.blue).lighter(120)
-            gradient.setColorAt(0, cColour)
-            gradient.setColorAt(0.5, cColour)
-            gradient.setColorAt(1, QtGui.QColor(cColour.red(), cColour.green(), cColour.blue(), 20))
-        painter.setBrush(QtGui.QBrush(gradient))
         QtGui.QPen(QtCore.Qt.black, 1.2, QtCore.Qt.SolidLine)
         painter.drawEllipse((-self.radius/2)*self.scale, (-self.radius/2)*self.scale, self.radius*self.scale, self.radius*self.scale)
 
@@ -973,7 +977,7 @@ class SuperNode(Node):
         self.update()
 
     def drawArrow_4Point(self, painter, option, widget):
-        pen = QtGui.QPen(QtGui.QColor(250,160,100,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(250,160,100,255*self.alpha), 1, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         self.path = QtGui.QPainterPath()
         self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
@@ -1985,11 +1989,6 @@ class ConstraintLine(QtGui.QGraphicsItem):
             self.setTailLength(abs(self.opXTail.pos().y()) - self.crossOffset)
         self.update()
 
-        # self.width = abs(dimPos.x())
-        # self.height = abs(dimPos.y())
-        # self.setRect(self.scale*(-self.width), self.scale*(-self.height),
-        #                      self.scale*(2*self.width), self.scale*(2*self.height))  
-        # self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
 
     def sceneCoordinates(self, sMousePt): #Code curtesy of ZetCode
         s_mouse_x = sMousePt.x()
@@ -2054,3 +2053,268 @@ class ConstraintLine(QtGui.QGraphicsItem):
         # print "AdjustedPos = "  + str(yPos)
         # print "Value passing back : " + str(self.mapToScene(QtCore.QPointF(0,yPos)))
         return self.mapToScene(QtCore.QPointF(0,yPos))
+
+
+#############################################################SKINNING ITEM##############################################################
+
+class SkinningEllipse(QtGui.QGraphicsEllipseItem):
+    def __init__(self):
+        self.scale = 1.0
+        self.width = 25
+        self.alpha = 1.0
+        self.ghostArea = False
+        self.extension = 8
+        QtGui.QGraphicsEllipseItem.__init__(self, -self.width, -self.width, 2*self.width, 2*self.width) 
+        self.opX = None
+        self.opRot = None
+        self.pin = None
+        self.pinIndex = 0
+        self.node = None
+        self.nodeIndex = 0
+        self.crossOffset = 5
+        self.setZValue(2)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True) 
+        self.setFlag(QtGui.QGraphicsItem.ItemStacksBehindParent,True)      
+        self.initBuild()
+
+    def initBuild(self):
+        self.opX = OpsCross(self)
+        self.opX.setParentItem(self)
+        self.opX.setPos(QtCore.QPointF(0,-self.width - self.crossOffset))
+        self.opX.setSlider(True)
+        self.opX.setSliderLimit(self.crossOffset)
+
+        # self.opRot = OpsRotation(self)
+        # self.opRot.setParentItem(self)
+        # self.opRot.setPos(QtCore.QPointF(0,-self.width-self.extension - self.crossOffset))
+
+    def store(self):
+        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        ConstraintEllipseXml = xml.Element('SkinningEllipse')
+        attributes = xml.SubElement(ConstraintEllipseXml,'attributes')
+        xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
+        xml.SubElement(attributes, 'attribute', name = 'alpha', value = str(self.getAlpha()))
+        xml.SubElement(attributes, 'attribute', name = 'height', value = str(self.getHeight()))
+        xml.SubElement(attributes, 'attribute', name = 'width', value = str(self.getWidth()))
+        xml.SubElement(attributes, 'attribute', name = 'ghostArea', value = str(self.isGhostArea()))
+        xml.SubElement(attributes, 'attribute', name = 'extension', value = str(self.getExtension()))
+        xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
+        xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
+        xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
+        
+        #Now record the xml for the OpCross
+        OpsItemsXml = xml.SubElement(ConstraintEllipseXml,'OpsItems')
+        OpCXml = self.opX.store()
+        OpsItemsXml.append(OpCXml)
+        OpRXml = self.opRot.store()
+        OpsItemsXml.append(OpRXml)
+        return ConstraintEllipseXml
+
+    def read(self, ConstraintEllipseXml):
+        """A function to read in a block of XML and set all major attributes accordingly"""
+        for a in ConstraintEllipseXml.findall( 'attributes/attribute'):
+            if a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
+            elif a.attrib['name'] == 'alpha': self.setAlpha(float(a.attrib['value']))
+            elif a.attrib['name'] == 'height': self.setHeight(float(a.attrib['value']))
+            elif a.attrib['name'] == 'width': self.setWidth(float(a.attrib['value']))
+            elif a.attrib['name'] == 'extension': self.setExtension(float(a.attrib['value']))
+            elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
+            elif a.attrib['name'] == 'pos': 
+                newPos = a.attrib['value'].split(",")
+                self.setPos(float(newPos[0]), float(newPos[1]))
+
+        #The Ops Cross and OpsRot are created, so hunt through the XML and make sure all their attributes are loaded in
+        OpsItemsXml = ConstraintEllipseXml.findall('OpsItems')
+        for itemXml in OpsItemsXml[0]: #This should only find One OpsCross
+            if itemXml.tag == "OpsCross": self.opX.read(itemXml)
+            if itemXml.tag == "OpsRot": self.opRot.read(itemXml)
+        self.redraw(self.opX.pos())
+        self.lock()
+
+        for a in ConstraintEllipseXml.findall( 'attributes/attribute'): #Finsh by setting and ghost visibility states
+            if a.attrib['name'] == 'ghostArea': self.setGhostArea(str(a.attrib['value']) == 'True')
+            elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
+        self.update()
+
+    def getScale(self):
+        return self.scale
+
+    def setScale(self, scale):
+        self.scale = scale
+
+    def getWidth(self):
+        return self.width
+
+    def setWidth(self, width):
+        self.width = width
+
+    def getExtension(self):
+        return self.extension
+
+    def setExtension(self,extension):
+        self.extension = extension
+
+    def getAlpha(self):
+        return self.alpha
+
+    def setAlpha(self, alpha):
+        self.alpha = float(alpha)
+        self.opX.setAlpha(float(alpha))
+        self.opRot.setAlpha(float(alpha))
+
+    def isGhostArea(self):
+        return self.ghostArea
+
+    def setGhostArea(self, ghost):
+        self.ghostArea = bool(ghost)
+        self.opX.setVisible(not bool(ghost))
+        self.opRot.setVisible(not bool(ghost))
+
+    def getPinIndex(self):
+        return self.pinIndex
+
+    def setPinIndex(self, index):
+        self.pinIndex = index
+
+    def getPin(self):
+        return self.pin
+
+    def setPin(self, pin):
+        if type(pin) == ControlPin:
+            self.pin = pin
+            self.setPinIndex(pin.getIndex())
+            self.setParentItem(pin)
+        else: 
+            print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PIN ALLOCATION"
+
+    def getNodeIndex(self):
+        return self.nodeIndex
+
+    def setNodeIndex(self, index):
+        self.nodeIndex = index
+
+    def getNode(self):
+        return self.node
+
+    def setNode(self, node):
+        if type(node) == Node or type(node) == SuperNode:
+            self.node = node
+            self.setNodeIndex(node.getIndex())
+        else: 
+            print "WARNING : INVALID OBJECT WAS PASSED TO CONSTRAINITEM FOR CONSTRAINT ALLOCATION"
+
+    def lock(self):
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False)  
+        self.opX.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
+
+    def boundingRect(self):
+        adjust = 2
+        return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.width - adjust - self.extension-3),
+                             self.scale*(2*self.width + 2*adjust), self.scale*(2*self.width + adjust + 2*self.extension + 5))
+
+    def paint(self, painter, option, widget):
+        self.prepareGeometryChange()
+        gradient = QtGui.QRadialGradient(0, 0, self.scale*self.width)
+        gradient.setColorAt(0, QtGui.QColor(255,0,0,25 * self.alpha))
+        gradient.setColorAt(0.25, QtGui.QColor(255,125,0,25 * self.alpha))
+        gradient.setColorAt(0.5, QtGui.QColor(255,255,0,25 * self.alpha))
+        gradient.setColorAt(0.75, QtGui.QColor(125,255,0,25 * self.alpha))
+        gradient.setColorAt(1.0, QtGui.QColor(0,255,0,25 * self.alpha))
+        self.setBrush(QtGui.QBrush(gradient))
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
+        self.setPen(pen)
+        self.setBrush(QtGui.QBrush(gradient))
+        QtGui.QGraphicsEllipseItem.paint(self, painter, option, widget)
+        # if not self.ghostArea:
+        #     pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
+        #     painter.setPen(pen)
+        #     painter.drawLine(0,self.scale*self.width - 2,0,self.scale*-self.width-self.extension) 
+        #     pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
+        #     painter.setPen(pen)
+        #     # if self.width > 5:
+        #     #     painter.drawLine(-5,-(self.scale*self.width+self.extension-5),0,-(self.scale*self.width+self.extension))     
+        #     #     painter.drawLine(5,-(self.scale*self.width+self.extension-5),0,-(self.scale*self.width+self.extension))
+        #     # else:
+        #     #     painter.drawLine(-self.width,-(self.scale*self.width+self.extension-5),0,-(self.scale*self.width+self.extension))     
+        #     #     painter.drawLine(self.width,-(self.scale*self.width+self.extension-5),0,-(self.scale*self.width+self.extension))
+        if self.width > 3: 
+            painter.drawLine(3,0,-3,0)
+            painter.drawLine(0,3,0,-3)
+        else: 
+            painter.drawLine(self.width,0,-self.width,0)
+            painter.drawLine(0,self.width,0,-self.width)
+
+
+
+
+    def redraw(self, index): #index indicates which cross we are interested in - on this Line 0 is a head, and 1 is a tail
+        if index == 0:
+            self.setWidth(abs(self.opX.pos().y()) - self.crossOffset)
+            self.setRect(self.scale*(-self.width), self.scale*(-self.width),
+                             self.scale*(2*self.width), self.scale*(2*self.width)) 
+            # self.opRot.setPos(QtCore.QPointF(0,-self.width - self.crossOffset - self.extension))
+        self.update()
+
+
+    # def redraw(self, dimPos):
+    #     self.width = abs(dimPos.y())
+    #     self.setRect(self.scale*(-self.width), self.scale*(-self.width),
+    #                          self.scale*(2*self.width), self.scale*(2*self.width)) 
+    #     self.opRot.setPos(QtCore.QPointF(0,-self.width-self.extension-5))
+
+    def sceneCoordinates(self, sMousePt): #Code curtesy of ZetCode
+        s_mouse_x = sMousePt.x()
+        s_mouse_y = sMousePt.y()
+        constraintCentre = self.boundingRect().center()
+        arrow_x = constraintCentre.x()
+        arrow_y = constraintCentre.y()
+        sConstraintPt = self.mapToScene(arrow_x, arrow_y)
+        s_arrow_x = sConstraintPt.x()
+        s_arrow_y = sConstraintPt.y() 
+        return (s_mouse_x, s_mouse_y, arrow_x, arrow_y, 
+            s_arrow_x, s_arrow_y)
+ 
+    def calculateAngle(self, coords):
+        s_mouse_x, s_mouse_y = coords[0], coords[1] 
+        s_arrow_x, s_arrow_y = coords[4], coords[5]
+        a = abs(s_mouse_x - s_arrow_x)
+        b = abs(s_mouse_y - s_arrow_y)
+        # print "Opposite : " + str(a)
+        # print "Adjacent : " + str(b)
+        theta_deg = 0.0
+
+        if a == 0 and b == 0:
+            return
+        elif a == 0 and s_mouse_y < s_arrow_y:
+            theta_deg = 270
+        elif a == 0 and s_mouse_y > s_arrow_y: 
+            theta_deg = 90
+        else:
+            theta_rad = math.atan(b / a)
+            theta_deg = math.degrees(theta_rad)
+            if (s_mouse_x < s_arrow_x and \
+                s_mouse_y > s_arrow_y):
+                theta_deg = 180 - theta_deg
+            elif (s_mouse_x < s_arrow_x and \
+                s_mouse_y < s_arrow_y):
+                theta_deg = 180 + theta_deg   
+            elif (s_mouse_x > s_arrow_x and \
+                s_mouse_y < s_arrow_y):
+                theta_deg = 360 - theta_deg               
+        # print str(theta_deg)
+        return (theta_deg + 90)
+
+    def doTransform(self, theta_deg, arrow_x, arrow_y):
+        self.setRotation(theta_deg)
+
+    def mouseMoveEvent(self, mouseEvent):
+        if self.pin == None: return QtGui.QGraphicsEllipseItem.mouseMoveEvent(self, mouseEvent) #If there is no pin we are free to move, else we are locked to a pin
+
+    def constrainMovement(self, mouseEvent):
+        if self.contains(self.mapFromScene(mouseEvent.scenePos())): # make sure the incoming cordinates are map to the constraint Item for processing "contains"
+            print "node is : " + str(self.node)
+            return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)

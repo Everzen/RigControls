@@ -68,6 +68,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.isSelectableList = [] #list used to store selectable states while panning around 
         self.isMovableList = [] #list used to store selectable states while panning around       
         self.isSelectedList = []
+        
+
         #TESTING ADDING NEW ITEMS
         # el = ConstraintEllipse(80,80)
         # el.setPos(200,200)
@@ -78,10 +80,13 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # line = ConstraintLine(50,25)
         # line.setPos(200,350)
 
+        el = SkinningEllipse()
+        el.setPos(200,200)
+
         testSuperNode = SuperNodeGroup(QtCore.QPointF(50,25), "Arrow_4Point" ,self)
         # self.scene().addItem(testSuperNode)
 
-        # self.scene().addItem(el)
+        self.scene().addItem(el)
         # self.scene().addItem(rect)
         # self.scene().addItem(line)
 

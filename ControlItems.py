@@ -976,6 +976,8 @@ class SuperNode(Node):
         self.alpha = 1.0
         self.colour = QtGui.QColor(250,160,100,255*self.alpha)
         self.path = QtGui.QPainterPath()
+        self.skinningItem = None
+        self.skinnedPins = []
         self.initBuild()
 
     def initBuild(self):
@@ -990,6 +992,58 @@ class SuperNode(Node):
 
     def setColour(self,colour):
         if type(colour) == QtGui.QColor: self.colour = QtGui.QColor(colour.red(), colour.green(), colour.blue(), 255*self.alpha)
+
+    def getSkinningItem(self):
+        return self.skinningItem
+
+    def setSkinningItem(self, skinningItem):
+        if type(skinningItem) == SkinningEllipse: 
+                self.skinningItem = skinningItem
+                print "Skin : " + str(self.skinningItem)
+
+    def getSkinnedPins(self):
+        return self.skinnedPins
+
+    def setSkinnedPins(self, nodes):
+        """Function to assign skinning Info for each of the nodes to the Super Node"""
+        if self.skinningItem:
+            self.skinnedPins = []
+            self.goHome() #Send the superNode Home to neaten everything with rest poses
+            superNodePinPos = self.getPin().pos()
+            skinRadius = self.skinningItem.getWidth()
+            for node in nodes: #find the pin of the node and assign a suitable skinning value
+                node.goHome()
+                pinDist = np.linalg.norm(npVec(node.getPin().pos()) - npVec(superNodePinPos)) #This might need to be separated in to separate skinning values for each axis
+                skinValue = 1 - float(pinDist/skinRadius)
+                skinInfo = SkinningPinInfo()
+                skinInfo.setSuperNode(self)
+                skinInfo.setPin(node.getPin())
+                skinInfo.setWireGroup(node.getWireGroup())
+                skinInfo.setSkinValue(skinValue)
+                self.skinnedPins.append(skinInfo)
+            
+            #Now that we have skinned we need to remove the skinning Item
+            self.scene().removeItem(self.skinningItem)
+            self.skinningItem = None
+        else: 
+            print "WARNING : CANNOT SKIN NODES/PINS SINCE NO SUITABLE SKINNING ITEM WAS FOUND ON THE SUPERNODE"
+
+    def goHome(self):
+        """Function to centralise the node back to the pin and update any associated rigCurves and pinTies"""
+        if self.pin:
+            self.setPos(QtCore.QPointF(0,0))
+            if self.pinTie:
+                self.pinTie().drawTie()
+            for rigCurve in self.rigCurveList:
+                rigCurve().buildCurve()
+            for skinPin in self.skinnedPins: 
+                skinPin.goHome()
+                homeNode = skinPin.getPin().getNode()
+                if homeNode:  #Hacky way of updating the curves when the pin is sent home! Maybe wrap into a neat function
+                    for rigCurve in homeNode.rigCurveList:
+                        rigCurve().buildCurve()    
+        else:
+            print "WARNING : NODE HAS NO ASSOCIATED PIN AND AS SUCH HAS NO HOME TO GO TO :("
 
     def drawArrow_4Point(self, painter, option, widget):
         pen = QtGui.QPen(self.colour, 1, QtCore.Qt.SolidLine)
@@ -1072,8 +1126,13 @@ class SuperNode(Node):
         else: return Node.paint(self, painter, option, widget)
         painter.strokePath(self.path, painter.pen())
 
-
-
+    def itemChange(self, change, value):
+        if change == QtGui.QGraphicsItem.ItemPositionChange:
+            for skinPin in self.skinnedPins: 
+                skinPin.update() #Update the pin positions of the skinned Nodes
+                skinPin.getPin().itemChange(change, value)
+        Node.itemChange(self, change, value)      
+        return Node.itemChange(self, change, value)
 
 ############################################CONSTRAINT ITEMS###############################################################################
 
@@ -1469,7 +1528,7 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
             self.node = node
             self.setNodeIndex(node.getIndex())
         else: 
-            print "WARNING : INVALID OBJECT WAS PASSED TO CONSTRAINITEM FOR CONSTRAINT ALLOCATION"
+            print "WARNING : INVALID OBJECT WAS PASSED TO ITEM FOR ALLOCATION"
 
     def lock(self):
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
@@ -1564,7 +1623,7 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
 
     def constrainMovement(self, mouseEvent):
         if self.contains(self.mapFromScene(mouseEvent.scenePos())): # make sure the incoming cordinates are map to the constraint Item for processing "contains"
-            print "node is : " + str(self.node)
+            # print "node is : " + str(self.node)
             return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)
 
 
@@ -2220,7 +2279,7 @@ class SkinningEllipse(QtGui.QGraphicsEllipseItem):
             print "WARNING : INVALID OBJECT WAS PASSED TO CONSTRAINITEM FOR CONSTRAINT ALLOCATION"
 
     def lock(self):
-        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,False)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False)  
         self.opX.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
@@ -2325,10 +2384,82 @@ class SkinningEllipse(QtGui.QGraphicsEllipseItem):
     def doTransform(self, theta_deg, arrow_x, arrow_y):
         self.setRotation(theta_deg)
 
-    def mouseMoveEvent(self, mouseEvent):
-        if self.pin == None: return QtGui.QGraphicsEllipseItem.mouseMoveEvent(self, mouseEvent) #If there is no pin we are free to move, else we are locked to a pin
+    # def mouseMoveEvent(self, mouseEvent):
+    #     if self.pin == None: return QtGui.QGraphicsEllipseItem.mouseMoveEvent(self, mouseEvent) #If there is no pin we are free to move, else we are locked to a pin
 
-    def constrainMovement(self, mouseEvent):
-        if self.contains(self.mapFromScene(mouseEvent.scenePos())): # make sure the incoming cordinates are map to the constraint Item for processing "contains"
-            print "node is : " + str(self.node)
-            return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)
+    # def constrainMovement(self, mouseEvent):
+    #     if self.contains(self.mapFromScene(mouseEvent.scenePos())): # make sure the incoming cordinates are map to the constraint Item for processing "contains"
+    #         print "node is : " + str(self.node)
+    #         return QtGui.QGraphicsItem.mouseMoveEvent(self.node, mouseEvent)
+
+
+
+
+class SkinningPinInfo():
+    def __init__(self):
+        self.superNode = None
+        # self.superNodeName = None
+        self.pin = None
+        self.pinIndex = None
+        self.wireGroup = None
+        self.wireGroupName = None
+
+        self.pinSkinPos = None
+        self.skinValue = 0
+
+    def getSuperNode(self):
+        return self.superNode
+
+    def setSuperNode(self, superNode):
+        if type(superNode) == SuperNode:
+            self.superNode = superNode
+            # self.setSuperNodeName(superNode.getName())
+
+    def getSuperNodeName(self):
+        return self.superNodeName
+
+    def setSuperNodeName(self, name):
+        self.superNodeName = str(name)
+
+    def getPin(self):
+        return self.pin
+
+    def setPin(self, pin):
+        if type(pin) == ControlPin:
+            self.pin = pin
+            self.setPinIndex(pin.getIndex())
+            self.pinSkinPos = self.pin.pos()
+        else: 
+            print "WARNING : INVALID OBJECT WAS PASSED TO ITEM FOR ALLOCATION"
+
+    def getPinIndex(self):
+        return self.pinIndex
+
+    def setPinIndex(self, index):
+        self.pinIndex = int(index)
+
+    def getWireGroup(self):
+        return self.wireGroup
+
+    def setWireGroup(self, wireGroup):
+        if type(wireGroup) == WireGroup: 
+            self.wireGroup = wireGroup
+            self.wireGroupName = wireGroup.getName()
+
+    def getSkinValue(self):
+        return self.skinValue
+
+    def setSkinValue(self, value):
+        val = float(value)
+        if val > 1.0 : self.skinValue = 1.0
+        elif val < 0.0 : self.skinValue = 0.0
+        else: self.skinValue = val
+
+    def goHome(self):
+        if self.pin: self.pin.setPos(self.pinSkinPos)
+
+
+    def update(self):
+        if self.superNode and self.pin:
+            newTranslation = (self.superNode.pos() * self.skinValue) + self.pinSkinPos
+            self.pin.setPos(newTranslation)

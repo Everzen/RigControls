@@ -65,6 +65,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.wireGroups = []
 
         self.dragItem = None
+        self.skinningItem = None
         self.isSelectableList = [] #list used to store selectable states while panning around 
         self.isMovableList = [] #list used to store selectable states while panning around       
         self.isSelectedList = []
@@ -473,6 +474,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 self.dragItem.setPin(dropNodes[0].getPin()) # Add the constraint Item to the Pin
                 self.dragItem.setPos(QtCore.QPointF(0,0))
                 self.dragItem.setNode(dropNodes[0]) #Add the Node to the ConstraintItem
+                dropNodes[0].setSkinningItem(self.dragItem)
+                self.skinningItem = self.dragItem
                 # dropNodes[0].getPin().setConstraintItem(self.dragItem) #Add the constraint Item to the pin
                 self.dragItem.lock() #lock Movement so it cannot be dragged around
             else:
@@ -565,20 +568,33 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     item.goHome()
         return QtGui.QGraphicsView.mouseDoubleClickEvent(self, mouseEvent)
 
-
-    def contextMenuEvent(self, event):
+    def sortMenuItem(self, event):
+        """Function to ensure that the correct RC menu appears where ever possible. Ensure that SkinningEllipse RC's do not appear over other items"""
         scene = self.scene()
         items = self.items(event.pos())
-        # for item in items: print "Hit " + str(item)
+        noneSkinItems = False
         if len(items) != 0:
-            if type(items[0]) == GuideMarker:
-                self.guideMarkerContextMenu(event,items[0])
-            elif type(items[0]) == Node or type(items[0]) == SuperNode:
-                self.nodeContextMenu(event,items[0])
-            elif type(items[0]) == ControlPin:
-                self.pinContextMenu(event,items[0])
-            elif type(items[0]) == ReflectionLine:
-                self.reflectionLineContextMenu(event,items[0])
+            for item in items: 
+                if type(item) != SkinningEllipse: noneSkinItems = True
+            if noneSkinItems: #We have other items present that are not skinningEllipses, so return the first one of them that we meet.
+                for item in items: 
+                    if type(item) != SkinningEllipse: return item
+            else: return items[0] #If still false there are no other items under the event so return the skinning Ellipse
+
+    def contextMenuEvent(self, event):
+        # for item in items: print "Hit " + str(item)
+        item = self.sortMenuItem(event) #Grab the appropriate Item
+        if item:
+            if type(item) == GuideMarker:
+                self.guideMarkerContextMenu(event,item)
+            elif type(item) == Node or type(item) == SuperNode:
+                self.nodeContextMenu(event,item)
+            elif type(item) == ControlPin:
+                self.pinContextMenu(event,item)
+            elif type(item) == ReflectionLine:
+                self.reflectionLineContextMenu(event,item)
+            # elif type(item) == SkinningEllipse:
+            #     self.skinningEllipseContextMenu(event,item)
                 # menu.addAction('ControlPin')
 
     def reflectionLineContextMenu(self,event,item):
@@ -636,6 +652,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
             menu.addMenu(constrainMenu)
         menu.addSeparator()
         menu.addAction("Set Colour")
+        isValidNodes, nodeSkinList = self.isNodesSelected()
+        # print "ValidNodes " + str(isValidNodes)
+        # print "Node List " + str(nodeSkinList)
+        if type(item) == SuperNode and item.getSkinningItem() and isValidNodes:
+            menu.addSeparator()
+            menu.addAction('Skin Selected Nodes')
 
         action = menu.exec_(event.globalPos())
         if action:
@@ -660,6 +682,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                             for node in item.wireGroup.nodes: node.setColour(newCol)
                         else: item.setColour(newCol)
                     else: item.setColour(newCol)
+            elif action.text() == 'Skin Selected Nodes':
+                item.setSkinnedPins(nodeSkinList) #Grab the previously calculated valid Node List and Skin them
 
 
     def pinContextMenu(self,event,item):
@@ -683,7 +707,33 @@ class RigGraphicsView(QtGui.QGraphicsView):
             elif action.text() == 'Unlock':
                 item.setLocked(False)    
             elif action.text() == 'Lock':
-                item.setLocked(True)                  
+                item.setLocked(True)
+
+    def skinningEllipseContextMenu(self,event,item):
+        scene = self.scene()
+        menu = QtGui.QMenu()
+        menu.setStyleSheet(self.styleData)
+        if self.isNodesSelected(): 
+            menu.addAction('Skin Selected Nodes')   
+            action = menu.exec_(event.globalPos())
+            if action.text() == 'Skin Selected Nodes':
+                print "Gonna skin these badboy Nodes"
+
+    def isNodesSelected(self):
+        selectedNodes = []
+        circleSelectedNodes = []
+        isNodes = False
+        for item in self.scene().selectedItems():
+            if type(item) == Node:
+                if self.skinningItem: #check that not only is the node selected but it lies within the skinning circle
+                    if self.skinningItem.contains(self.skinningItem.mapFromScene(int(item.getPin().scenePos().x()),int(item.getPin().scenePos().y()))):
+                        selectedNodes.append(item)
+                        isNodes = True
+                        # print "Node Pin is in"
+                else: 
+                    selectedNodes.append(item)
+                    isNodes = True
+        return isNodes, selectedNodes
 
 
 

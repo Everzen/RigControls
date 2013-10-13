@@ -26,7 +26,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         # print str(self.styleData)
 
         self.setStyleSheet(self.styleData)
-        self.view = RigUIControls.RigGraphicsView()
+        self.view = RigUIControls.RigGraphicsView(self)
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
         
         #File Dialogue to load background image 

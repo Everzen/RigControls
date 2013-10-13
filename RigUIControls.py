@@ -19,7 +19,7 @@ from RigStore import *
 ############################ MAIN RIG GRAPHICS VIEW #################################################################################
 
 class RigGraphicsView(QtGui.QGraphicsView):
-    def __init__(self):
+    def __init__(self, mainWindow):
         QtGui.QGraphicsView.__init__(self) 
         self.width = 500
         self.height = 500
@@ -70,6 +70,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.isMovableList = [] #list used to store selectable states while panning around       
         self.isSelectedList = []
         
+        self.mainWindow = mainWindow
 
         #TESTING ADDING NEW ITEMS
         # el = ConstraintEllipse(80,80)

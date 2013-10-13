@@ -2461,5 +2461,5 @@ class SkinningPinInfo():
 
     def update(self):
         if self.superNode and self.pin:
-            newTranslation = (self.superNode.pos() * self.skinValue) + self.pinSkinPos
+            newTranslation = ((self.superNode.scenePos()-self.superNode.getPin().scenePos()) * self.skinValue) + self.pinSkinPos
             self.pin.setPos(newTranslation)

@@ -1043,6 +1043,7 @@ class SuperNode(Node):
                 node.goHome()
                 pinDist = np.linalg.norm(npVec(node.getPin().pos()) - npVec(superNodePinPos)) #This might need to be separated in to separate skinning values for each axis
                 skinValue = 1 - float(pinDist/skinRadius)
+                skinValue = round(skinValue, 2)
                 skinInfo = SkinningPinInfo()
                 skinInfo.setSuperNode(self)
                 skinInfo.setPin(node.getPin())

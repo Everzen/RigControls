@@ -246,7 +246,7 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         #Build the Skinning Table
         self.skinTableWidget = RigUIControls.SkinTabW()
-
+        self.skinTableWidget.itemChanged.connect(self.updateSkinData)
 
         self.dockSkinningWidget = QtGui.QDockWidget(self)
         self.dockSkinningWidget.setWindowTitle("Skinning Values")
@@ -258,9 +258,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         # self.skinningWidget.setWidget(self.skinTableWidget)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dockSkinningWidget) 
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dockCreationWidget)
-
-
-
+ 
         self.statusBar()
 
     def selectMarkers(self,state):
@@ -292,9 +290,12 @@ class RigFaceSetup(QtGui.QMainWindow):
         # pickle.dump(self.view, faceFile)
         # faceFile.close()
 
-    def itemTest(self):
-        print "moo"
+    def updateSkinData(self, item):
+        self.skinTableWidget.updateSkinning(item)
 
+    def itemTest(self):
+        """Random Test funciton to see if things get called"""
+        print "moo"
     # def populateSkinTableWidget(self, superNode):
     #     self.skinTableWidget.clear()
     #     self.skinTableWidget.setHorizontalHeaderLabels(self.headers)

@@ -207,7 +207,6 @@ class SkinTabW(QtGui.QTableWidget):
             self.clear()
             self.setColumnCount(4)
             self.setHorizontalHeaderLabels(self.headers)
-            self.setRowCount(len(self.superNode.getSkinnedPins()))
             for index, skinPin in enumerate(self.superNode.getSkinnedPins()):
                 superNodeNameitem = QtGui.QTableWidgetItem(self.superNode.getName())
                 superNodeNameitem.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
@@ -221,11 +220,12 @@ class SkinTabW(QtGui.QTableWidget):
                 self.setItem(index,1,wireGroupNameitem)
                 self.setItem(index,2,pinIndexItem)
                 self.setItem(index,3,skinValueItem)
+            self.setRowCount(len(self.superNode.getSkinnedPins()))
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
 
     def mousePressEvent(self, mouseEvent):
-        print "Node"
+        # print "Node"
         if self.superNode:
             mItem = self.indexAt(mouseEvent.pos())
             if mItem.row() == -1:
@@ -235,17 +235,25 @@ class SkinTabW(QtGui.QTableWidget):
         return QtGui.QAbstractItemView.mousePressEvent(self, mouseEvent)
 
     def mouseReleaseEvent(self, mouseEvent):
-        print "Release"
-        print "Sel No " + str(self.selectionModel().selection().indexes())
+        # print "Release"
+        # print "Sel No " + str(self.selectionModel().selection().indexes())
         if self.superNode:
             for skinPin in self.superNode.getSkinnedPins() : skinPin.getPin().getNode().setHighlighted(False) #Turn off all Highlighting
             for mItem in self.selectionModel().selection().indexes():
                 if mItem.row() >= 0 :
                     self.superNode.getSkinnedPins()[mItem.row()].getPin().getNode().setHighlighted(True)
         mItem = self.indexAt(mouseEvent.pos())
-        if mItem.row() == -1 : print "missed"
+        # if mItem.row() == -1 : print "missed"
         return QtGui.QAbstractItemView.mouseReleaseEvent(self, mouseEvent)
 
+    def updateSkinning(self, item): #Need to add restriction of value to input to 0 - 1 and also to only allow float values
+        if item.column() == 3: #Tryiong to check if the table is fully formed
+            self.superNode.getSkinnedPins()[item.row()].setSkinValue(float(item.text()))
+            self.superNode.getSkinnedPins()[item.row()].update()
+            homeNode = self.superNode.getSkinnedPins()[item.row()].getPin().getNode()
+            if homeNode:  #Hacky way of updating the curves when the pin is sent home! Maybe wrap into a neat function
+                for rigCurve in homeNode.rigCurveList:
+                    rigCurve().buildCurve() 
 
     # def mouseMoveEvent(self, QMouseEvent):
     #     print "moving"

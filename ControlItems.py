@@ -321,7 +321,7 @@ class SuperNodeGroup():
         sNode.setPin(cP)
         cP.setNode(sNode)
         self.superNode = sNode
-        sNode.setWireGroup(self)
+        # sNode.setWireGroup(self)
         
         pT = PinTie(sNode, cP)
         sNode.setPinTie(pT)
@@ -768,6 +768,7 @@ class Node(QtGui.QGraphicsItem):
         self.pinTieIndex = None
 
         self.wireGroup = None
+        self.hightlighted = False
         self.setPos(nPos)
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
@@ -862,6 +863,13 @@ class Node(QtGui.QGraphicsItem):
     def setColour(self, colour):
         if type(colour) == QtGui.QColor: self.colour = colour
 
+    def isHighlighted(self):
+        return self.hightlighted
+
+    def setHighlighted(self, highlighted):
+        self.hightlighted = bool(highlighted)
+        # self.update()
+
     def addRigCurve(self, rigCurve):
         self.rigCurveList.append(weakref.ref(rigCurve))
         # print "Rig Curve List is : " + str(self.rigCurveList) + " - for Node :" + str(self)
@@ -901,6 +909,7 @@ class Node(QtGui.QGraphicsItem):
 
     def setWireGroup(self, wireGroup):
         self.wireGroup = wireGroup
+        self.wireName = wireGroup.getName()
 
     def resetWireGroup(self):
         if self.wireGroup:
@@ -918,7 +927,7 @@ class Node(QtGui.QGraphicsItem):
             print "WARNING : NODE HAS NO ASSOCIATED PIN AND AS SUCH HAS NO HOME TO GO TO :("
 
     def boundingRect(self):
-        adjust = 0.0
+        adjust = 2
         return QtCore.QRectF((-self.radius - adjust)*self.scale, (-self.radius - adjust)*self.scale,
                              (2*self.radius + adjust)*self.scale, (2*self.radius + adjust)*self.scale)
 
@@ -927,6 +936,18 @@ class Node(QtGui.QGraphicsItem):
         # painter.setPen(QtCore.Qt.NoPen)
         cColour = QtGui.QColor(25,25,50,150)
         if self.isSelected(): cColour = QtGui.QColor(220,220,255,150)
+        if self.hightlighted:
+            pen = QtGui.QPen(cColour, 1, QtCore.Qt.SolidLine)
+            painter.setPen(pen)
+            gradient = QtGui.QRadialGradient(0, 0, self.scale*self.radius)
+            gradient.setColorAt(0, self.colour)
+            gradient.setColorAt(0.2, self.colour)
+            gradient.setColorAt(0.9, QtGui.QColor(255,255,255, 255))
+            gradient.setColorAt(1.0, QtGui.QColor(255,255,255, 10))
+            painter.setBrush(QtGui.QBrush(gradient))
+            # painter.setBrush(QtCore.Qt.lightGray)
+            painter.drawEllipse(-self.radius*self.scale, -self.radius*self.scale, 2*self.radius*self.scale, 2*self.radius*self.scale)
+
         pen = QtGui.QPen(cColour, 1, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         gradient = QtGui.QRadialGradient(0, 0, self.scale*self.radius/2)
@@ -971,6 +992,7 @@ class Node(QtGui.QGraphicsItem):
 class SuperNode(Node):
     def __init__(self, nPos):
         Node.__init__(self,nPos)
+        self.name = "Badger"
         self.form = "Arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
         self.path = None
         self.alpha = 1.0
@@ -982,6 +1004,12 @@ class SuperNode(Node):
 
     def initBuild(self):
         self.scaleOffset = 2
+
+    def getName(self):
+        return self.name
+
+    def setName(self, name):
+        self.name = str(name)
 
     def getForm(self):
         return self.form
@@ -999,7 +1027,7 @@ class SuperNode(Node):
     def setSkinningItem(self, skinningItem):
         if type(skinningItem) == SkinningEllipse: 
                 self.skinningItem = skinningItem
-                print "Skin : " + str(self.skinningItem)
+                # print "Skin : " + str(self.skinningItem)
 
     def getSkinnedPins(self):
         return self.skinnedPins
@@ -1018,13 +1046,16 @@ class SuperNode(Node):
                 skinInfo = SkinningPinInfo()
                 skinInfo.setSuperNode(self)
                 skinInfo.setPin(node.getPin())
+                # print "Wire Name : " + str(node.getWireGroup().getName())
                 skinInfo.setWireGroup(node.getWireGroup())
+                # print "get skin wire Name " + str(skinInfo.getWireGroupName())
                 skinInfo.setSkinValue(skinValue)
                 self.skinnedPins.append(skinInfo)
             
             #Now that we have skinned we need to remove the skinning Item
             self.scene().removeItem(self.skinningItem)
             self.skinningItem = None
+            self.scene().views()[0].populateSkinningTable(self)
         else: 
             print "WARNING : CANNOT SKIN NODES/PINS SINCE NO SUITABLE SKINNING ITEM WAS FOUND ON THE SUPERNODE"
 
@@ -1131,6 +1162,12 @@ class SuperNode(Node):
             for skinPin in self.skinnedPins: 
                 skinPin.update() #Update the pin positions of the skinned Nodes
                 skinPin.getPin().itemChange(change, value)
+
+        elif change == QtGui.QGraphicsItem.ItemSelectedChange:
+            if value.toBool():
+                self.scene().views()[0].populateSkinningTable(self)
+                # self.scene().views()[0].skinTableWidget.populate(self)
+
         Node.itemChange(self, change, value)      
         return Node.itemChange(self, change, value)
 
@@ -2402,7 +2439,7 @@ class SkinningPinInfo():
         self.pin = None
         self.pinIndex = None
         self.wireGroup = None
-        self.wireGroupName = None
+        self.wireGroupName = ""
 
         self.pinSkinPos = None
         self.skinValue = 0
@@ -2442,9 +2479,14 @@ class SkinningPinInfo():
         return self.wireGroup
 
     def setWireGroup(self, wireGroup):
-        if type(wireGroup) == WireGroup: 
-            self.wireGroup = wireGroup
-            self.wireGroupName = wireGroup.getName()
+        # print "Mr Wire Group : " + str(wireGroup)
+        # print "Type of Group : " + str(type(wireGroup))
+        # if type(wireGroup) == WireGroup: 
+        self.wireGroup = wireGroup
+        self.wireGroupName = wireGroup.getName()
+
+    def getWireGroupName(self):
+        return self.wireGroupName
 
     def getSkinValue(self):
         return self.skinValue
@@ -2457,7 +2499,6 @@ class SkinningPinInfo():
 
     def goHome(self):
         if self.pin: self.pin.setPos(self.pinSkinPos)
-
 
     def update(self):
         if self.superNode and self.pin:

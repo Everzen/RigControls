@@ -180,3 +180,82 @@ class DragSuperNodeButton(DragItemButton):
         # print "start drag text : " + str(self.itemName)
         dropAction = drag.start(QtCore.Qt.MoveAction)
 
+
+
+
+class SkinTabW(QtGui.QTableWidget):
+    """Class to subclass QTableWidget to give us control over how we handle the data on a startDrag"""
+    def __init__(self, parent = None):
+        super(SkinTabW, self).__init__(parent)
+        self.superNode = None
+        self.headers = QtCore.QStringList()
+        self.headers.append(QtCore.QString("  Super Node Controller  "))
+        self.headers.append(QtCore.QString("  Node Wire Group  "))
+        self.headers.append(QtCore.QString("  Node Index  "))
+        self.headers.append(QtCore.QString("  Skin Value  "))
+        self.populate()
+
+    def getSuperNode(self):
+        return self.superNode
+
+    def setSuperNode(self, superNode):
+        self.superNode = superNode
+        self.populate()
+
+    def populate(self):
+        if self.superNode:
+            self.clear()
+            self.setColumnCount(4)
+            self.setHorizontalHeaderLabels(self.headers)
+            self.setRowCount(len(self.superNode.getSkinnedPins()))
+            for index, skinPin in enumerate(self.superNode.getSkinnedPins()):
+                superNodeNameitem = QtGui.QTableWidgetItem(self.superNode.getName())
+                superNodeNameitem.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                wireGroupNameitem = QtGui.QTableWidgetItem(skinPin.getWireGroupName())
+                wireGroupNameitem.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                pinIndexItem = QtGui.QTableWidgetItem(str(skinPin.getPinIndex()))
+                pinIndexItem.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                skinValueItem = QtGui.QTableWidgetItem(str(skinPin.getSkinValue()))
+
+                self.setItem(index,0,superNodeNameitem)
+                self.setItem(index,1,wireGroupNameitem)
+                self.setItem(index,2,pinIndexItem)
+                self.setItem(index,3,skinValueItem)
+            self.resizeColumnsToContents()
+            self.resizeRowsToContents()
+
+    def mousePressEvent(self, mouseEvent):
+        print "Node"
+        if self.superNode:
+            mItem = self.indexAt(mouseEvent.pos())
+            if mItem.row() == -1:
+                self.clearSelection()
+                for skinPin in self.superNode.getSkinnedPins() : skinPin.getPin().getNode().setHighlighted(False)
+                # self.selectRow(mItem.row())
+        return QtGui.QAbstractItemView.mousePressEvent(self, mouseEvent)
+
+    def mouseReleaseEvent(self, mouseEvent):
+        print "Release"
+        print "Sel No " + str(self.selectionModel().selection().indexes())
+        if self.superNode:
+            for skinPin in self.superNode.getSkinnedPins() : skinPin.getPin().getNode().setHighlighted(False) #Turn off all Highlighting
+            for mItem in self.selectionModel().selection().indexes():
+                if mItem.row() >= 0 :
+                    self.superNode.getSkinnedPins()[mItem.row()].getPin().getNode().setHighlighted(True)
+        mItem = self.indexAt(mouseEvent.pos())
+        if mItem.row() == -1 : print "missed"
+        return QtGui.QAbstractItemView.mouseReleaseEvent(self, mouseEvent)
+
+
+    # def mouseMoveEvent(self, QMouseEvent):
+    #     print "moving"
+    #     return QtGui.QAbstractItemView.mouseMoveEvent(self, QMouseEvent)
+
+    # def startDrag(self, dropAction):
+    #     mime = QtCore.QMimeData()
+    #     cItem = self.currentItem()
+    #     mime.setData("text/folderName", str(cItem.text()))
+    #     drag = QtGui.QDrag(self)
+    #     drag.setMimeData(mime) 
+    #     drag.start(QtCore.Qt.CopyAction | QtCore.Qt.CopyAction)
+

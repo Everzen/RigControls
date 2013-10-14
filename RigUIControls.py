@@ -45,7 +45,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.setResizeAnchor(QtGui.QGraphicsView.AnchorViewCenter)
 
         self.scale(1,1)
-        self.setMinimumSize(500, 500)
+        # self.setMinimumSize(500, 500)
         self.setWindowTitle(self.tr("Elastic Nodes"))
         self.inhibit_edit = False
 
@@ -152,7 +152,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.scene().setSceneRect(self.size[0],self.size[1],self.size[2],self.size[3])
             self.updateSceneRect(QtCore.QRectF(self.size[0],self.size[1],self.size[2],self.size[3]))
             if remap: self.reflectionLine.remap(self.width, self.height) # Adjust the Positing and height of the reflection line
-            self.setMinimumSize(self.width,self.height)
+            # self.setMinimumSize(self.width,self.height)
             self.scene().update()
             self.sizeHint()
 
@@ -262,6 +262,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 newWireGroup = WireGroup(self)
                 newWireGroup.buildFromPositions(posList)
                 newWireGroup.setScale(self.markerScale)
+                print "wirename : " + str(wireName)
                 newWireGroup.setName(str(wireName))
                 self.wireGroups.append(newWireGroup)
                 for m in self.markerActiveList: 
@@ -710,16 +711,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
             elif action.text() == 'Lock':
                 item.setLocked(True)
 
-    def skinningEllipseContextMenu(self,event,item):
-        scene = self.scene()
-        menu = QtGui.QMenu()
-        menu.setStyleSheet(self.styleData)
-        if self.isNodesSelected(): 
-            menu.addAction('Skin Selected Nodes')   
-            action = menu.exec_(event.globalPos())
-            if action.text() == 'Skin Selected Nodes':
-                print "Gonna skin these badboy Nodes"
-
     def isNodesSelected(self):
         selectedNodes = []
         circleSelectedNodes = []
@@ -736,5 +727,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     isNodes = True
         return isNodes, selectedNodes
 
-
+    def populateSkinningTable(self, superNode):
+        self.mainWindow.skinTableWidget.setSuperNode(superNode)
+        self.mainWindow.skinTableWidget.populate()
 

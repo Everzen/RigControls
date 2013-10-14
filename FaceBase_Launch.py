@@ -14,6 +14,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.setWindowTitle("Facial Rig Builder v1.0")
         # self.setGeometry(50,50, 600, 600)
         # self.ColourPickerCircle = {"center" : [245, 245], "centerOffset": [20,16] , "radius": 210 , "filename": "images/ColorWheelSat_500.png"}
+        self.skinTableWidget = None
         self.initUI()
        
     def initUI(self):   
@@ -55,9 +56,6 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.clearGV = QtGui.QPushButton("CLEAR")
         self.clearGV.clicked.connect(lambda:  self.view.clear())
         # self.selectionButton.pressed.connect(lambda: self.view.printSelection()) #Adjust this to add hide Reflection Line Functionality
-
-
-        self.dockCreationWidget = QtGui.QWidget()
 
         hBox = QtGui.QHBoxLayout()
         vButtonBox = QtGui.QVBoxLayout()
@@ -177,13 +175,18 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         #Creation DockWidget
         self.dockCreationWidget = QtGui.QDockWidget(self)
+        # self.dockCreationWidget.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        # self.dockCreationWidget.setFeatures(QtGui.QDockWidget.DockWidgetClosable | QtGui.QDockWidget.DockWidgetMovable | QtGui.QDockWidget.DockWidgetFloatable )
         self.dockCreationWidget.setWindowTitle("Create")
         self.creationWidget = QtGui.QWidget()
         self.dockCreationWidget.setWidget(self.creationWidget)
 
         creationBox = QtGui.QVBoxLayout()
         self.creationWidget.setLayout(creationBox)
+        # self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dockCreationWidget)
         self.addDockWidget(QtCore.Qt.DockWidgetArea(1), self.dockCreationWidget)
+
+
 
         # self.creationToolbar = self.addToolBar('Create Controls')
         self.createItems = QtGui.QLabel("Create Items")
@@ -221,17 +224,42 @@ class RigFaceSetup(QtGui.QMainWindow):
         creationBox.addWidget(self.arrowControl_upDown)
         creationBox.addWidget(self.createSkinning)
         creationBox.addWidget(self.skinningEllipseCreate)
-
         creationBox.addStretch(1)
 
         #Options DockWidget
         self.dockOptionsWidget = QtGui.QDockWidget(self)
+        # self.dockOptionsWidget.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         self.dockOptionsWidget.setWindowTitle("Control Options")
+        # self.dockOptionsWidget.setFeatures(QtGui.QDockWidget.DockWidgetClosable | QtGui.QDockWidget.DockWidgetMovable | QtGui.QDockWidget.DockWidgetFloatable )
+        # self.dockOptionsWidget.setFeatures(QtGui.QDockWidget.DockWidgetMovable)
         self.optionsWidget = QtGui.QWidget()
         self.dockOptionsWidget.setWidget(self.optionsWidget)
 
         self.optionsWidget.setLayout(vButtonBox)
+        # self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dockOptionsWidget)        
         self.addDockWidget(QtCore.Qt.DockWidgetArea(2), self.dockOptionsWidget)        
+
+
+        #Skinning DockWidget
+        skinBox = QtGui.QHBoxLayout()
+        skinBox.addStretch(1)
+
+        #Build the Skinning Table
+        self.skinTableWidget = RigUIControls.SkinTabW()
+
+
+        self.dockSkinningWidget = QtGui.QDockWidget(self)
+        self.dockSkinningWidget.setWindowTitle("Skinning Values")
+        # self.skinningWidget = QtGui.QWidget()
+        self.dockSkinningWidget.setWidget(self.skinTableWidget)
+        # self.dockSkinningWidget.setWidget(self.skinTableWidget)
+
+        # self.skinningWidget .setLayout(skinBox)
+        # self.skinningWidget.setWidget(self.skinTableWidget)
+        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dockSkinningWidget) 
+        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dockCreationWidget)
+
+
 
         self.statusBar()
 
@@ -266,6 +294,27 @@ class RigFaceSetup(QtGui.QMainWindow):
 
     def itemTest(self):
         print "moo"
+
+    # def populateSkinTableWidget(self, superNode):
+    #     self.skinTableWidget.clear()
+    #     self.skinTableWidget.setHorizontalHeaderLabels(self.headers)
+    #     self.skinTableWidget.setRowCount(len(superNode.getSkinnedPins()))
+    #     for index, skinPin in enumerate(superNode.getSkinnedPins()):
+    #         superNodeNameitem = QtGui.QTableWidgetItem(superNode.getName())
+    #         superNodeNameitem.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+    #         wireGroupNameitem = QtGui.QTableWidgetItem(skinPin.getWireGroupName())
+    #         wireGroupNameitem.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+    #         pinIndexItem = QtGui.QTableWidgetItem(str(skinPin.getPinIndex()))
+    #         pinIndexItem.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+    #         skinValueItem = QtGui.QTableWidgetItem(str(skinPin.getSkinValue()))
+
+    #         self.skinTableWidget.setItem(index,0,superNodeNameitem)
+    #         self.skinTableWidget.setItem(index,1,wireGroupNameitem)
+    #         self.skinTableWidget.setItem(index,2,pinIndexItem)
+    #         self.skinTableWidget.setItem(index,3,skinValueItem)
+    #     self.skinTableWidget.resizeRowsToContents()
+
+
 
 app = QtGui.QApplication([])
 app.setStyle('Plastique')

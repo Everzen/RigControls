@@ -80,21 +80,20 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         self.setCentralWidget(self.mainWidget)
 
-        #File Menu
-
+        # File Menu
         openFace = QtGui.QAction(QtGui.QIcon('exit.png'), 'Open Face', self)        
         openFace.setShortcut('Ctrl+O')
-        openFace.setStatusTip('Exit application')
+        openFace.setStatusTip('Open a new face')
         openFace.triggered.connect(lambda: self.openFaceRig())
 
         saveFace = QtGui.QAction(QtGui.QIcon('exit.png'), 'Save Face', self)        
         saveFace.setShortcut('Ctrl+S')
-        saveFace.setStatusTip('Exit application')
+        saveFace.setStatusTip('Save current face')
         saveFace.triggered.connect(lambda: self.saveFaceRig())
 
         saveFaceAs = QtGui.QAction(QtGui.QIcon('exit.png'), 'Save Face as...', self)        
         saveFaceAs.setShortcut('Ctrl+Shift+S')
-        saveFaceAs.setStatusTip('Exit application')
+        saveFaceAs.setStatusTip('Save current face to a new file')
         saveFaceAs.triggered.connect(lambda: self.moo())
 
         exitAction = QtGui.QAction(QtGui.QIcon('exit.png'), '&Exit', self)        

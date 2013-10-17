@@ -9,14 +9,20 @@ import pickle #For saving out
 
 class StatusBarMessageLogger(object):
 
-    def __init__(self, statusBar):
+    def __init__(self, statusBar, styleData):
 
         self.statusBar = statusBar
 
+        self.errorWidget = QtGui.QLabel(self.statusBar)
+        self.errorWidget.setObjectName("errorToolTip")
+        self.errorWidget.setStyleSheet(styleData)
+        self.errorWidget.hide()
+
     def error(self, message):
 
-        self.statusBar.showMessage(message)
-
+        self.errorWidget.setText("Error: %s" % message)
+        self.errorWidget.show()
+        self.statusBar.addWidget(self.errorWidget, 1)
 
 class RigFaceSetup(QtGui.QMainWindow):
 
@@ -37,7 +43,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         # print str(self.styleData)
 
         # The statusBar() call creates the status bar
-        self.messageLogger = StatusBarMessageLogger(self.statusBar())
+        self.messageLogger = StatusBarMessageLogger(self.statusBar(), self.styleData)
         self.view = RigUIControls.RigGraphicsView(self, self.messageLogger, self.styleData)
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
         

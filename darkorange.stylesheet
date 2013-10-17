@@ -461,3 +461,16 @@ QCheckBox::indicator:disabled, QRadioButton::indicator:disabled
 
 /*THIS IS CODE ADDED BY RICH TO EXTEND PYQT TOOLS*/
 
+QLabel#errorToolTip
+{
+	background-color: #A60400;
+	margin-left: 1px;
+	padding-top: -1px;
+}
+
+QStatusBar::item
+{
+	border: 0px solid black;
+	padding: 1px;
+}
+

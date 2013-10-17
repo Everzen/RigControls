@@ -7,27 +7,57 @@ import sys
 import Icons
 import pickle #For saving out 
 
+class StatusBarMessageLogger(object):
+    """
+    Simplified interface for setting styled errors into a status bar.
+
+    Designed to be set up with the status bar of the QMainWindow
+    """
+
+    def __init__(self, statusBar, styleData):
+
+        self.statusBar = statusBar
+
+        self.errorWidget = QtGui.QLabel(self.statusBar)
+        self.errorWidget.setObjectName("errorToolTip")
+        self.errorWidget.setStyleSheet(styleData)
+        self.errorWidget.hide()
+
+    def error(self, message):
+        "Sets the message into the error widget & shows it"
+
+        self.errorWidget.setText("Error: %s" % message)
+        self.errorWidget.show()
+
+        stretch = 1
+        self.statusBar.addWidget(self.errorWidget, stretch)
+
+    def clear(self):
+        "Hides the error widget to clear the status bar"
+
+        self.errorWidget.hide()
+
 class RigFaceSetup(QtGui.QMainWindow):
-# class RigFaceSetup(QtGui.QMainWindow):
-    def __init__(self):
+
+    def __init__(self, styleData):
         super(RigFaceSetup, self).__init__()
         self.setWindowTitle("Facial Rig Builder v1.0")
         # self.setGeometry(50,50, 600, 600)
         # self.ColourPickerCircle = {"center" : [245, 245], "centerOffset": [20,16] , "radius": 210 , "filename": "images/ColorWheelSat_500.png"}
         self.skinTableWidget = None
+        self.styleData = styleData
         self.initUI()
        
     def initUI(self):   
         self.mainWidget = QtGui.QWidget(self)
         #Setup Style Sheet information
         # f=open('css/darkorange.stylesheet', 'r')
-        f=open('darkorange.stylesheet', 'r')
-        self.styleData = f.read()
-        f.close()
+        self.setStyleSheet(self.styleData)
         # print str(self.styleData)
 
-        self.setStyleSheet(self.styleData)
-        self.view = RigUIControls.RigGraphicsView(self)
+        # The statusBar() call creates the status bar
+        self.messageLogger = StatusBarMessageLogger(self.statusBar(), self.styleData)
+        self.view = RigUIControls.RigGraphicsView(self, self.messageLogger, self.styleData)
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
         
         #File Dialogue to load background image 
@@ -80,21 +110,20 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         self.setCentralWidget(self.mainWidget)
 
-        #File Menu
-
+        # File Menu
         openFace = QtGui.QAction(QtGui.QIcon('exit.png'), 'Open Face', self)        
         openFace.setShortcut('Ctrl+O')
-        openFace.setStatusTip('Exit application')
+        openFace.setStatusTip('Open a new face')
         openFace.triggered.connect(lambda: self.openFaceRig())
 
         saveFace = QtGui.QAction(QtGui.QIcon('exit.png'), 'Save Face', self)        
         saveFace.setShortcut('Ctrl+S')
-        saveFace.setStatusTip('Exit application')
+        saveFace.setStatusTip('Save current face')
         saveFace.triggered.connect(lambda: self.saveFaceRig())
 
         saveFaceAs = QtGui.QAction(QtGui.QIcon('exit.png'), 'Save Face as...', self)        
         saveFaceAs.setShortcut('Ctrl+Shift+S')
-        saveFaceAs.setStatusTip('Exit application')
+        saveFaceAs.setStatusTip('Save current face to a new file')
         saveFaceAs.triggered.connect(lambda: self.moo())
 
         exitAction = QtGui.QAction(QtGui.QIcon('exit.png'), '&Exit', self)        
@@ -161,11 +190,13 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.selMarkers = QtGui.QAction(QtGui.QIcon('images/GuideMarker_toolbar_active.png'), 'Select Markers', self) 
         self.selMarkers.setCheckable(True)
         self.selMarkers.setChecked(True)
+        self.selMarkers.setStatusTip("Toggle guide marker selection")
         self.selMarkers.toggled.connect(lambda: self.selectMarkers(self.selMarkers.isChecked()))
 
-        self.selNodes = QtGui.QAction(QtGui.QIcon('images/Node_toolbar_active.png'), 'Select Markers', self) 
+        self.selNodes = QtGui.QAction(QtGui.QIcon('images/Node_toolbar_active.png'), 'Select Nodes', self)
         self.selNodes.setCheckable(True)
         self.selNodes.setChecked(True)
+        self.selNodes.setStatusTip("Toggle node selection")
         self.selNodes.toggled.connect(lambda: self.selectNodes(self.selNodes.isChecked()))
 
         self.filtersToolbar.addWidget(self.selectionFilters)
@@ -258,8 +289,6 @@ class RigFaceSetup(QtGui.QMainWindow):
         # self.skinningWidget.setWidget(self.skinTableWidget)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dockSkinningWidget) 
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dockCreationWidget)
- 
-        self.statusBar()
 
     def selectMarkers(self,state):
         if state:
@@ -315,10 +344,25 @@ class RigFaceSetup(QtGui.QMainWindow):
     #         self.skinTableWidget.setItem(index,3,skinValueItem)
     #     self.skinTableWidget.resizeRowsToContents()
 
+def main():
 
+    stylesheet = 'darkorange.stylesheet'
+    try:
+        # Read style sheet information
+        with open(stylesheet, 'r') as handle:
+            styleData = handle.read()
+    except IOError:
+        sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
+        return 1
 
-app = QtGui.QApplication([])
-app.setStyle('Plastique')
-ex = RigFaceSetup()
-ex.show()
-app.exec_()
+    app = QtGui.QApplication([])
+    app.setStyle('Plastique')
+    ex = RigFaceSetup(styleData)
+    ex.show()
+    app.exec_()
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+

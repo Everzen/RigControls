@@ -160,11 +160,13 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.selMarkers = QtGui.QAction(QtGui.QIcon('images/GuideMarker_toolbar_active.png'), 'Select Markers', self) 
         self.selMarkers.setCheckable(True)
         self.selMarkers.setChecked(True)
+        self.selMarkers.setStatusTip("Toggle guide marker selection")
         self.selMarkers.toggled.connect(lambda: self.selectMarkers(self.selMarkers.isChecked()))
 
-        self.selNodes = QtGui.QAction(QtGui.QIcon('images/Node_toolbar_active.png'), 'Select Markers', self) 
+        self.selNodes = QtGui.QAction(QtGui.QIcon('images/Node_toolbar_active.png'), 'Select Nodes', self)
         self.selNodes.setCheckable(True)
         self.selNodes.setChecked(True)
+        self.selNodes.setStatusTip("Toggle node selection")
         self.selNodes.toggled.connect(lambda: self.selectNodes(self.selNodes.isChecked()))
 
         self.filtersToolbar.addWidget(self.selectionFilters)

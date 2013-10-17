@@ -19,28 +19,26 @@ class StatusBarMessageLogger(object):
 
 
 class RigFaceSetup(QtGui.QMainWindow):
-# class RigFaceSetup(QtGui.QMainWindow):
-    def __init__(self):
+
+    def __init__(self, styleData):
         super(RigFaceSetup, self).__init__()
         self.setWindowTitle("Facial Rig Builder v1.0")
         # self.setGeometry(50,50, 600, 600)
         # self.ColourPickerCircle = {"center" : [245, 245], "centerOffset": [20,16] , "radius": 210 , "filename": "images/ColorWheelSat_500.png"}
         self.skinTableWidget = None
+        self.styleData = styleData
         self.initUI()
        
     def initUI(self):   
         self.mainWidget = QtGui.QWidget(self)
         #Setup Style Sheet information
         # f=open('css/darkorange.stylesheet', 'r')
-        f=open('darkorange.stylesheet', 'r')
-        self.styleData = f.read()
-        f.close()
         self.setStyleSheet(self.styleData)
         # print str(self.styleData)
 
         # The statusBar() call creates the status bar
         self.messageLogger = StatusBarMessageLogger(self.statusBar())
-        self.view = RigUIControls.RigGraphicsView(self, self.messageLogger)
+        self.view = RigUIControls.RigGraphicsView(self, self.messageLogger, self.styleData)
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
         
         #File Dialogue to load background image 
@@ -327,10 +325,25 @@ class RigFaceSetup(QtGui.QMainWindow):
     #         self.skinTableWidget.setItem(index,3,skinValueItem)
     #     self.skinTableWidget.resizeRowsToContents()
 
-if __name__ == "__main__":
+def main():
+
+    stylesheet = 'darkorange.stylesheet'
+    try:
+        # Read style sheet information
+        with open(stylesheet, 'r') as handle:
+            styleData = handle.read()
+    except IOError:
+        sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
+        return 1
+
     app = QtGui.QApplication([])
     app.setStyle('Plastique')
-    ex = RigFaceSetup()
+    ex = RigFaceSetup(styleData)
     ex.show()
     app.exec_()
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
 

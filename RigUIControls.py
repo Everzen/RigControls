@@ -20,7 +20,7 @@ from RigStore import *
 
 class RigGraphicsView(QtGui.QGraphicsView):
 
-    def __init__(self, mainWindow, messageLogger):
+    def __init__(self, mainWindow, messageLogger, styleData):
 
         QtGui.QGraphicsView.__init__(self) 
         self.width = 500
@@ -28,11 +28,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.size = (0, 0, self.width, self.height)
         self.setAcceptDrops(True)
 
-        f=open('darkorange.stylesheet', 'r')  #Set up Style Sheet for customising anything within the Graphics View
-        self.styleData = f.read()
-        f.close()
-
         self.messageLogger = messageLogger
+        self.styleData = styleData
 
         policy = QtCore.Qt.ScrollBarAlwaysOff
         self.setVerticalScrollBarPolicy(policy)

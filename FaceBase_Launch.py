@@ -315,10 +315,10 @@ class RigFaceSetup(QtGui.QMainWindow):
     #         self.skinTableWidget.setItem(index,3,skinValueItem)
     #     self.skinTableWidget.resizeRowsToContents()
 
+if __name__ == "__main__":
+    app = QtGui.QApplication([])
+    app.setStyle('Plastique')
+    ex = RigFaceSetup()
+    ex.show()
+    app.exec_()
 
-
-app = QtGui.QApplication([])
-app.setStyle('Plastique')
-ex = RigFaceSetup()
-ex.show()
-app.exec_()

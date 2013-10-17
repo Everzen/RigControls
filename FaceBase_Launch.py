@@ -8,6 +8,11 @@ import Icons
 import pickle #For saving out 
 
 class StatusBarMessageLogger(object):
+    """
+    Simplified interface for setting styled errors into a status bar.
+
+    Designed to be set up with the status bar of the QMainWindow
+    """
 
     def __init__(self, statusBar, styleData):
 
@@ -19,10 +24,18 @@ class StatusBarMessageLogger(object):
         self.errorWidget.hide()
 
     def error(self, message):
+        "Sets the message into the error widget & shows it"
 
         self.errorWidget.setText("Error: %s" % message)
         self.errorWidget.show()
-        self.statusBar.addWidget(self.errorWidget, 1)
+
+        stretch = 1
+        self.statusBar.addWidget(self.errorWidget, stretch)
+
+    def clear(self):
+        "Hides the error widget to clear the status bar"
+
+        self.errorWidget.hide()
 
 class RigFaceSetup(QtGui.QMainWindow):
 

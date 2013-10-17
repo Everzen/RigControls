@@ -495,6 +495,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.dragItem.setAlpha(1.0)
             self.dragItem = None #reset the gv dragItem
 
+        self.messageLogger.clear()
+
     def dragGuideMarker(self, event, data):
             event.acceptProposedAction()
             #Create a new QGraphicsItem and transfer the text across so we have the correct name

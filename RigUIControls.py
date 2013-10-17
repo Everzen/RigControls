@@ -19,7 +19,9 @@ from RigStore import *
 ############################ MAIN RIG GRAPHICS VIEW #################################################################################
 
 class RigGraphicsView(QtGui.QGraphicsView):
-    def __init__(self, mainWindow):
+
+    def __init__(self, mainWindow, messageLogger):
+
         QtGui.QGraphicsView.__init__(self) 
         self.width = 500
         self.height = 500
@@ -29,6 +31,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
         f=open('darkorange.stylesheet', 'r')  #Set up Style Sheet for customising anything within the Graphics View
         self.styleData = f.read()
         f.close()
+
+        self.messageLogger = messageLogger
 
         policy = QtCore.Qt.ScrollBarAlwaysOff
         self.setVerticalScrollBarPolicy(policy)
@@ -250,27 +254,33 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
 
     def addWireGroup(self):
-        """Function that looks at the makerSelection List and tried to build a Wire Rig"""
-        if len(self.markerActiveList) > 2:
-            unique = True
-            wireName, ok = QtGui.QInputDialog.getText(self, 'Wire Group Name', 'Enter a unique Wire Group Name:')
-            while not self.checkUniqueWireGroup(wireName):
-                wireName, ok = QtGui.QInputDialog.getText(self, 'Wire Group Name', 'The name was not unique. Please Enter a unique Wire Group Name:')
-            if ok:
-                posList = []
-                for m in self.markerActiveList: posList.append(m.pos())
-                newWireGroup = WireGroup(self)
-                newWireGroup.buildFromPositions(posList)
-                newWireGroup.setScale(self.markerScale)
-                print "wirename : " + str(wireName)
-                newWireGroup.setName(str(wireName))
-                self.wireGroups.append(newWireGroup)
-                for m in self.markerActiveList: 
-                    m.setActive(False) 
-                    m.setSelected(False) #Deactivate all markers and deselect them
-                self.markerActiveList = [] #Reset the Marker List
-        else:
-            print "WARNING : THERE ARE NOT ENOUGH MARKERS SELECTED TO CREATE A WIRE GROUP"
+        "Function that looks at the makerSelection List and tried to build a Wire Rig"
+
+        if len(self.markerActiveList) < 2:
+            self.messageLogger.error("Not enough guide markers selected to create a wire group")
+            return
+
+        unique = True
+        wireName, ok = QtGui.QInputDialog.getText(self, 'Wire Group Name', 'Enter a unique Wire Group Name:')
+        while not self.checkUniqueWireGroup(wireName):
+            wireName, ok = QtGui.QInputDialog.getText(
+                    self,
+                    'Wire Group Name',
+                    'The name was not unique. Please Enter a unique Wire Group Name:'
+                    )
+        if ok:
+            posList = []
+            for m in self.markerActiveList: posList.append(m.pos())
+            newWireGroup = WireGroup(self)
+            newWireGroup.buildFromPositions(posList)
+            newWireGroup.setScale(self.markerScale)
+            print "wirename : " + str(wireName)
+            newWireGroup.setName(str(wireName))
+            self.wireGroups.append(newWireGroup)
+            for m in self.markerActiveList:
+                m.setActive(False)
+                m.setSelected(False) #Deactivate all markers and deselect them
+            self.markerActiveList = [] #Reset the Marker List
 
     def checkUniqueWireGroup(self, wireName):
         unique = True

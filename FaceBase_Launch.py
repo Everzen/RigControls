@@ -7,6 +7,17 @@ import sys
 import Icons
 import pickle #For saving out 
 
+class StatusBarMessageLogger(object):
+
+    def __init__(self, statusBar):
+
+        self.statusBar = statusBar
+
+    def error(self, message):
+
+        self.statusBar.showMessage(message)
+
+
 class RigFaceSetup(QtGui.QMainWindow):
 # class RigFaceSetup(QtGui.QMainWindow):
     def __init__(self):
@@ -24,10 +35,12 @@ class RigFaceSetup(QtGui.QMainWindow):
         f=open('darkorange.stylesheet', 'r')
         self.styleData = f.read()
         f.close()
+        self.setStyleSheet(self.styleData)
         # print str(self.styleData)
 
-        self.setStyleSheet(self.styleData)
-        self.view = RigUIControls.RigGraphicsView(self)
+        # The statusBar() call creates the status bar
+        self.messageLogger = StatusBarMessageLogger(self.statusBar())
+        self.view = RigUIControls.RigGraphicsView(self, self.messageLogger)
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
         
         #File Dialogue to load background image 
@@ -259,8 +272,6 @@ class RigFaceSetup(QtGui.QMainWindow):
         # self.skinningWidget.setWidget(self.skinTableWidget)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dockSkinningWidget) 
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dockCreationWidget)
- 
-        self.statusBar()
 
     def selectMarkers(self,state):
         if state:

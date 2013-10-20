@@ -137,13 +137,13 @@ class WireGroup():
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
 
-        #Now record the xml for the Nodes
-        wireNodes = xml.SubElement(wireRoot,'nodes')
+        # Now record the xml for the Nodes
+        wireNodes = xml.SubElement(wireRoot,'Nodes')
         for n in self.nodes:
             nodeXml = n.store()
             wireNodes.append(nodeXml)
-        #Now record the xml for the Pins - pinTies should be able to be drawn from the resulting data of nodes and pins
-        wirePins = xml.SubElement(wireRoot,'pins')
+        # Now record the xml for the Pins - pinTies should be able to be drawn from the resulting data of nodes and pins
+        wirePins = xml.SubElement(wireRoot,'Pins')
         for p in self.pins:
             pinXml = p.store()
             wirePins.append(pinXml)
@@ -159,35 +159,35 @@ class WireGroup():
                 newColour = a.attrib['value'].split(",")
                 self.setColour(QtGui.QColor(int(newColour[0]), int(newColour[1]),int(newColour[2])))
 
-        #Now read in and generate all the nodes
-        self.clear() #Clear out all items, safely deleting everything from the WireGroup and destroying objects
+        # Now read in and generate all the nodes
+        self.clear() # Clear out all items, safely deleting everything from the WireGroup and destroying objects
 
-        pins = wireXml.findall('pins')
-        for p in pins[0].findall('pin'):
-            newPin = ControlPin(QPVec([0,0])) #Create new Node with Arbitrary pos
+        pins = wireXml.findall('Pins')
+        for p in pins[0].findall('Pin'):
+            newPin = ControlPin(QPVec([0,0])) # Create new Node with Arbitrary pos
             self.pins.append(newPin)
             newPin.read(p)
             self.scene.addItem(newPin)
-        nodes = wireXml.findall('nodes')
-        for n in nodes[0].findall('node'):
-            newNode = Node(QPVec([0,0])) #Create new Node with Arbitray pos
+        nodes = wireXml.findall('Nodes')
+        for n in nodes[0].findall('Node'):
+            newNode = Node(QPVec([0,0])) # Create new Node with Arbitray pos
             self.nodes.append(newNode)
             newNode.read(n)
-            newNode.setPin(self.findPin(newNode.getPinIndex())) #Set the pin for Node
+            newNode.setPin(self.findPin(newNode.getPinIndex())) # Set the pin for Node
             self.findPin(newNode.getPinIndex()).setNode(newNode) # Set the Node for the Pin
             newNode.setWireGroup(self)
-            if newNode.getPin().getConstraintItem(): #We have a constraint Item so make sure we set the node for it
+            if newNode.getPin().getConstraintItem(): # We have a constraint Item so make sure we set the node for it
                 newNode.getPin().getConstraintItem().setNode(newNode)
             # self.scene.addItem(newNode)
-        self.createPinTies() #Now nodes and Pins are in Place we can create the pinTies
-        self.createCurve() #UPGRADE: Possibly to include a series of smaller curves, not a giant clumsy one
+        self.createPinTies() # Now nodes and Pins are in Place we can create the pinTies
+        self.createCurve() # UPGRADE: Possibly to include a series of smaller curves, not a giant clumsy one
 
     def buildFromPositions(self , pinQPointList):
         self.pinPositions = pinQPointList
         self.createPins()
         self.createNodes()
         self.createPinTies()
-        self.createCurve() #UPGRADE: Possibly to include a series of smaller curves, not a giant clumsy one
+        self.createCurve() # UPGRADE: Possibly to include a series of smaller curves, not a giant clumsy one
 
     def getName(self):
         return self.name
@@ -292,7 +292,7 @@ class WireGroup():
             del self.curve
         self.nodes = []
         self.pins = []
-        self.pinTiles = []
+        self.pinTies = []
         self.curve = None 
 
 
@@ -300,10 +300,11 @@ class SuperNodeGroup():
     def __init__(self, nPos, form, rigGView):
         #LIST OF ATTRIBUTES
         self.name = ""
-        self.colour = QtGui.QColor(0,0,0)
-        self.scale = 1.0 #Not implemented, but it is stored, so could be used to drive the size of the setup of the wiregroup
         self.locked = True
         self.form = form
+        self.scale = 1.0 #Not implemented, but it is stored, so could be used to drive the size of the setup of the wiregroup
+        self.colour = QtGui.QColor(0,0,0)
+        self.visible = True # Now implemented but stored, since hiding will be built in, in later versions
         self.superNode = None
         self.pin = None
         self.pinTie = None
@@ -332,6 +333,103 @@ class SuperNodeGroup():
         self.scene.addItem(pT)
         cP.setLocked(False)
 
+    def store(self):
+        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        superNodeGroupRoot = xml.Element('SuperNodeGroup')
+        attributes = xml.SubElement(superNodeGroupRoot,'attributes')
+        xml.SubElement(attributes, 'attribute', name = 'name', value = str(self.getName()))
+        xml.SubElement(attributes, 'attribute', name = 'form', value = str(self.getForm()))
+        xml.SubElement(attributes, 'attribute', name = 'locked', value = str(self.isLocked()))
+        xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.colour.red()) + "," + str(self.colour.green()) + "," + str(self.colour.blue())))
+        xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
+        xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
+
+        # Now record the xml for the superNode and Pin
+        # pinTies should be able to be drawn from the resulting data of nodes and pins
+        superNodeGroupRoot.append(self.superNode.store())
+        superNodeGroupRoot.append(self.pin.store())
+
+        return superNodeGroupRoot
+
+    def read(self, superNodeGroupXml):
+        """A function to read in a block of XML and set all major attributes accordingly"""
+        for a in superNodeGroupXml.findall( 'attributes/attribute'):
+            if a.attrib['name'] == 'name': self.setName(a.attrib['value'])
+            elif a.attrib['name'] == 'form': self.setForm(a.attrib['value'])
+            elif a.attrib['name'] == 'locked': self.setLocked(str(a.attrib['value']) == 'True')            
+            elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
+            elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
+            elif a.attrib['name'] == 'colour': 
+                newColour = a.attrib['value'].split(",")
+                self.setColour(QtGui.QColor(int(newColour[0]), int(newColour[1]),int(newColour[2])))
+
+        # Now read in and generate superNode, Pin and PinTie
+        self.clear() # Clear out superNode, Pin and PinTie
+
+        pinXml = superNodeGroupXml.findall('Pin')[0]
+        newPin = ControlPin(QPVec([0,0])) 
+        newPin.read(pinXml)
+        newPin.setWireGroup(self)
+        self.scene.addItem(newPin)
+
+        sNodeXml = superNodeGroupXml.findall('SuperNode')[0]
+        sNode.setForm(self.form)
+        newSNode = SuperNode(QtCore.QPointF(0,0)) # Create new SuperNode with Arbitrary pos
+        newSNode.read(sNodeXml)
+        self.scene.addItem(newNode)
+        
+        newSNode.setPin(newPin) # Set pin to the SuperNode and SuperNode to the Pin
+        newPin.setNode(newSNode)
+
+        self.pin = newPin
+        self.superNode = newSNode
+
+        self.setScale(self.scale) # The scale now needs to be read into the items
+
+        pT = PinTie(newSNode, newPin) # Creat new PinTie to link SuperNode and Pin
+        newSNode.setPinTie(pT)
+        newPin.setPinTie(pT)
+        self.pinTie = pT
+
+    def getName(self):
+        return self.name
+
+    def setName(self, name):
+        self.name = str(name)
+
+    def isLocked(self):
+        return self.locked
+
+    def setLocked(self, locked):
+        self.locked = bool(locked)
+
+    def isVisible(self):
+        return self.visible
+
+    def setVisible(self, visible):
+        self.visible = visible
+
+    def getForm(self):
+        return self.form
+
+    def setForm(self, form):
+        self.form = str(form)
+
+    def getScale(self):
+        return self.scale
+
+    def setScale(self, scale):
+        self.scale = scale
+        #Now update the scale of all items
+        if self.superNode : self.superNode.setScale(scale)
+        if self.pin : self.pin.setScale(scale)
+
+    def getColour(self):
+        return self.colour
+
+    def setColour(self,colour):
+        self.colour = colour
+
     def getSuperNode(self):
         return self.superNode
 
@@ -351,6 +449,21 @@ class SuperNodeGroup():
     def setPinTie(self, pinTie):
         if type(pinTie) == PinTie: self.pinTie = pinTie
 
+    def clear(self):
+        if self.superNode: 
+            self.scene.removeItem(self.superNode)
+            del self.superNode
+        if self.pin: 
+            self.scene.removeItem(self.pin)
+            del self.pin
+        if self.pinTie: 
+            self.scene.removeItem(self.pinTie)
+            del self.pinTie
+        self.superNode = None
+        self.pin = None
+        self.pinTie = None 
+
+
 
 
 class ControlPin(QtGui.QGraphicsItem):
@@ -359,6 +472,7 @@ class ControlPin(QtGui.QGraphicsItem):
         self.index = 0 
         self.scale = 1
         self.scaleOffset = 2.5
+        self.alpha = 1.0 # Not implemented, since the pin is so subtle.
         self.wireGroup = None
         self.constraintItem = None
         self.active = True
@@ -375,11 +489,12 @@ class ControlPin(QtGui.QGraphicsItem):
 
     def store(self):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
-        pinRoot = xml.Element('pin')
+        pinRoot = xml.Element('Pin')
         attributes = xml.SubElement(pinRoot,'attributes')
         xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
         xml.SubElement(attributes, 'attribute', name = 'scaleOffset', value = str(self.getScaleOffset()))
+        xml.SubElement(attributes, 'attribute', name = 'alpha', value = str(self.getAlpha()))
         xml.SubElement(attributes, 'attribute', name = 'active', value = str(self.isActive()))
         xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
@@ -400,6 +515,7 @@ class ControlPin(QtGui.QGraphicsItem):
             if a.attrib['name'] == 'index': self.setIndex(int(a.attrib['value']))
             elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
             elif a.attrib['name'] == 'scaleOffset': self.setScaleOffset(float(a.attrib['value']))
+            elif a.attrib['name'] == 'alpha': self.setAlpha(float(a.attrib['value']))
             elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
             elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
             elif a.attrib['name'] == 'pos': 
@@ -441,6 +557,12 @@ class ControlPin(QtGui.QGraphicsItem):
 
     def setScaleOffset(self, scaleOffset):
         self.scaleOffset = scaleOffset
+
+    def getAlpha(self):
+        return self.alpha
+
+    def setAlpha(self, alpha):
+        self.alpha = float(alpha)
 
     def getWireGroup(self):
         return self.wireGroup
@@ -774,7 +896,7 @@ class Node(QtGui.QGraphicsItem):
 
     def store(self):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
-        nodeRoot = xml.Element('node')
+        nodeRoot = xml.Element('Node')
         attributes = xml.SubElement(nodeRoot,'attributes')
         xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
         xml.SubElement(attributes, 'attribute', name = 'radius', value = str(self.getRadius()))
@@ -994,7 +1116,6 @@ class SuperNode(Node):
         Node.__init__(self,nPos)
         self.name = "Badger"
         self.form = "Arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
-        self.path = None
         self.alpha = 1.0
         self.colour = QtGui.QColor(250,160,100,255*self.alpha)
         self.path = QtGui.QPainterPath()
@@ -1004,6 +1125,83 @@ class SuperNode(Node):
 
     def initBuild(self):
         self.scaleOffset = 2
+
+    def store(self):
+        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        superNodeRoot = xml.Element('SuperNode')
+        attributes = xml.SubElement(superNodeRoot,'attributes')
+        xml.SubElement(attributes, 'attribute', name = 'name', value = str(self.getName()))
+        xml.SubElement(attributes, 'attribute', name = 'form', value = str(self.getForm()))
+        xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
+        xml.SubElement(attributes, 'attribute', name = 'radius', value = str(self.getRadius()))
+        xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
+        xml.SubElement(attributes, 'attribute', name = 'pinIndex', value = str(self.getPinIndex()))
+        xml.SubElement(attributes, 'attribute', name = 'pinTieIndex', value = str(self.getPinTieIndex()))
+        xml.SubElement(attributes, 'attribute', name = 'wireName', value = str(self.getWireName()))
+        xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.getColour().red()) + "," + str(self.getColour().green()) + "," + str(self.getColour().blue())))
+        xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
+        xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
+        xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
+        if self.getBezierHandles(0) != None: xml.SubElement(attributes, 'attribute', name = 'bezierHandle0', value = (str(self.getBezierHandles(0)[0]) + "," + str(self.getBezierHandles(0)[1])))
+        else: xml.SubElement(attributes, 'attribute', name = 'bezierHandle0', value = ("None"))
+        if self.getBezierHandles(1) != None: xml.SubElement(attributes, 'attribute', name = 'bezierHandle1', value = (str(self.getBezierHandles(1)[0]) + "," + str(self.getBezierHandles(1)[1])))
+        else: xml.SubElement(attributes, 'attribute', name = 'bezierHandle1', value = ("None"))
+
+        #Store Skinning Information
+        skinPinsXml = xml.SubElement(superNodeRoot,'SkinningPinInfos')
+        for skinPin in self.skinnedPins:
+            skinPinXml = skinPin.store()
+            skinPinsXml.append(skinPinXml)        
+        return superNodeRoot
+
+    def read(self, superNodeXml):
+        """A function to read in a block of XML and set all major attributes accordingly"""
+        for a in superNodeXml.findall( 'attributes/attribute'):
+            if a.attrib['name'] == 'index': self.setIndex(int(a.attrib['value']))
+            elif a.attrib['name'] == 'name': self.setName(str(a.attrib['value']))
+            elif a.attrib['name'] == 'form': self.setForm(str(a.attrib['value']))
+            elif a.attrib['name'] == 'radius': self.setRadius(float(a.attrib['value']))
+            elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
+            elif a.attrib['name'] == 'pinIndex': self.setPinIndex(int(a.attrib['value']))
+            elif a.attrib['name'] == 'pinTieIndex': self.setPinTieIndex(int(a.attrib['value']))
+            elif a.attrib['name'] == 'wireName': self.setWireName(str(a.attrib['value']))
+            elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
+            elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
+            elif a.attrib['name'] == 'pos': 
+                newPos = a.attrib['value'].split(",")
+                self.setPos(float(newPos[0]), float(newPos[1]))
+            elif a.attrib['name'] == 'bezierHandle0': 
+                if a.attrib['value'] != "None":
+                    newPos = a.attrib['value'].split(",")
+                    self.setBezierHandles([float(newPos[0]), float(newPos[1])],0)
+                else: self.setBezierHandles(None,0)
+            elif a.attrib['name'] == 'bezierHandle1': 
+                if a.attrib['value'] != "None":
+                    newPos = a.attrib['value'].split(",")
+                    self.setBezierHandles([float(newPos[0]), float(newPos[1])],1)
+                else: self.setBezierHandles(None,1)
+            elif a.attrib['name'] == 'colour':
+                newColour = a.attrib['value'].split(",")
+                self.setColour(QtGui.QColor(float(newColour[0]), float(newColour[1]),float(newColour[2]))) 
+
+        # Read skinning information
+        self.skinnedPins = [] # Clear Out all the Skinning info ready for the new values to be read in
+        skinnedpinsXml = superNodeXml.findall('SkinningPinInfos')
+        for skinPinXml in skinnedpinsXml[0].findall('SkinningPinInfo'):
+            newSkinInfo = SkinningPinInfo()
+            newSkinInfo.read(skinPinXml) # Read in names of WireGroups and PinIndexes
+            newSkinInfo.setSuperNode(self)
+            rigGVWireGroups = self.scene().views[0].wireGroups
+            for wireGroup in rigGVWireGroups:
+                if wireGroup.getName() == newSkinInfo.getWireGroupName(): # We have found our WireGroup
+                    newSkinInfo.setWireGroup(WireGroup)
+                    for pin in wireGroup.pins:
+                        if pin.getIndex() == newSkinInfo.getPinIndex(): # We have found our Pin
+                            newSkinInfo.setPin(pin)
+            if newSkinInfo.getWireGroup() == None:
+                print "WARNING: SkinningInfo has failed to fine correct WireGroup"
+            if newSkinInfo.getPin() == None:
+                print "WARNING: SkinningInfo has failed to fine correct Pin"
 
     def getName(self):
         return self.name
@@ -2445,6 +2643,28 @@ class SkinningPinInfo():
         self.pinSkinPos = None
         self.skinValue = 0
 
+    def store(self):
+        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        skinningPinInfoRoot = xml.Element('SkinningPinInfo')
+        attributes = xml.SubElement(skinningPinInfoRoot,'attributes')
+        xml.SubElement(attributes, 'attribute', name = 'pinIndex', value = str(self.getPinIndex()))
+        xml.SubElement(attributes, 'attribute', name = 'wireGroupName', value = str(self.getWireGroupName()))
+        xml.SubElement(attributes, 'attribute', name = 'pinSkinPos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
+        xml.SubElement(attributes, 'attribute', name = 'skinValue', value = str(self.getSkinValue()))
+
+        return skinningPinInfoRoot
+
+    def read(self, nodeXml):
+        """A function to read in a block of XML and set all major attributes accordingly. Has to run through all Items in the scene to find the Correct WireGroup/SuperNode/Pin"""
+        for a in nodeXml.findall( 'attributes/attribute'):
+            if a.attrib['name'] == 'pinIndex': self.setPinIndex(int(a.attrib['value']))
+            elif a.attrib['name'] == 'wireGroupName': self.setWireGroupName(str(a.attrib['value']))
+            elif a.attrib['name'] == 'skinValue': self.setSkinValue(float(a.attrib['value']))
+            elif a.attrib['name'] == 'pinSkinPos': 
+                newSkinPos = a.attrib['value'].split(",")
+                self.setPinSkinPos(float(newSkinPos[0]), float(newSkinPos[1]))
+ 
+
     def getSuperNode(self):
         return self.superNode
 
@@ -2463,6 +2683,7 @@ class SkinningPinInfo():
         return self.pin
 
     def setPin(self, pin):
+        """Function to set the pin of the skinningInfo"""
         if type(pin) == ControlPin:
             self.pin = pin
             self.setPinIndex(pin.getIndex())
@@ -2488,6 +2709,15 @@ class SkinningPinInfo():
 
     def getWireGroupName(self):
         return self.wireGroupName
+
+    def setWireGroupName(self, wireGroupName):
+        self.wireGroupName = wireGroupName
+
+    def getPinSkinPos(self):
+        return self.pinSkinPos
+
+    def setPinSkinPos(self, pinSkinPos):
+        self.pinSkinPos = pinSkinPos
 
     def getSkinValue(self):
         return self.skinValue

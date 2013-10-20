@@ -37,6 +37,7 @@ class FaceGVCapture():
             self.captureReflectionLine()
             self.captureMarkers()
             self.captureWireGroups()
+            self.captureSuperNodeGroups()
 
             #Now we have captured everything into a super giant XML tree we need to save this out.
             self.viewXML.setFile(self.xMLFile)
@@ -53,6 +54,7 @@ class FaceGVCapture():
             self.readRelectionLine()
             self.readMarkers()
             self.readWireGroups()
+            self.readSuperNodeGroups()
         else: print "WARNING : COULD NOT LOAD FACE RIG, SINCE A VALID FILE NAME WAS NOT SUPPLIED"
 
     def captureBackgroundImage(self):
@@ -128,3 +130,19 @@ class FaceGVCapture():
             newWireGroup = WireGroup(self.view)
             newWireGroup.read(w)
             self.view.wireGroups.append(newWireGroup)
+
+    def captureSuperNodeGroups(self):
+        """Function to process SuperNodeGroups into XML"""
+        superNodeGroups = self.view.getSuperNodeGroups()
+        for s in superNodeGroups:
+            superNodeXml = s.store()
+            self.sceneItems.append(superNodeXml)
+
+    def readSuperNodeGroups(self):
+        """A Function to generate SuperNodeGroups from XML"""
+        scene = self.view.scene()
+        superNodeGroups = self.viewXML.findBranch("SuperNodeGroup")
+        for s in superNodeGroups:
+            newSuperNodeGroup = SuperNodeGroup(QtCore.QPointF(0,0), "Arrow_4Point", self.view) # Create SuperGroup with Arbitrary starting values
+            newSuperNodeGroup.read(s)
+            self.view.superNodeGroups.append(newSuperNodeGroup)

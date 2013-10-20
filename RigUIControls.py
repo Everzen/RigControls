@@ -64,6 +64,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         #LARGE GROUP ATTRIBUTES
         self.markerList = []
         self.wireGroups = []
+        self.superNodeGroups = []
 
         self.dragItem = None
         self.skinningItem = None
@@ -83,13 +84,13 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # line = ConstraintLine(50,25)
         # line.setPos(200,350)
 
-        el = SkinningEllipse()
-        el.setPos(200,200)
+        # el = SkinningEllipse()
+        # el.setPos(200,200)
 
-        testSuperNode = SuperNodeGroup(QtCore.QPointF(50,25), "Arrow_4Point" ,self)
+        # testSuperNode = SuperNodeGroup(QtCore.QPointF(50,25), "Arrow_4Point" ,self)
         # self.scene().addItem(testSuperNode)
 
-        self.scene().addItem(el)
+        # self.scene().addItem(el)
         # self.scene().addItem(rect)
         # self.scene().addItem(line)
 
@@ -135,6 +136,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
     def getWireGroups(self):
         return self.wireGroups
+
+    def getSuperNodeGroups(self):
+        return self.superNodeGroups
 
     def loadBackgroundImage(self):
         imagePath = QtGui.QFileDialog.getOpenFileName(caption = "Please choose front character face image ~ 500px x 500px", directory="./images" , filter = "*.png")
@@ -332,6 +336,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.markerList = []
         self.markerActiveList = []
         self.wireGroups = []
+        self.superNodeGrops = []
         if isReflectionLine: self.reflectionLine = self.addReflectionLine()
 
     def store(self, XMLFile):
@@ -525,6 +530,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             event.acceptProposedAction()
             #Create a new QGraphicsItem and transfer the text across so we have the correct name
             item = SuperNodeGroup(self.mapToScene(event.pos()), form, self)
+            self.superNodeGroups.append(item)
             # item.setPos(self.mapToScene(event.pos()))
             # item.setAlpha(0.5)
             # self.scene().addItem(item)

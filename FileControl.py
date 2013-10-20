@@ -57,8 +57,10 @@ class FileMan():
 	
 
 class XMLMan():
-	#"""Class to simply the loading and procesing methods for XML"""
-	#Data
+	"""Class to simply the loading and procesing methods for XML
+
+	This is used in places, but the XML etree python library is often directly used for reading and storage
+	"""
 	fileLoc = None
 	tree = None
 	markedBranches = []

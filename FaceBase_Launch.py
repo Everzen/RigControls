@@ -1,11 +1,11 @@
-#HAPPY FACE
-
+#HAPPY FACE RIG
 from PyQt4 import QtGui, QtCore
-import RigUIControls
 import math
 import sys
 import Icons
-import pickle #For saving out 
+
+import RigUIControls
+
 
 class StatusBarMessageLogger(object):
     """
@@ -37,8 +37,23 @@ class StatusBarMessageLogger(object):
 
         self.errorWidget.hide()
 
-class RigFaceSetup(QtGui.QMainWindow):
 
+class RigFaceSetup(QtGui.QMainWindow):
+    """The main Window for the Entire UI.
+
+    The Window has a central widget that is the main Rig QGraphicsView. 
+
+    Currently there are menus and some selection Toolbars docked above it.
+
+    To the left, right and bottom DockWidgets are created and used to bolt on 
+    the main buttons and widgets required. RC click on the UI will bring up a
+    context menu to hide these DockWidgets and effectly run the program in a
+    more space optimising "Expert Mode" 
+
+    Extra features will be added as further DockWidgets that can layer up in 
+    Tabs on the areas that they are allowed to dock.
+
+    """
     def __init__(self, styleData):
         super(RigFaceSetup, self).__init__()
         self.setWindowTitle("Facial Rig Builder v1.0")
@@ -291,13 +306,30 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dockCreationWidget)
 
     def selectMarkers(self,state):
-        if state:
+        """Function to filter the selections possible in the Rig Graphics View 
+
+        This function restricts or allows the selection of GuideMarkers (markers)
+
+        Current draw backs are that this is done by running through the GuideMarkers and
+        turning off their "selectable" and "moveable" flags. Currently, any new GuideMarkers
+        then created to do not have their flags appropriately set, and so might 
+        contradict the icon state.
+        """        if state:
             self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_active.png'))
         else:
             self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_deactive.png'))
         self.view.selectFilter(state, RigUIControls.GuideMarker)
 
     def selectNodes(self,state):
+        """Function to filter the selections possible in the Rig Graphics View 
+
+        This function restricts or allows the selection of Nodes
+
+        Current draw backs are that this is done by running through the nodes and
+        turning off their "selectable" and "moveable" flags. Currently, any new nodes
+        then created to do not have their flags appropriately set, and so might 
+        contradict the icon state.
+        """
         if state:
             self.selNodes.setIcon(QtGui.QIcon('images/Node_toolbar_active.png'))
         else:
@@ -305,44 +337,26 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.view.selectFilter(state, RigUIControls.Node)
 
     def openFaceRig(self):
+        """Function to load in a stored XML file of face Rig Data"""
         xMLStructure = RigUIControls.FaceGVCapture(self.view)
         xMLStructure.setXMLFile("faceFiles/test.xml")
         xMLStructure.read()
 
     def saveFaceRig(self):
-        # print "Saving"
-        # print str(self.view.__dict__)
+        """Function to save the entire Rig Graphics View scene out to an XML File"""
         xMLStructure = RigUIControls.FaceGVCapture(self.view)
         xMLStructure.setXMLFile("faceFiles/test.xml")
         xMLStructure.store()
-        # faceFile = open('faceFiles/pickle.txt', 'wb')
-        # pickle.dump(self.view, faceFile)
-        # faceFile.close()
+
 
     def updateSkinData(self, item):
+        """Function that simply calls the skinning table to update"""
         self.skinTableWidget.updateSkinning(item)
 
     def itemTest(self):
         """Random Test funciton to see if things get called"""
         print "moo"
-    # def populateSkinTableWidget(self, superNode):
-    #     self.skinTableWidget.clear()
-    #     self.skinTableWidget.setHorizontalHeaderLabels(self.headers)
-    #     self.skinTableWidget.setRowCount(len(superNode.getSkinnedPins()))
-    #     for index, skinPin in enumerate(superNode.getSkinnedPins()):
-    #         superNodeNameitem = QtGui.QTableWidgetItem(superNode.getName())
-    #         superNodeNameitem.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-    #         wireGroupNameitem = QtGui.QTableWidgetItem(skinPin.getWireGroupName())
-    #         wireGroupNameitem.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-    #         pinIndexItem = QtGui.QTableWidgetItem(str(skinPin.getPinIndex()))
-    #         pinIndexItem.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-    #         skinValueItem = QtGui.QTableWidgetItem(str(skinPin.getSkinValue()))
 
-    #         self.skinTableWidget.setItem(index,0,superNodeNameitem)
-    #         self.skinTableWidget.setItem(index,1,wireGroupNameitem)
-    #         self.skinTableWidget.setItem(index,2,pinIndexItem)
-    #         self.skinTableWidget.setItem(index,3,skinValueItem)
-    #     self.skinTableWidget.resizeRowsToContents()
 
 def main():
 

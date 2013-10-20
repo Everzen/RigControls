@@ -19,6 +19,12 @@ def buildGuideItem(itemName):
 
 
 class WireGroupButton(QtGui.QPushButton):
+    """Subclassed QPushButton to build a WireGroup from a selection Guide Markers
+
+    Also uses CSS to control the image being displayed under different states
+    such as mousePressEvent, mouseMoveEvent and mouseReleaseEvent
+
+    """
     def __init__(self, parent=None):
         super(WireGroupButton, self).__init__(parent)
         # self.setMouseTracking(True)
@@ -81,6 +87,19 @@ class WireGroupButton(QtGui.QPushButton):
 
 
 class DragItemButton(QtGui.QPushButton):
+    """Subclassed QPushButton to enable dragging in of nearly all control items
+
+    These buttons are used with different input "itemName" in order to build an instance
+    of the input class. 
+
+    This button starts a drag event that is then checked and handled by the RigGraphicsView
+
+    Items built this way inclide GuideMarkers, ConstraintItems, SkinningItem
+
+    Also uses CSS to control the image being displayed under different states
+    such as mousePressEvent, mouseMoveEvent and mouseReleaseEvent
+
+    """
     def __init__(self, itemName, parent=None):
         super(DragItemButton, self).__init__(parent)
         self.setMouseTracking(True)
@@ -144,6 +163,17 @@ class DragItemButton(QtGui.QPushButton):
 
 
 class DragSuperNodeButton(DragItemButton):
+    """Subclassed QPushButton to enable dragging in of SuperNodeGroups 
+
+    It has been subclassed from the the DragItemButton to add extra functionality
+    for dealing with different SuperNode draw states (different pointy arrow symbols) 
+
+    This button starts a drag event that is then checked and handled by the RigGraphicsView
+
+    Also uses CSS to control the image being displayed under different states
+    such as mousePressEvent, mouseMoveEvent and mouseReleaseEvent
+
+    """
     def __init__(self, form, parent=None):
         self.form = str(form)
         DragItemButton.__init__(self,"SuperNode")
@@ -184,7 +214,13 @@ class DragSuperNodeButton(DragItemButton):
 
 
 class SkinTabW(QtGui.QTableWidget):
-    """Class to subclass QTableWidget to give us control over how we handle the data on a startDrag"""
+    """Class to subclass QTableWidget to give us control over how we handle
+    the skinning data on a SuperNode
+
+    If a SuperNode is selected then the populate() method is called in this 
+    class to fill the contents of the UI bottom docking Skinning Table
+
+    """
     def __init__(self, parent = None):
         super(SkinTabW, self).__init__(parent)
         self.superNode = None
@@ -254,16 +290,3 @@ class SkinTabW(QtGui.QTableWidget):
             if homeNode:  #Hacky way of updating the curves when the pin is sent home! Maybe wrap into a neat function
                 for rigCurve in homeNode.rigCurveList:
                     rigCurve().buildCurve() 
-
-    # def mouseMoveEvent(self, QMouseEvent):
-    #     print "moving"
-    #     return QtGui.QAbstractItemView.mouseMoveEvent(self, QMouseEvent)
-
-    # def startDrag(self, dropAction):
-    #     mime = QtCore.QMimeData()
-    #     cItem = self.currentItem()
-    #     mime.setData("text/folderName", str(cItem.text()))
-    #     drag = QtGui.QDrag(self)
-    #     drag.setMimeData(mime) 
-    #     drag.start(QtCore.Qt.CopyAction | QtCore.Qt.CopyAction)
-

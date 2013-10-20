@@ -14,12 +14,12 @@ from SupportItems import *
 
 
 class ReflectionLine(QtGui.QGraphicsItem):
-    """
-    A Reflection Line - the black dotted line down the centre of the Rig Graphics View
+    """A Reflection Line - the black dotted line down the centre of the Rig Graphics View
 
     It is used as a visual too to see the symmtry of the face.
     It is also used to reflect the positions of Guide Markers that need to be mirrored
     The line is adjustable by the user using the RC context menu.
+
     """
     def __init__(self,gViewWidth, gViewHeight):
         super(ReflectionLine, self).__init__()
@@ -132,6 +132,7 @@ class WireGroup():
     with the pin as the origin (local space).
 
     Finally a curve (Rigcurve) is the drawn between all the nodes of the WireGroup
+
     """
     def __init__(self, rigGView):
         #LIST OF ATTRIBUTES
@@ -317,12 +318,13 @@ class WireGroup():
 
 class SuperNodeGroup():
     """A SuperNodeGroup contains a SuperNode and a pin to represent the original
-    position of the superNode.
+       position of the superNode.
 
     A PinTie (yellow dotted line) between the superNode and its pin.
 
     The pin is parent of the superNode, so that the translation of the SuperNode 
     is measured with the pin as the origin (local space).
+
     """
     def __init__(self, nPos, form, rigGView):
         #LIST OF ATTRIBUTES
@@ -509,6 +511,7 @@ class ControlPin(QtGui.QGraphicsItem):
 
     SuperNodes can skin pins. In this case SuperNodes will partly influence the position of a
     pin through its own movement and associated skinning value.
+
     """
     def __init__(self, cPos, control = None):
         super(ControlPin, self).__init__()      
@@ -735,6 +738,15 @@ class ControlPin(QtGui.QGraphicsItem):
 
 
 class GuideMarker(QtGui.QGraphicsItem):
+    """Guide markers are the squre icons with the diagonal red lines.
+
+    These are used to mark out the places in which we want to add the nodes
+    when building a Wire Group.
+
+    In future development they may well be used to mark the positions for other
+    controls
+
+    """
     def __init__(self):
         super(GuideMarker, self).__init__()
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
@@ -910,6 +922,17 @@ class GuideMarker(QtGui.QGraphicsItem):
 
 ###Nodes for selection in the Graphics View
 class Node(QtGui.QGraphicsItem):
+    """The Node is the main circular item that the user interacts with in the WireGroup
+
+    Nodes when moved away from their parent ControlPin (pin) generate the offset that
+    will be used to drive the change on the maya character face mesh (or servo for
+    animatronic)
+
+    Their home is the location of their pin, which is their origin in local space.
+
+    Nodes can be constrained using a constraintItem, which can restrict their 
+    movement to a shape (ellispse/rectangle) or a straight line
+    """
     def __init__(self, nPos):
         QtGui.QGraphicsItem.__init__(self)
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
@@ -1154,6 +1177,24 @@ class Node(QtGui.QGraphicsItem):
 
 ###Nodes for selection in the Graphics View
 class SuperNode(Node):
+    """A superNode subclasses the Node to give more flexibility and functionality
+
+    The superNode exists by itself, with its parent Pin, and associated PinTie
+
+    Its home is the location of its pin (origin in local space)
+
+    SuperNodes can be constrained in their movement in the same way a Node can be.
+
+    SuperNodes can also have skinning information associated with them
+    (self.skinnedPins). This information allows the superNode to influence/move
+    the Control Pins of nodes in a WireGroup. This is vital to reproduce visually
+    accurate facial movements, especially around the lips, jaw and eyes
+
+    SuperNodes can be drawn in different ways to represent different arrow type 
+    controls. Currently this is done with switch statements, but should probably be
+    upgraded to using polymorphism.
+
+    """
     def __init__(self, nPos):
         Node.__init__(self,nPos)
         self.name = "Badger"
@@ -1419,6 +1460,15 @@ class SuperNode(Node):
 
 #RESTRICTION ITEMS
 class OpsRotation(QtGui.QGraphicsItem):
+    """This is the small red curve with two arrows serving as rotation control
+
+    This item is used to control the rotation of constraintItems
+
+    It sits as a child of the ControlPin, but responds to mouseclick and mousemove
+    methods to induce a rotation in its parent ControlPin, which in turn rotates
+    the entire constraintItem system
+
+    """
     def __init__(self, constraintItem):
         QtGui.QGraphicsItem.__init__(self)
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,False)
@@ -1518,6 +1568,16 @@ class OpsRotation(QtGui.QGraphicsItem):
 
 
 class OpsCross(QtGui.QGraphicsItem):
+    """This is a small red cross that is used to visually define the dimensions of shapes
+
+    It is used to control the shapes and line lengths of constraintItems and SkinningItems
+
+    It is added as child of the ControlPin as part of a constraintItem
+
+    By clicking and dragging this item, provides the information to redefine the shape or 
+    line length of the constraint Item or SkinningItem
+
+    """
     def __init__(self, constraintItem):
         QtGui.QGraphicsItem.__init__(self)
         self.scale = 1.0
@@ -1660,6 +1720,18 @@ class OpsCross(QtGui.QGraphicsItem):
 
 
 class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
+    """This is used to constrain the movement of a node or superNode to within the Ellipse Shape
+
+    An OpsCross and OpsRotation item is used to define its shape and rotation.
+
+    This ConstraintItem is parented to the ControlPin of the Node. It does not rotate itself, but
+    appears to rotate since the ControlPin (parent) is being rotated from instructions from the 
+    OpsRotation Item
+
+    There is probably a way to optimise the code across the ConstraintItems 
+    (ConstraintEllipse, ConstraintRect and ConstraintLine)
+
+    """
     def __init__(self):
         self.scale = 1.0
         self.width = 25
@@ -1909,6 +1981,18 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
 
 
 class ConstraintRect(QtGui.QGraphicsRectItem):
+    """This is used to constrain the movement of a node or superNode to within the Rectangle Shape
+
+    An OpsCross and OpsRotation item is used to define its shape and rotation.
+
+    This ConstraintItem is parented to the ControlPin of the Node. It does not rotate itself, but
+    appears to rotate since the ControlPin (parent) is being rotated from instructions from the 
+    OpsRotation Item
+
+    There is probably a way to optimise the code across the ConstraintItems 
+    (ConstraintEllipse, ConstraintRect and ConstraintLine)
+
+    """    
     def __init__(self):
         self.scale = 1.0
         self.alpha = 1.0
@@ -2155,6 +2239,18 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
 
 
 class ConstraintLine(QtGui.QGraphicsItem):
+    """This is used to constrain the movement of a node or superNode to a straight Line
+
+    Two OpsCrosses and a OpsRotation item are used to define its shape and rotation.
+
+    This ConstraintItem is parented to the ControlPin of the Node. It does not rotate itself, but
+    appears to rotate since the ControlPin (parent) is being rotated from instructions from the 
+    OpsRotation Item
+
+    There is probably a way to optimise the code across the ConstraintItems 
+    (ConstraintEllipse, ConstraintRect and ConstraintLine)
+
+    """ 
     def __init__(self):
         QtGui.QGraphicsItem.__init__(self) 
         self.scale = 1.0
@@ -2413,6 +2509,19 @@ class ConstraintLine(QtGui.QGraphicsItem):
 #############################################################SKINNING ITEM##############################################################
 
 class SkinningEllipse(QtGui.QGraphicsEllipseItem):
+    """This is used to the region that nodes can be captured for skinning to a SuperNode
+
+    An OpsCross item is used to define its shape. It can only be circular
+
+    If a node lies within the circle then if it is selected then it can be skinned to the 
+    SuperNode by using the RC context menu on the SuperNode itself.
+
+    This Item still needs to be implemented into XML Storage and Reading.
+
+    The skinning Value that is attributed to each node is inversely proportional to the 
+    distance that the node lies away from the SuperNode Control Pin (SuperNode Origin)
+    
+    """ 
     def __init__(self):
         self.scale = 1.0
         self.width = 50
@@ -2583,27 +2692,13 @@ class SkinningEllipse(QtGui.QGraphicsEllipseItem):
         self.setPen(pen)
         self.setBrush(QtGui.QBrush(gradient))
         QtGui.QGraphicsEllipseItem.paint(self, painter, option, widget)
-        # if not self.ghostArea:
-        #     pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
-        #     painter.setPen(pen)
-        #     painter.drawLine(0,self.scale*self.width - 2,0,self.scale*-self.width-self.extension) 
-        #     pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.25, QtCore.Qt.SolidLine)
-        #     painter.setPen(pen)
-        #     # if self.width > 5:
-        #     #     painter.drawLine(-5,-(self.scale*self.width+self.extension-5),0,-(self.scale*self.width+self.extension))     
-        #     #     painter.drawLine(5,-(self.scale*self.width+self.extension-5),0,-(self.scale*self.width+self.extension))
-        #     # else:
-        #     #     painter.drawLine(-self.width,-(self.scale*self.width+self.extension-5),0,-(self.scale*self.width+self.extension))     
-        #     #     painter.drawLine(self.width,-(self.scale*self.width+self.extension-5),0,-(self.scale*self.width+self.extension))
+
         if self.width > 3: 
             painter.drawLine(3,0,-3,0)
             painter.drawLine(0,3,0,-3)
         else: 
             painter.drawLine(self.width,0,-self.width,0)
             painter.drawLine(0,self.width,0,-self.width)
-
-
-
 
     def redraw(self, index): #index indicates which cross we are interested in - on this Line 0 is a head, and 1 is a tail
         if index == 0:
@@ -2612,13 +2707,6 @@ class SkinningEllipse(QtGui.QGraphicsEllipseItem):
                              self.scale*(2*self.width), self.scale*(2*self.width)) 
             # self.opRot.setPos(QtCore.QPointF(0,-self.width - self.crossOffset - self.extension))
         self.update()
-
-
-    # def redraw(self, dimPos):
-    #     self.width = abs(dimPos.y())
-    #     self.setRect(self.scale*(-self.width), self.scale*(-self.width),
-    #                          self.scale*(2*self.width), self.scale*(2*self.width)) 
-    #     self.opRot.setPos(QtCore.QPointF(0,-self.width-self.extension-5))
 
     def sceneCoordinates(self, sMousePt): #Code curtesy of ZetCode
         s_mouse_x = sMousePt.x()
@@ -2675,8 +2763,15 @@ class SkinningEllipse(QtGui.QGraphicsEllipseItem):
 
 
 
-
 class SkinningPinInfo():
+    """This is used to store the skinning information that allows a SuperNode to move the ControlPin in a WireGroup
+
+    One instance of this class is created for each node that is skinned to a superNode. These instances are the stored
+    in the "skinnedPins" attribute on the SuperNode.
+
+    The SkinningPinInfo records the initial skinning position of the ControlPin, and then calculates the influence on 
+    the position of ControlPin by the translation of the SuperNode and the associated Skinning Value
+    """
     def __init__(self):
         self.superNode = None
         # self.superNodeName = None

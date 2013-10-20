@@ -10,6 +10,17 @@ from ControlItems import *
 
 
 class FaceGVCapture():
+    """This class captures all the information contained within the RigGraphics View
+
+    The data is captured including the relationships between items (ex. Pins and Nodes)
+    Skinning data for SuperNodes is also captured
+
+    Everything is written out into a huge scene XML Tree using the "capture" methods in the
+    main "store()" method
+
+    This data is then saved to a specified XML file and can be loaded back in to rebuild the 
+    graphics view by using the "read()" method
+    """
     def __init__(self, faceGView):
         """Class to capture all of the information out of the Graphics View"""
         self.view = faceGView

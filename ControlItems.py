@@ -14,6 +14,13 @@ from SupportItems import *
 
 
 class ReflectionLine(QtGui.QGraphicsItem):
+    """
+    A Reflection Line - the black dotted line down the centre of the Rig Graphics View
+
+    It is used as a visual too to see the symmtry of the face.
+    It is also used to reflect the positions of Guide Markers that need to be mirrored
+    The line is adjustable by the user using the RC context menu.
+    """
     def __init__(self,gViewWidth, gViewHeight):
         super(ReflectionLine, self).__init__()
         self.width = gViewWidth
@@ -113,7 +120,19 @@ class ReflectionLine(QtGui.QGraphicsItem):
         self.setPos(QtCore.QPointF(self.width/2, self.height/2))
         self.update()
 
+
 class WireGroup():
+    """A WireGroups is a class that contains nodes each of which has it own pin
+    which represents the location of its home. 
+
+    A PinTie (yellow dotted line) is then drawn between the pin and node to
+    help show the translation of the node
+
+    For each node has its pin as a parent, so that translation of the node is measure
+    with the pin as the origin (local space).
+
+    Finally a curve (Rigcurve) is the drawn between all the nodes of the WireGroup
+    """
     def __init__(self, rigGView):
         #LIST OF ATTRIBUTES
         self.name = ""
@@ -297,6 +316,14 @@ class WireGroup():
 
 
 class SuperNodeGroup():
+    """A SuperNodeGroup contains a SuperNode and a pin to represent the original
+    position of the superNode.
+
+    A PinTie (yellow dotted line) between the superNode and its pin.
+
+    The pin is parent of the superNode, so that the translation of the SuperNode 
+    is measured with the pin as the origin (local space).
+    """
     def __init__(self, nPos, form, rigGView):
         #LIST OF ATTRIBUTES
         self.name = ""
@@ -373,11 +400,13 @@ class SuperNodeGroup():
         self.scene.addItem(newPin)
 
         sNodeXml = superNodeGroupXml.findall('SuperNode')[0]
-        sNode.setForm(self.form)
         newSNode = SuperNode(QtCore.QPointF(0,0)) # Create new SuperNode with Arbitrary pos
-        newSNode.read(sNodeXml)
-        self.scene.addItem(newNode)
-        
+        newSNode.setForm(self.form)
+        self.scene.addItem(newSNode)
+        # We need to add the SuperNode to the Scene before we read it, so that it has
+        # access to all the other nodes in the scene for deciphering skinning information
+        newSNode.read(sNodeXml) 
+
         newSNode.setPin(newPin) # Set pin to the SuperNode and SuperNode to the Pin
         newPin.setNode(newSNode)
 
@@ -386,10 +415,11 @@ class SuperNodeGroup():
 
         self.setScale(self.scale) # The scale now needs to be read into the items
 
-        pT = PinTie(newSNode, newPin) # Creat new PinTie to link SuperNode and Pin
+        pT = PinTie(newSNode, newPin) # Create new PinTie to link SuperNode and Pin
         newSNode.setPinTie(pT)
         newPin.setPinTie(pT)
         self.pinTie = pT
+        self.scene.addItem(pT)
 
     def getName(self):
         return self.name
@@ -467,6 +497,19 @@ class SuperNodeGroup():
 
 
 class ControlPin(QtGui.QGraphicsItem):
+    """A Control Pin is the small black cross with curved outer lines that accompanies each Node
+
+    The Control Pin (pin) is the parent of the node and represents the nodes home 
+    (origin in local space)
+
+    Each pin has a single node.
+
+    The pin is not interacted with by the user, unless the RC context menu is used to activate
+    the pin so that its position can be adjusted.
+
+    SuperNodes can skin pins. In this case SuperNodes will partly influence the position of a
+    pin through its own movement and associated skinning value.
+    """
     def __init__(self, cPos, control = None):
         super(ControlPin, self).__init__()      
         self.index = 0 
@@ -1067,7 +1110,6 @@ class Node(QtGui.QGraphicsItem):
             gradient.setColorAt(0.9, QtGui.QColor(255,255,255, 255))
             gradient.setColorAt(1.0, QtGui.QColor(255,255,255, 10))
             painter.setBrush(QtGui.QBrush(gradient))
-            # painter.setBrush(QtCore.Qt.lightGray)
             painter.drawEllipse(-self.radius*self.scale, -self.radius*self.scale, 2*self.radius*self.scale, 2*self.radius*self.scale)
 
         pen = QtGui.QPen(cColour, 1, QtCore.Qt.SolidLine)
@@ -1078,7 +1120,6 @@ class Node(QtGui.QGraphicsItem):
         gradient.setColorAt(0.3, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(), 125))
         gradient.setColorAt(1.0, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(), 10))
         painter.setBrush(QtGui.QBrush(gradient))
-        # painter.setBrush(QtCore.Qt.lightGray)
         painter.drawEllipse(-self.radius*self.scale, -self.radius*self.scale, 2*self.radius*self.scale, 2*self.radius*self.scale)
         QtGui.QPen(QtCore.Qt.black, 1.2, QtCore.Qt.SolidLine)
         painter.drawEllipse((-self.radius/2)*self.scale, (-self.radius/2)*self.scale, self.radius*self.scale, self.radius*self.scale)
@@ -1086,6 +1127,7 @@ class Node(QtGui.QGraphicsItem):
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
             if self.pinTie:
+                # print "There is a tie"
                 self.pinTie().drawTie()
             for rigCurve in self.rigCurveList:
                 rigCurve().buildCurve()
@@ -1191,17 +1233,20 @@ class SuperNode(Node):
             newSkinInfo = SkinningPinInfo()
             newSkinInfo.read(skinPinXml) # Read in names of WireGroups and PinIndexes
             newSkinInfo.setSuperNode(self)
-            rigGVWireGroups = self.scene().views[0].wireGroups
+            rigGVWireGroups = self.scene().views()[0].wireGroups
             for wireGroup in rigGVWireGroups:
                 if wireGroup.getName() == newSkinInfo.getWireGroupName(): # We have found our WireGroup
-                    newSkinInfo.setWireGroup(WireGroup)
+                    newSkinInfo.setWireGroup(wireGroup)
                     for pin in wireGroup.pins:
                         if pin.getIndex() == newSkinInfo.getPinIndex(): # We have found our Pin
-                            newSkinInfo.setPin(pin)
+                            # Set the Pin, but without resetting the skinpos that we have already
+                            # accurately loaded in.
+                            newSkinInfo.setPin(pin, setSkinPos = False) 
             if newSkinInfo.getWireGroup() == None:
                 print "WARNING: SkinningInfo has failed to fine correct WireGroup"
             if newSkinInfo.getPin() == None:
                 print "WARNING: SkinningInfo has failed to fine correct Pin"
+            self.skinnedPins.append(newSkinInfo)
 
     def getName(self):
         return self.name
@@ -2649,7 +2694,7 @@ class SkinningPinInfo():
         attributes = xml.SubElement(skinningPinInfoRoot,'attributes')
         xml.SubElement(attributes, 'attribute', name = 'pinIndex', value = str(self.getPinIndex()))
         xml.SubElement(attributes, 'attribute', name = 'wireGroupName', value = str(self.getWireGroupName()))
-        xml.SubElement(attributes, 'attribute', name = 'pinSkinPos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
+        xml.SubElement(attributes, 'attribute', name = 'pinSkinPos', value = (str(self.pinSkinPos.x())) + "," + str(self.pinSkinPos.y()))
         xml.SubElement(attributes, 'attribute', name = 'skinValue', value = str(self.getSkinValue()))
 
         return skinningPinInfoRoot
@@ -2662,7 +2707,7 @@ class SkinningPinInfo():
             elif a.attrib['name'] == 'skinValue': self.setSkinValue(float(a.attrib['value']))
             elif a.attrib['name'] == 'pinSkinPos': 
                 newSkinPos = a.attrib['value'].split(",")
-                self.setPinSkinPos(float(newSkinPos[0]), float(newSkinPos[1]))
+                self.setPinSkinPos(QtCore.QPointF(float(newSkinPos[0]), float(newSkinPos[1])))
  
 
     def getSuperNode(self):
@@ -2682,12 +2727,12 @@ class SkinningPinInfo():
     def getPin(self):
         return self.pin
 
-    def setPin(self, pin):
+    def setPin(self, pin, setSkinPos = True):
         """Function to set the pin of the skinningInfo"""
         if type(pin) == ControlPin:
             self.pin = pin
             self.setPinIndex(pin.getIndex())
-            self.pinSkinPos = self.pin.pos()
+            if setSkinPos: self.pinSkinPos = self.pin.pos()
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO ITEM FOR ALLOCATION"
 
@@ -2701,9 +2746,6 @@ class SkinningPinInfo():
         return self.wireGroup
 
     def setWireGroup(self, wireGroup):
-        # print "Mr Wire Group : " + str(wireGroup)
-        # print "Type of Group : " + str(type(wireGroup))
-        # if type(wireGroup) == WireGroup: 
         self.wireGroup = wireGroup
         self.wireGroupName = wireGroup.getName()
 

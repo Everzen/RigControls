@@ -14,7 +14,11 @@ from Utilities import *
 
 
 class RigCurveInfo():
-    """A Class to capture how the """
+    """
+    A Class to assist calculations for how the curve that connects Nodes in a WireGroup should be calculated
+
+    Useful data such as node positions, vectors between nodes and perpendicular vectors are calculated
+    """
     def __init__(self,startNode, endNode, targNode):
         self.startPos = npVec(startNode().scenePos())
         self.endPos = npVec(endNode().scenePos())
@@ -73,6 +77,11 @@ class RigCurveInfo():
 
 
 class PinTie(QtGui.QGraphicsItem):
+    """A PinTie is the yellow dotted line that connects a ControlPin (pin) to the moving Node, or SuperNode
+
+       This should be updated every time the node or the ControlPin (pin) move. This is normally done by  
+       calling the "drawTie()" method in the "itemChange()" method of the node or ControlPin
+    """
     def __init__(self, startNode, endNode):
         super(PinTie, self).__init__()
         # self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges)
@@ -115,9 +124,6 @@ class PinTie(QtGui.QGraphicsItem):
 
     def boundingRect(self):
         return self.line.boundingRect()
-    # def boundingRect(self):
-    #     adjust = 5
-    #     return QtCore.QRectF(self.startPoint, self.endPoint)
 
     def drawTie(self):
         self.line = QtGui.QPainterPath()
@@ -127,7 +133,6 @@ class PinTie(QtGui.QGraphicsItem):
             self.setPos(self.midPoint)
             self.line.moveTo(self.startPoint)
             self.line.lineTo(self.endPoint) 
-            
 
     def paint(self, painter, option, widget):
         # self.prepareGeometryChange()
@@ -141,6 +146,13 @@ class PinTie(QtGui.QGraphicsItem):
 
 
 class RigCurve(QtGui.QGraphicsItem):
+    """This the graphics Item that serves to draw the curve that connects all the nodes together in a WireGroup
+
+       The user cannot interact with this curve, it is drawn automaticall when a Node or ControlPin is moved
+       
+       Currently, this curve is very intensive, and needs optimising in a serious way using dirty bits to 
+       limit the number of times the redraw is calculated. Investigate this!  
+    """
     def __init__(self, color, controlNodes, parent=None, scene=None):
         super(RigCurve, self).__init__(parent, scene)
         self.selected = False

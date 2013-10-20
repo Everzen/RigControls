@@ -55,6 +55,8 @@ class FaceGVCapture():
             self.readMarkers()
             self.readWireGroups()
             self.readSuperNodeGroups()
+
+            scene.update(0,0,self.view.width,self.view.height) # Updating a full draw for the whole scene
         else: print "WARNING : COULD NOT LOAD FACE RIG, SINCE A VALID FILE NAME WAS NOT SUPPLIED"
 
     def captureBackgroundImage(self):

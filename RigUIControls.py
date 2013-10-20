@@ -336,7 +336,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.markerList = []
         self.markerActiveList = []
         self.wireGroups = []
-        self.superNodeGrops = []
+        self.superNodeGroups = []
         if isReflectionLine: self.reflectionLine = self.addReflectionLine()
 
     def store(self, XMLFile):

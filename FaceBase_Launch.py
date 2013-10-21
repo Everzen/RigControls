@@ -317,7 +317,8 @@ class RigFaceSetup(QtGui.QMainWindow):
         turning off their "selectable" and "moveable" flags. Currently, any new GuideMarkers
         then created to do not have their flags appropriately set, and so might 
         contradict the icon state.
-        """        if state:
+        """ 
+        if state:
             self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_active.png'))
         else:
             self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_deactive.png'))

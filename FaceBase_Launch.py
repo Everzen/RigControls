@@ -59,19 +59,20 @@ class RigFaceSetup(QtGui.QMainWindow):
     """
     def __init__(self, styleData):
         super(RigFaceSetup, self).__init__()
+
         self.setWindowTitle("Facial Rig Builder v1.0")
         # self.setGeometry(50,50, 600, 600)
         # self.ColourPickerCircle = {"center" : [245, 245], "centerOffset": [20,16] , "radius": 210 , "filename": "images/ColorWheelSat_500.png"}
         self.skinTableWidget = None
         self.styleData = styleData
         self.initUI()
-       
+
     def initUI(self):   
+
         self.mainWidget = QtGui.QWidget(self)
-        #Setup Style Sheet information
-        # f=open('css/darkorange.stylesheet', 'r')
+
+        # Setup Style Sheet information
         self.setStyleSheet(self.styleData)
-        # print str(self.styleData)
 
         # Set up itemfactory
         itemTypes = [
@@ -90,8 +91,8 @@ class RigFaceSetup(QtGui.QMainWindow):
                 itemFactory
                 )
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
-        
-        #File Dialogue to load background image 
+
+        # File Dialogue to load background image 
         self.imgFileLineEdit = QtGui.QLineEdit('Image File path...')
         self.imgFileLineEdit.setMinimumWidth(200)
         self.imgFileLineEdit.setReadOnly(True)
@@ -216,8 +217,11 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.filtersToolbar = self.addToolBar('Filter Options')
         self.selectionFilters = QtGui.QLabel("   Selection Filters   ")
 
-
-        self.selMarkers = QtGui.QAction(QtGui.QIcon('images/GuideMarker_toolbar_active.png'), 'Select Markers', self) 
+        self.selMarkers = QtGui.QAction(
+                QtGui.QIcon('images/GuideMarker_toolbar_active.png'),
+                'Select Guide Markers',
+                self
+                ) 
         self.selMarkers.setCheckable(True)
         self.selMarkers.setChecked(True)
         self.selMarkers.setStatusTip("Toggle guide marker selection")

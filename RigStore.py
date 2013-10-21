@@ -54,6 +54,7 @@ class FaceGVCapture():
         self.captureReflectionLine()
         self.captureMarkers()
         self.captureWireGroups()
+        self.captureSuperNodeGroups()
 
         #Now we have captured everything into a super giant XML tree we need to save this out.
         self.viewXML.setFile(self.xMLFile)

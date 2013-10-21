@@ -3,19 +3,33 @@ from PyQt4 import QtCore, QtGui
 import sys
 import os
 
-#######Project python imports################################################
 from ControlItems import *
 
+class WidgetsError(Exception):
+    pass
 
+class ItemFactoryError(WidgetsError):
+    pass
 
-#################################UI CLASSES & FUNCTIONS & PROMOTED WIDGETS##################################################################################
+class ItemFactory(object):
+    """Factory for creating various widgets according to the lookup table"""
 
-def buildGuideItem(itemName):
-    """A function to build the correct Rig Graphics Item from an input string"""
-    itemstring = str(itemName) + "()"
-    # print itemstring 
-    item = eval(itemstring)
-    return item
+    def __init__(self, lookupTable):
+        self.lookupTable = lookupTable
+
+    def create(self, itemName):
+        """Check our lookup table for the constructor and return constructed object.
+
+        Else throw a ItemFactoryError
+
+        """
+
+        try:
+            Item = self.lookupTable[str(itemName)]
+        except KeyError:
+            raise ItemFactoryError("Unable to find contructor for '%s' item" % itemName)
+
+        return Item()
 
 
 class WireGroupButton(QtGui.QPushButton):

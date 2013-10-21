@@ -747,6 +747,9 @@ class GuideMarker(QtGui.QGraphicsItem):
     controls
 
     """
+
+    name = "GuideMarker"
+
     def __init__(self):
         super(GuideMarker, self).__init__()
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
@@ -1732,6 +1735,9 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
     (ConstraintEllipse, ConstraintRect and ConstraintLine)
 
     """
+
+    name = "ConstraintEllipse"
+
     def __init__(self):
         self.scale = 1.0
         self.width = 25
@@ -1993,6 +1999,9 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
     (ConstraintEllipse, ConstraintRect and ConstraintLine)
 
     """    
+
+    name = "ConstraintRect"
+
     def __init__(self):
         self.scale = 1.0
         self.alpha = 1.0
@@ -2251,6 +2260,9 @@ class ConstraintLine(QtGui.QGraphicsItem):
     (ConstraintEllipse, ConstraintRect and ConstraintLine)
 
     """ 
+
+    name = "ConstraintLine"
+
     def __init__(self):
         QtGui.QGraphicsItem.__init__(self) 
         self.scale = 1.0
@@ -2522,6 +2534,9 @@ class SkinningEllipse(QtGui.QGraphicsEllipseItem):
     distance that the node lies away from the SuperNode Control Pin (SuperNode Origin)
     
     """ 
+
+    name = "SkinningEllipse"
+
     def __init__(self):
         self.scale = 1.0
         self.width = 50

@@ -73,9 +73,22 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.setStyleSheet(self.styleData)
         # print str(self.styleData)
 
+        # Set up itemfactory
+        itemTypes = [
+                rig.GuideMarker, rig.ConstraintEllipse, rig.ConstraintRect,
+                rig.ConstraintLine, rig.SkinningEllipse
+                ]
+        lookupTable = dict( (Type.name, Type) for Type in itemTypes)
+        itemFactory = rig.ItemFactory(lookupTable)
+
         # The statusBar() call creates the status bar
         self.messageLogger = StatusBarMessageLogger(self.statusBar(), self.styleData)
-        self.view = rig.RigGraphicsView(self, self.messageLogger, self.styleData)
+        self.view = rig.RigGraphicsView(
+                self,
+                self.messageLogger,
+                self.styleData,
+                itemFactory
+                )
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
         
         #File Dialogue to load background image 
@@ -235,24 +248,24 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.addDockWidget(QtCore.Qt.DockWidgetArea(1), self.dockCreationWidget)
 
 
-        self.markerCreate = rig.DragItemButton("GuideMarker")
+        self.markerCreate = rig.DragItemButton(rig.GuideMarker.name)
         self.wireGroupCreate = rig.WireGroupButton()
         self.wireGroupCreate.clicked.connect(lambda:  self.view.addWireGroup())
 
-        self.ellipseConstraintCreate = rig.DragItemButton("GuideMarker")
+        self.ellipseConstraintCreate = rig.DragItemButton(rig.GuideMarker.name)
         self.createConstraints = QtGui.QLabel("Constraints")
         self.createControls = QtGui.QLabel("   Controls")
         self.createSkinning = QtGui.QLabel("Control Skinning")
 
-        self.ellipseConstraintCreate = rig.DragItemButton("ConstraintEllipse")
-        self.rectConstraintCreate = rig.DragItemButton("ConstraintRect")
-        self.lineConstraintCreate = rig.DragItemButton("ConstraintLine")
+        self.ellipseConstraintCreate = rig.DragItemButton(rig.ConstraintEllipse.name)
+        self.rectConstraintCreate = rig.DragItemButton(rig.ConstraintRect.name)
+        self.lineConstraintCreate = rig.DragItemButton(rig.ConstraintLine.name)
 
         self.arrowControl_four = rig.DragSuperNodeButton("Arrow_4Point")
         self.arrowControl_side = rig.DragSuperNodeButton("Arrow_sidePoint")
         self.arrowControl_upDown = rig.DragSuperNodeButton("Arrow_upDownPoint")
 
-        self.skinningEllipseCreate = rig.DragItemButton("SkinningEllipse")
+        self.skinningEllipseCreate = rig.DragItemButton(rig.SkinningEllipse.name)
 
         creationBox.addWidget(self.markerCreate)
         creationBox.addWidget(self.wireGroupCreate)

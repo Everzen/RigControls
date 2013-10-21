@@ -20,7 +20,7 @@ from RigStore import *
 
 class RigGraphicsView(QtGui.QGraphicsView):
 
-    def __init__(self, mainWindow, messageLogger, styleData):
+    def __init__(self, mainWindow, messageLogger, styleData, itemFactory):
 
         QtGui.QGraphicsView.__init__(self) 
         self.width = 500
@@ -30,6 +30,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
         self.messageLogger = messageLogger
         self.styleData = styleData
+        self.itemFactory = itemFactory
 
         policy = QtCore.Qt.ScrollBarAlwaysOff
         self.setVerticalScrollBarPolicy(policy)
@@ -506,7 +507,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             event.acceptProposedAction()
             #Create a new QGraphicsItem and transfer the text across so we have the correct name
             data = QtCore.QString(event.mimeData().data("text/plain"))
-            item = buildGuideItem(data)
+            item = self.itemFactory.create(data)
             item.setIndex(self.markerCount)
             item.setPos(self.mapToScene(event.pos()))
             item.setScale(self.markerScale)
@@ -520,7 +521,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             event.acceptProposedAction()
             #Create a new QGraphicsItem and transfer the text across so we have the correct name
             data = QtCore.QString(event.mimeData().data("text/plain"))
-            item = buildGuideItem(data)
+            item = self.itemFactory.create(data)
             item.setPos(self.mapToScene(event.pos()))
             item.setAlpha(0.5)
             self.scene().addItem(item)

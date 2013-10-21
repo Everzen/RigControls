@@ -21,12 +21,14 @@ class FaceGVCapture():
     This data is then saved to a specified XML file and can be loaded back in to rebuild the 
     graphics view by using the "read()" method
     """
-    def __init__(self, faceGView):
+    def __init__(self, faceGView, messageLogger):
         """Class to capture all of the information out of the Graphics View"""
         self.view = faceGView
         self.scene = self.view.scene()
         self.viewXML = None
         self.xMLFile = None
+
+        self.messageLogger = messageLogger
 
     def setXMLFile(self,xMLFile):
         self.xMLFile = xMLFile
@@ -37,38 +39,45 @@ class FaceGVCapture():
         self.viewXML.setLoad(self.xMLFile)        
 
     def store(self):
-        if self.xMLFile:
-            self.viewXML = FileControl.XMLMan()
-            self.viewXML.tree = xml.Element('faceRigGraphicsView')
-            self.viewSettings = xml.SubElement(self.viewXML.tree,'viewSettings')
-            self.sceneItems = xml.SubElement(self.viewXML.tree,'sceneItems')
 
-            self.captureBackgroundImage() #Record the background Image
-            self.captureViewSettings() # Capture remainng View settings
-            self.captureReflectionLine()
-            self.captureMarkers()
-            self.captureWireGroups()
-            self.captureSuperNodeGroups()
+        if not self.xMLFile:
+            self.messageLogger.error("Invalid filename for saving: '%s'" % self.xMLFile)
+            return
 
-            #Now we have captured everything into a super giant XML tree we need to save this out.
-            self.viewXML.setFile(self.xMLFile)
-            self.viewXML.save()
-        else: print "WARNING : COULD NOT SAVE FACE RIG TO FILE, SINCE A VALID FILE NAME WAS NOT SUPPLIED"
+        self.viewXML = FileControl.XMLMan()
+        self.viewXML.tree = xml.Element('faceRigGraphicsView')
+        self.viewSettings = xml.SubElement(self.viewXML.tree,'viewSettings')
+        self.sceneItems = xml.SubElement(self.viewXML.tree,'sceneItems')
+
+        self.captureBackgroundImage() #Record the background Image
+        self.captureViewSettings() # Capture remainng View settings
+        self.captureReflectionLine()
+        self.captureMarkers()
+        self.captureWireGroups()
+
+        #Now we have captured everything into a super giant XML tree we need to save this out.
+        self.viewXML.setFile(self.xMLFile)
+        self.viewXML.save()
 
     def read(self):
-        if self.viewXML:
-            scene = self.view.scene()
-            self.view.clear(isReflectionLine = False) #Clear the entire Graphics View, including reflection Line
 
-            self.readBackgroundImage()
-            self.readViewSettings()
-            self.readRelectionLine()
-            self.readMarkers()
-            self.readWireGroups()
-            self.readSuperNodeGroups()
+        if not self.viewXML:
+            self.messageLogger.error("Invalid filename for reading: '%s'" % self.viewXML)
+            return
 
-            scene.update(0,0,self.view.width,self.view.height) # Updating a full draw for the whole scene
-        else: print "WARNING : COULD NOT LOAD FACE RIG, SINCE A VALID FILE NAME WAS NOT SUPPLIED"
+        # Clear the entire Graphics View, including reflection Line
+        self.view.clear(isReflectionLine = False)
+
+        self.readBackgroundImage()
+        self.readViewSettings()
+        self.readRelectionLine()
+        self.readMarkers()
+        self.readWireGroups()
+        self.readSuperNodeGroups()
+
+        # Updating a full draw for the whole scene
+        scene = self.view.scene()
+        scene.update(0,0,self.view.width,self.view.height)
 
     def captureBackgroundImage(self):
         """Function to process background Image into XML"""

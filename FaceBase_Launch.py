@@ -8,7 +8,7 @@ import Icons
 
 from RigStore import FaceGVCapture
 
-import RigUIControls
+import RigUIControls as rig
 
 class StatusBarMessageLogger(object):
     """
@@ -75,7 +75,7 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         # The statusBar() call creates the status bar
         self.messageLogger = StatusBarMessageLogger(self.statusBar(), self.styleData)
-        self.view = RigUIControls.RigGraphicsView(self, self.messageLogger, self.styleData)
+        self.view = rig.RigGraphicsView(self, self.messageLogger, self.styleData)
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
         
         #File Dialogue to load background image 
@@ -85,7 +85,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.imgFileSetButton = QtGui.QPushButton("Image")
         self.imgFileSetButton.pressed.connect(lambda: self.view.loadBackgroundImage())
 
-        self.markerSpawn = RigUIControls.DragItemButton("GuideMarker")
+        self.markerSpawn = rig.DragItemButton("GuideMarker")
         # self.showReflectionLineButton = QtGui.QCheckButton("Toggle Reflection Line")
         self.markerScale = QtGui.QSlider(QtCore.Qt.Horizontal)
         # self.markerScale.setTickPosition(1.0)
@@ -149,27 +149,26 @@ class RigFaceSetup(QtGui.QMainWindow):
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(QtGui.qApp.quit)
 
-        #View Menu
-
+        # View Menu
         showMarkers = QtGui.QAction('Show Markers', self)  
         showMarkers.setCheckable(True)
         showMarkers.setChecked(True)
-        showMarkers.toggled.connect(lambda: self.view.showItem(showMarkers.isChecked(), RigUIControls.GuideMarker)) #Adjust this to add hide Reflection Line Functionality
+        showMarkers.toggled.connect(lambda: self.view.showItem(showMarkers.isChecked(), rig.GuideMarker)) #Adjust this to add hide Reflection Line Functionality
 
         showNodes = QtGui.QAction('Show Nodes', self)  
         showNodes.setCheckable(True)
         showNodes.setChecked(True)
-        showNodes.toggled.connect(lambda: self.view.showItem(showNodes.isChecked(), RigUIControls.Node)) 
+        showNodes.toggled.connect(lambda: self.view.showItem(showNodes.isChecked(), rig.Node))
 
         showCurves = QtGui.QAction('Show Curves', self)  
         showCurves.setCheckable(True)
         showCurves.setChecked(True)
-        showCurves.toggled.connect(lambda: self.view.showItem(showCurves.isChecked(), RigUIControls.RigCurve)) 
+        showCurves.toggled.connect(lambda: self.view.showItem(showCurves.isChecked(), rig.RigCurve))
 
         showPins = QtGui.QAction('Show Pins', self)  
         showPins.setCheckable(True)
         showPins.setChecked(True)
-        showPins.toggled.connect(lambda: self.view.showItem(showPins.isChecked(), RigUIControls.ControlPin)) 
+        showPins.toggled.connect(lambda: self.view.showItem(showPins.isChecked(), rig.ControlPin))
 
 
         viewReflectionLine = QtGui.QAction('&Show Reflection Line', self)  
@@ -236,31 +235,25 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.addDockWidget(QtCore.Qt.DockWidgetArea(1), self.dockCreationWidget)
 
 
-
-        # self.creationToolbar = self.addToolBar('Create Controls')
-        self.createItems = QtGui.QLabel("Create Items")
-        self.markerCreate = RigUIControls.DragItemButton("GuideMarker")
-        self.wireGroupCreate = RigUIControls.WireGroupButton()
+        self.markerCreate = rig.DragItemButton("GuideMarker")
+        self.wireGroupCreate = rig.WireGroupButton()
         self.wireGroupCreate.clicked.connect(lambda:  self.view.addWireGroup())
-        # self.wireGroupCreate.clicked.connect(lambda: self.itemTest())
 
-        self.ellipseConstraintCreate = RigUIControls.DragItemButton("GuideMarker")
+        self.ellipseConstraintCreate = rig.DragItemButton("GuideMarker")
         self.createConstraints = QtGui.QLabel("Constraints")
         self.createControls = QtGui.QLabel("   Controls")
         self.createSkinning = QtGui.QLabel("Control Skinning")
 
-        self.ellipseConstraintCreate = RigUIControls.DragItemButton("ConstraintEllipse")
-        self.rectConstraintCreate = RigUIControls.DragItemButton("ConstraintRect")
-        self.lineConstraintCreate = RigUIControls.DragItemButton("ConstraintLine")
+        self.ellipseConstraintCreate = rig.DragItemButton("ConstraintEllipse")
+        self.rectConstraintCreate = rig.DragItemButton("ConstraintRect")
+        self.lineConstraintCreate = rig.DragItemButton("ConstraintLine")
 
-        self.arrowControl_four = RigUIControls.DragSuperNodeButton("Arrow_4Point")
-        self.arrowControl_side = RigUIControls.DragSuperNodeButton("Arrow_sidePoint")
-        self.arrowControl_upDown = RigUIControls.DragSuperNodeButton("Arrow_upDownPoint")
+        self.arrowControl_four = rig.DragSuperNodeButton("Arrow_4Point")
+        self.arrowControl_side = rig.DragSuperNodeButton("Arrow_sidePoint")
+        self.arrowControl_upDown = rig.DragSuperNodeButton("Arrow_upDownPoint")
 
-        self.skinningEllipseCreate = RigUIControls.DragItemButton("SkinningEllipse")
+        self.skinningEllipseCreate = rig.DragItemButton("SkinningEllipse")
 
-
-        # creationBox.addWidget(self.createItems)
         creationBox.addWidget(self.markerCreate)
         creationBox.addWidget(self.wireGroupCreate)
         creationBox.addWidget(self.createConstraints)
@@ -269,7 +262,6 @@ class RigFaceSetup(QtGui.QMainWindow):
         creationBox.addWidget(self.lineConstraintCreate)
         creationBox.addWidget(self.createControls)
         creationBox.addWidget(self.arrowControl_four)
-        # creationBox.addWidget(self.arrowControl_side)
         creationBox.addWidget(self.arrowControl_upDown)
         creationBox.addWidget(self.createSkinning)
         creationBox.addWidget(self.skinningEllipseCreate)
@@ -294,7 +286,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         skinBox.addStretch(1)
 
         #Build the Skinning Table
-        self.skinTableWidget = RigUIControls.SkinTabW()
+        self.skinTableWidget = rig.SkinTabW()
         self.skinTableWidget.itemChanged.connect(self.updateSkinData)
 
         self.dockSkinningWidget = QtGui.QDockWidget(self)
@@ -322,7 +314,7 @@ class RigFaceSetup(QtGui.QMainWindow):
             self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_active.png'))
         else:
             self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_deactive.png'))
-        self.view.selectFilter(state, RigUIControls.GuideMarker)
+        self.view.selectFilter(state, rig.GuideMarker)
 
     def selectNodes(self,state):
         """Function to filter the selections possible in the Rig Graphics View 
@@ -338,7 +330,7 @@ class RigFaceSetup(QtGui.QMainWindow):
             self.selNodes.setIcon(QtGui.QIcon('images/Node_toolbar_active.png'))
         else:
             self.selNodes.setIcon(QtGui.QIcon('images/Node_toolbar_deactive.png'))
-        self.view.selectFilter(state, RigUIControls.Node)
+        self.view.selectFilter(state, rig.Node)
 
     def openFaceRig(self):
         """Function to load in a stored XML file of face Rig Data"""

@@ -1,11 +1,14 @@
 #HAPPY FACE RIG
+
 from PyQt4 import QtGui, QtCore
+
 import math
 import sys
 import Icons
 
-import RigUIControls
+from RigStore import FaceGVCapture
 
+import RigUIControls
 
 class StatusBarMessageLogger(object):
     """
@@ -338,13 +341,13 @@ class RigFaceSetup(QtGui.QMainWindow):
 
     def openFaceRig(self):
         """Function to load in a stored XML file of face Rig Data"""
-        xMLStructure = RigUIControls.FaceGVCapture(self.view)
+        xMLStructure = FaceGVCapture(self.view, self.messageLogger)
         xMLStructure.setXMLFile("faceFiles/test.xml")
         xMLStructure.read()
 
     def saveFaceRig(self):
         """Function to save the entire Rig Graphics View scene out to an XML File"""
-        xMLStructure = RigUIControls.FaceGVCapture(self.view)
+        xMLStructure = FaceGVCapture(self.view, self.messageLogger)
         xMLStructure.setXMLFile("faceFiles/test.xml")
         xMLStructure.store()
 

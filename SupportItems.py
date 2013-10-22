@@ -186,7 +186,7 @@ class RigCurve(QtGui.QGraphicsItem):
     def paint(self, painter, option, widget):
         pen = QtGui.QPen(QtCore.Qt.black, 1.2, QtCore.Qt.DotLine)
         painter.setPen(pen)
-        painter.setBrush(self.color)
+        # painter.setBrush(self.color)
         painter.strokePath(self.path, painter.pen())
 
     def buildCurve(self):

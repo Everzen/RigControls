@@ -732,7 +732,7 @@ class ControlPin(QtGui.QGraphicsItem):
                 self.pinTie.drawTie()
 
             # If there is a node then it will be moved, so update the curve that runs through it
-            if self.getNode(): self.getNode().curveUpdate()
+            if self.getNode(): self.getNode().dirtyCurve()
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
 
@@ -1111,13 +1111,15 @@ class Node(QtGui.QGraphicsItem):
             self.setPos(QtCore.QPointF(0,0))
             if self.pinTie:
                 self.pinTie().drawTie()
-            self.curveUpdate() # Redraw the curve that is going through the WireGroup
+            self.dirtyCurve() # Redraw the curve that is going through the WireGroup
         else:
             print "WARNING : NODE HAS NO ASSOCIATED PIN AND AS SUCH HAS NO HOME TO GO TO :("
 
-    def curveUpdate(self):
+    def dirtyCurve(self):
+        "Marks any associated curves as dirty"
+
         for rigCurve in self.rigCurveList:
-            rigCurve().buildCurve() 
+            rigCurve().dirtyCurve()
 
     def boundingRect(self):
         adjust = 2
@@ -1157,7 +1159,7 @@ class Node(QtGui.QGraphicsItem):
             if self.pinTie:
                 # print "There is a tie"
                 self.pinTie().drawTie()
-            self.curveUpdate() # The node movement requires redrawing of the WireGroup Curve
+            self.dirtyCurve() # The node movement requires redrawing of the WireGroup Curve
             if self.getPin(): #Check to see if there is a pin
                 if self.getPin().getConstraintItem(): #check to see if there is a constraint Item
                     if type(self.getPin().getConstraintItem()) == ConstraintLine: # We have the special case of the ConstraintLine in place
@@ -1354,7 +1356,7 @@ class SuperNode(Node):
             self.setPos(QtCore.QPointF(0,0))
             if self.pinTie:
                 self.pinTie().drawTie()
-            self.curveUpdate() # The SuperNode movement requires redrawing of the Curve if there is one
+            self.dirtyCurve() # The SuperNode movement requires redrawing of the Curve if there is one
             for skinPin in self.skinnedPins: 
                 skinPin.goHome()
                 homeNode = skinPin.getPin().getNode()

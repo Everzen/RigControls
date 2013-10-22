@@ -146,24 +146,30 @@ class PinTie(QtGui.QGraphicsItem):
 
 
 class RigCurve(QtGui.QGraphicsItem):
-    """This the graphics Item that serves to draw the curve that connects all the nodes together in a WireGroup
+    """Draws the curve that connects all the nodes together in a WireGroup
 
-       The user cannot interact with this curve, it is drawn automaticall when a Node or ControlPin is moved
-       
-       Currently, this curve is very intensive, and needs optimising in a serious way using dirty bits to 
-       limit the number of times the redraw is calculated. Investigate this!  
+    The user cannot interact with this curve, it is drawn automaticall when a Node or ControlPin is moved
+
+    Currently, this curve is very intensive, and needs optimising in a serious way using dirty bits to 
+    limit the number of times the redraw is calculated. Investigate this!  
     """
     def __init__(self, color, controlNodes, parent=None, scene=None):
         super(RigCurve, self).__init__(parent, scene)
+
         self.selected = False
         self.color = color
         self.nodeList = self.getNodeList(controlNodes)
         self.curveSwing = 0.25
         self.handlescale = 0.3
         self.secondHandleScale = 0.5
+        self.dirty = True
+
+        # Set Draw sorting order - 0 is furthest back. Put curves and pins near
+        # the back. Nodes and markers nearer the front.
+        self.setZValue(0)
+
         self.addCurveLink()
         self.buildCurve()
-        self.setZValue(0) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
     def getNodeList(self, controlNodes):
         """Function to collect and store control nodes as weak references"""
@@ -184,13 +190,29 @@ class RigCurve(QtGui.QGraphicsItem):
         return self.path.boundingRect()
 
     def paint(self, painter, option, widget):
+        "Recalculates the curve if it is dirty and paints it"
+
+        if self.dirty:
+            self.buildCurve()
+
         pen = QtGui.QPen(QtCore.Qt.black, 1.2, QtCore.Qt.DotLine)
         painter.setPen(pen)
         # painter.setBrush(self.color)
         painter.strokePath(self.path, painter.pen())
 
+    def dirtyCurve(self):
+        "Marks the curve as dirty to register that it needs to be recalculated before drawing"
+
+        self.dirty = True
+
     def buildCurve(self):
-        """Function to build section of Bezier"""
+        "Rebuilds the curve if it is dirty and marks it as clean"
+
+        if not self.dirty:
+            return
+
+        self.dirty = False
+
         if self.isVisible:
             if len(self.nodeList) >= 3:
                 self.path = QtGui.QPainterPath()
@@ -246,6 +268,8 @@ class RigCurve(QtGui.QGraphicsItem):
                 cP1 = self.nodeList[-2]().getBezierHandles(1)
                 self.nodeList[-1]().setBezierHandles(cP2, 0)
                 self.path.cubicTo(QPVec(cP1),QPVec(cP2),QPVec(startPoint))
+
+
 
 
 

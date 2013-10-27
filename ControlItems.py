@@ -160,12 +160,12 @@ class WireGroup():
         # Now record the xml for the Nodes
         wireNodes = xml.SubElement(wireRoot,'Nodes')
         for n in self.nodes:
-            nodeXml = n.store()
+            nodeXml = n.store(self.name) # Pass the node the wireGroup Name to help identify referenced nodes (Node Merges)
             wireNodes.append(nodeXml)
         # Now record the xml for the Pins - pinTies should be able to be drawn from the resulting data of nodes and pins
         wirePins = xml.SubElement(wireRoot,'Pins')
         for p in self.pins:
-            pinXml = p.store()
+            pinXml = p.store(self.name)
             wirePins.append(pinXml)
         return wireRoot
 
@@ -184,30 +184,42 @@ class WireGroup():
 
         pins = wireXml.findall('Pins')
         for p in pins[0].findall('Pin'):
-            newPin = ControlPin(QPVec([0,0])) # Create new Node with Arbitrary pos
-            self.pins.append(newPin)
-            newPin.read(p)
-            self.scene.addItem(newPin)
+            if p.attrib['state'] == 'native': # We have a normal Native Pin so Build it
+                newPin = ControlPin(QPVec([0,0])) # Create new Node with Arbitrary pos
+                self.pins.append(newPin)
+                newPin.read(p)
+                self.scene.addItem(newPin)
+                newPin.setWireGroup(self)
+            elif p.attrib['state'] == 'reference': # We have a reference to a Node in another Wire Group, so read in the reference
+                refPin = NodePinReference()
+                refPin.read(p)
+                self.pins.append(refPin)
         nodes = wireXml.findall('Nodes')
         for n in nodes[0].findall('Node'):
-            newNode = Node(QPVec([0,0])) # Create new Node with Arbitray pos
-            self.nodes.append(newNode)
-            newNode.read(n)
-            newNode.setPin(self.findPin(newNode.getPinIndex())) # Set the pin for Node
-            self.findPin(newNode.getPinIndex()).setNode(newNode) # Set the Node for the Pin
-            newNode.setWireGroup(self)
-            if newNode.getPin().getConstraintItem(): # We have a constraint Item so make sure we set the node for it
-                newNode.getPin().getConstraintItem().setNode(newNode)
+            if n.attrib['state'] == 'native': # We have a normal Native Pin so Build it
+                newNode = Node(QPVec([0,0])) # Create new Node with Arbitray pos
+                self.nodes.append(newNode)
+                newNode.read(n)
+                newNode.setPin(self.findPin(newNode.getPinIndex())) # Set the pin for Node
+                self.findPin(newNode.getPinIndex()).setNode(newNode) # Set the Node for the Pin
+                newNode.setWireGroup(self)
+                if newNode.getPin().getConstraintItem(): # We have a constraint Item so make sure we set the node for it
+                    newNode.getPin().getConstraintItem().setNode(newNode)
+            
+            elif n.attrib['state'] == 'reference': # We have a reference to a Node in another Wire Group, so read in the reference
+                refNode = NodeReference()
+                refNode.read(n)
+                self.nodes.append(refNode)
             # self.scene.addItem(newNode)
         self.createPinTies() # Now nodes and Pins are in Place we can create the pinTies
-        self.createCurve() # UPGRADE: Possibly to include a series of smaller curves, not a giant clumsy one
+        # self.createCurve() # Hold off generating the curve until we have resolved all of the reference Nodes and Pins
 
     def buildFromPositions(self , pinQPointList):
         self.pinPositions = pinQPointList
         self.createPins()
         self.createNodes()
         self.createPinTies()
-        self.createCurve() # UPGRADE: Possibly to include a series of smaller curves, not a giant clumsy one
+        self.createCurve() 
 
     def getName(self):
         return self.name
@@ -215,6 +227,7 @@ class WireGroup():
     def setName(self, newName):
         self.name = str(newName)
         for node in self.nodes: node.setWireName(newName)
+        for pin in self.pins: pin.setWireName(newName)
 
     def getColour(self):
         return self.colour
@@ -307,6 +320,26 @@ class WireGroup():
     def resetNodes(self):
         for node in self.nodes:
             node.goHome()
+
+    def mergeNode(self, index, mergeNode):
+        """A function to replace the index node in self.nodes with a merged node coming from another Wiregroup"""
+        if index < len(self.nodes):
+            if self.nodes[index].getWireName() == self.name: # This means we have a valid native Node that we can replace
+                oldNode = self.nodes[index]
+                # print "Got the Node, it is in Position " + str(index)
+                # Directly set the target Node into the WireGroup
+                self.pins[index] = mergeNode.getPin()
+                self.nodes[index] = mergeNode
+                self.pinTies[index] = mergeNode.getPinTie()
+                self.createCurve() # Build the new Curve running through the new shared Node
+                
+                # Delete the Old MergeNode Node and Pin
+                if type(oldNode) == Node: # If it is a node then remove it, but it might simply be a reference.
+                    self.scene.removeItem(oldNode.getPin())
+                    self.scene.removeItem(oldNode.getPinTie())
+                    self.scene.removeItem(oldNode)
+
+                mergeNode.goHome() # For neatness Sends the target node back to its pin            
 
     def clear(self):
         for n in self.nodes:
@@ -531,6 +564,7 @@ class ControlPin(QtGui.QGraphicsItem):
         self.scaleOffset = 2.5
         self.alpha = 1.0 # Not implemented, since the pin is so subtle.
         self.wireGroup = None
+        self.wireName = None
         self.constraintItem = None
         self.active = True
         self.node = None
@@ -544,9 +578,13 @@ class ControlPin(QtGui.QGraphicsItem):
         self.styleData = f.read()
         f.close()
 
-    def store(self):
+    def store(self, wireName):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
-        pinRoot = xml.Element('Pin')
+        state = "native"
+        if self.wireName != wireName: state = "referenced" 
+
+        # print "Input wireName : " + str(wireName) + " Pin WireName : " + str(self.wireName)
+        pinRoot = xml.Element('Pin', state = str(state))
         attributes = xml.SubElement(pinRoot,'attributes')
         xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
@@ -626,6 +664,13 @@ class ControlPin(QtGui.QGraphicsItem):
 
     def setWireGroup(self, wireGroup):
         self.wireGroup = wireGroup
+        self.wireName = wireGroup.getName()
+
+    def getWireName(self):
+        return self.wireName
+
+    def setWireName(self, wireName):
+        self.wireName = str(wireName)   
 
     def getConstraintItem(self):
         return self.constraintItem
@@ -745,6 +790,9 @@ class ControlPin(QtGui.QGraphicsItem):
             # If there is a node then it will be moved, so update the curve that runs through it
             if self.getNode(): self.getNode().dirtyCurve()
         return QtGui.QGraphicsItem.itemChange(self, change, value)
+
+
+
 
 
 class GuideMarker(QtGui.QGraphicsItem):
@@ -973,9 +1021,13 @@ class Node(QtGui.QGraphicsItem):
         self.setPos(nPos)
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
-    def store(self):
+    def store(self,wireName):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
-        nodeRoot = xml.Element('Node')
+        # We need to identify if the Node is referenced for is native to this WireGroup
+        state = "native"
+        if self.wireName != wireName: state = "referenced" 
+        # print "Input wireName : " + str(wireName) + " Node WireName : " + str(self.wireName)
+        nodeRoot = xml.Element('Node', state = str(state))
         attributes = xml.SubElement(nodeRoot,'attributes')
         xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
         xml.SubElement(attributes, 'attribute', name = 'radius', value = str(self.getRadius()))
@@ -1200,7 +1252,36 @@ class Node(QtGui.QGraphicsItem):
         else: QtGui.QGraphicsItem.mouseMoveEvent(self, mouseEvent)
 
 
-###Nodes for selection in the Graphics View
+
+class NodePinReference():
+    """This provides storage information of the wireGroup Name and Index of a Node/ControlPin 
+    in another WireGroup, so it can be pulled in and shared into the current WireGroup.
+
+    This occurs when Nodes are Merged across into other Wiregroups.
+    """
+    def __init__():
+        self.index = None
+        self.wireName = None
+
+    def getIndex(self):
+        return self.index
+
+    def setIndex(self, index):
+        self.index = int(index)
+
+    def getWireName(self):
+        return self.wireName
+
+    def setWireName(self, wireName):
+        self.wireName = str(wireName)
+
+    def read(self, nodePinXml):
+        """Function to read in some simple data into the reference Object so later we can locate the required Pin/Node"""
+        for a in nodePinXml.findall( 'attributes/attribute'):
+            if a.attrib['name'] == 'index': self.setIndex(int(a.attrib['value']))
+            elif a.attrib['name'] == 'wireName': self.setWireName(str(a.attrib['value']))
+
+
 class SuperNode(Node):
     """A superNode subclasses the Node to give more flexibility and functionality
 

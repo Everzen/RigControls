@@ -652,18 +652,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
             for index, node in enumerate(wireGroup.getNodes()):
                 if node == self.mergeNode:
-                    # print "Got the Node, it is in Position " + str(index)
-                    # Directly set the target Node into the WireGroup
-                    wireGroup.pins[index] = self.targetNode.getPin()
-                    wireGroup.nodes[index] = self.targetNode
-                    wireGroup.pinTies[index] = self.targetNode.getPinTie()
-                    wireGroup.createCurve() # Build the new Curve running through the new shared Node
-                    # Delete the Old MergeNode Node and Pin
-                    scene.removeItem(self.mergeNode.getPin())
-                    scene.removeItem(self.mergeNode.getPinTie())
-                    scene.removeItem(self.mergeNode)
-
-                    self.targetNode.goHome() # For neatness Sends the target node back to its pin
+                    wireGroup.mergeNode(index, self.targetNode)
 
             self.mergeNode = None  # Ensure that the mergeNodes and TargetNodes are reset to None
             self.targetNode = None

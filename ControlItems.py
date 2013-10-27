@@ -222,6 +222,12 @@ class WireGroup():
     def setColour(self,colour):
         self.colour = colour
 
+    def getNodes(self):
+        return self.nodes
+
+    def getPins(self):
+        return self.pins
+
     def getScale(self):
         return self.scale
 
@@ -279,6 +285,11 @@ class WireGroup():
             print "WARNING : NO PIN TIES DRAWN SINCE THERE WERE INSUFFICIENT NODES OR UNEQUAL NODES AND PINS"
 
     def createCurve(self):
+        if self.curve: # IF there is already a curve, then make sure that it is removed from the scene and deleted
+            self.scene.removeItem(self.curve)
+            del self.curve
+            self.curve = None 
+        for node in self.nodes: node.clearRigCurveList() # Clear out any dead curves from Node CurveLists
         if len(self.nodes) > 2:
             self.curve = RigCurve(self.colour, self.nodes)
             self.scene.addItem(self.curve)
@@ -1064,6 +1075,14 @@ class Node(QtGui.QGraphicsItem):
         self.rigCurveList.append(weakref.ref(rigCurve))
         # print "Rig Curve List is : " + str(self.rigCurveList) + " - for Node :" + str(self)
 
+    def clearRigCurveList(self):
+        """Method to run through all the curves in the rigCurveList and 
+        throw out any dead ones, that could be caused by processes like Node Merging
+        """
+
+        for curve in self.rigCurveList:
+            if curve() == None: self.rigCurveList.remove(curve)
+
     def setBezierHandles(self, handlePos, handleNo):
         """A function to record the position of the bezier handles associated with this Node"""
         self.bezierHandles[handleNo] = handlePos
@@ -1084,7 +1103,7 @@ class Node(QtGui.QGraphicsItem):
             print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PIN ALLOCATION"
 
     def getPinTie(self):
-        return self.pinTie
+        return self.pinTie() #Calls the weakreference, which will call the object itself
 
     def setPinTie(self, pinTie):
         if type(pinTie) == PinTie:
@@ -1117,7 +1136,7 @@ class Node(QtGui.QGraphicsItem):
 
     def dirtyCurve(self):
         "Marks any associated curves as dirty"
-
+        # print "RigCurveList =  " + str(self.rigCurveList)
         for rigCurve in self.rigCurveList:
             rigCurve().dirtyCurve()
 

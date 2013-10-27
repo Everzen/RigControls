@@ -68,6 +68,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.superNodeGroups = []
 
         self.dragItem = None
+        self.canNodeMerge = False # This attribute is turned on by a keypress of CTRL. When true it enables nodes to merge between WireGroups
+        self.mergeNode = None
+        self.targetNode = None
         self.skinningItem = None
         self.isSelectableList = [] #list used to store selectable states while panning around 
         self.isMovableList = [] #list used to store selectable states while panning around       
@@ -373,9 +376,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def keyPressEvent(self, event):
         scene = self.scene()
         key = event.key()
+        print str(key)
         if key == QtCore.Qt.Key_Alt:
             self.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
             self.panSelectableItems()
+        elif key == 16777249: # This is the integer representing Left Ctrl - must be a better way of doing this!
+            self.canNodeMerge = True
         elif key == QtCore.Qt.Key_Plus:
             self.scaleView(1.2)
         elif key == QtCore.Qt.Key_Minus:
@@ -407,6 +413,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, self.isSelectableList[index])
                 item.setFlag(QtGui.QGraphicsItem.ItemIsMovable, self.isMovableList[index])
                 item.setSelected(self.isSelectedList[index])
+        elif key == 16777249: # This is the integer representing Left Ctrl - must be a better way of doing this!
+            self.canNodeMerge = False
         QtGui.QGraphicsView.keyReleaseEvent(self, event)
 
     def wheelEvent(self, event):
@@ -562,8 +570,42 @@ class RigGraphicsView(QtGui.QGraphicsView):
             #     self.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
         return QtGui.QGraphicsView.mousePressEvent(self, mouseEvent)
 
+    def mouseReleaseEvent(self, mouseEvent):
+        self.tryMergeNodes() # Test to see if we have the condition for Nodes to be merged
+        return QtGui.QGraphicsView.mouseReleaseEvent(self, mouseEvent)
+
     def mouseMoveEvent(self, mouseEvent):
         scene = self.scene()
+        nodes = []
+        possibleItems = self.items(mouseEvent.pos())
+        if mouseEvent.buttons() == QtCore.Qt.LeftButton:
+            for item in possibleItems:
+                if type(item) == Node: nodes.append(item)
+
+        if len(nodes) > 1 :
+            mergeNode = None
+            nodeSelCount = 0
+            for node in nodes:
+                if node.isSelected():
+                    mergeNode = node
+                    nodeSelCount += 1
+                    # print "nodeCount : " + str(nodeSelCount)
+
+            if nodeSelCount == 1:
+                # print "we have one Node Selected Proceed"
+                for node in nodes:
+                    if node != mergeNode and self.canNodeMerge: # Check self.canNodeMerge, which tells us if CTRL is being pressed for the merge
+                        if not node.isSelected():
+                            # print "We have found a potential Target"
+                            canMerge = self.isMergeNode(mergeNode,node)
+                            node.setHighlighted(canMerge)
+                            if canMerge: 
+                                self.mergeNode = mergeNode
+                                self.targetNode = node
+                            return QtGui.QGraphicsView.mouseMoveEvent(self, mouseEvent)
+
+        self.deactivateNodes() # If we get here then we have not found a target node, so make sure all nodes are deactivated
+
         return QtGui.QGraphicsView.mouseMoveEvent(self, mouseEvent)
 
 
@@ -585,6 +627,46 @@ class RigGraphicsView(QtGui.QGraphicsView):
                if type(item) == Node: 
                     item.goHome()
         return QtGui.QGraphicsView.mouseDoubleClickEvent(self, mouseEvent)
+
+    def isMergeNode(self, mergeNode, targetNode):
+        canMerge = True
+        if mergeNode.getWireName() == targetNode.getWireName(): # The node is from the same WireGroup do not merge!
+            # print "No Merge : Node is the same Wiregroup"
+            canMerge = False
+        return canMerge
+
+    def deactivateNodes(self):
+        scene = self.scene()
+        for item in self.items():
+            if type(item) == Node:
+                item.setHighlighted(False)
+        self.mergeNode = None  # Ensure that the mergeNodes and TargetNodes are reset to None
+        self.targetNode = None
+
+    def tryMergeNodes(self):
+        scene = self.scene()
+        if type(self.mergeNode) == Node and type(self.targetNode) == Node:
+            # print "Boom: We have a node Merge Match"
+            # We need to delete the merge Node along with its Pin Etc, and then replace it with the targetNode
+            wireGroup = self.mergeNode.getWireGroup()
+
+            for index, node in enumerate(wireGroup.getNodes()):
+                if node == self.mergeNode:
+                    # print "Got the Node, it is in Position " + str(index)
+                    # Directly set the target Node into the WireGroup
+                    wireGroup.pins[index] = self.targetNode.getPin()
+                    wireGroup.nodes[index] = self.targetNode
+                    wireGroup.pinTies[index] = self.targetNode.getPinTie()
+                    wireGroup.createCurve() # Build the new Curve running through the new shared Node
+                    # Delete the Old MergeNode Node and Pin
+                    scene.removeItem(self.mergeNode.getPin())
+                    scene.removeItem(self.mergeNode.getPinTie())
+                    scene.removeItem(self.mergeNode)
+
+                    self.targetNode.goHome() # For neatness Sends the target node back to its pin
+
+            self.mergeNode = None  # Ensure that the mergeNodes and TargetNodes are reset to None
+            self.targetNode = None
 
     def sortMenuItem(self, event):
         """Function to ensure that the correct RC menu appears where ever possible. Ensure that SkinningEllipse RC's do not appear over other items"""

@@ -303,3 +303,66 @@ class SkinTabW(QtGui.QTableWidget):
             homeNode = self.superNode.getSkinnedPins()[item.row()].getPin().getNode()
             if homeNode:  #Hacky way of updating the curves when the pin is sent home! Maybe wrap into a neat function
                 homeNode.curveUpdate()
+
+
+class ControlScale():
+    def __init__(self):
+        self.controlSlider = None
+        self.minimum = 0
+        self.maximum = 200
+        self.currentScale = 100
+        self.controlList = []
+        self.scaleSameItems = False
+        self.scene = None
+
+
+    def setSlider(self, controlSlider):
+        self.controlSlider = controlSlider
+
+    def setScene(self, scene):
+        self.scene = scene
+
+    def getControlList(self):
+        return self.controlList
+
+    def setControlList(self, controlList):
+        """A Method that takes a selection list and makes sure that we only have one type of control selected
+
+        If more than one type of control is selected, or is no Controls are selected, then the slider deactivates. 
+        Otherwise it activates
+        """
+        validControlList = True
+        if len(controlList) != 0: # Check we have at least one Item
+            leaderControlType = type(controlList[0])
+            # Check the type is one of the key Control Items that we would want to scale
+            if leaderControlType == GuideMarker or leaderControlType == Node or leaderControlType == SuperNode:
+                for control in controlList:
+                    if type(control) != leaderControlType: validControlList = False
+        else: validControlList = False
+
+        if validControlList:
+            self.controlList = controlList
+            self.minimum = self.controlList[0].getMinimumScale()*100
+            self.currentScale = self.controlList[0].getScale()*100
+            self.controlSlider.setRange(self.minimum, self.maximum)
+            self.controlSlider.setValue(self.currentScale)
+        
+        self.controlSlider.setEnabled(validControlList) # Set the enabled state of the slider depending on whether we have a Valid List
+
+    def getScaleSameItems(self):
+        return self.scaleSameItems
+
+    def setScaleSameItems(self, isSameItems):
+        self.scaleSameItems = isSameItems
+
+    def update(self):
+        if len(self.controlList) != 0:
+            if self.scaleSameItems: # We have a control and need to scale all items in the scene that are of the same type
+                for control in self.scene.items():
+                    if type(control) == type(self.controlList[0]):
+                        control.setScale(float(self.controlSlider.value())/100.0)
+                        control.update()
+            else: # We have a control and we need to only scale the controls selected. 
+                for control in self.controlList:
+                    control.setScale(float(self.controlSlider.value())/100.0)
+                    control.update()

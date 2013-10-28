@@ -20,11 +20,11 @@ from RigStore import *
 
 class RigGraphicsView(QtGui.QGraphicsView):
 
-    def __init__(self, mainWindow, messageLogger, styleData, itemFactory):
+    def __init__(self, mainWindow, messageLogger, styleData, itemFactory, controlScaler):
 
         QtGui.QGraphicsView.__init__(self) 
-        self.width = 500
-        self.height = 500
+        self.width = 600
+        self.height = 600
         self.size = (0, 0, self.width, self.height)
         self.setAcceptDrops(True)
 
@@ -77,6 +77,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.isSelectedList = []
         
         self.mainWindow = mainWindow
+        self.controlScaler = controlScaler
 
         #TESTING ADDING NEW ITEMS
         # el = ConstraintEllipse(80,80)
@@ -117,7 +118,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def getMarkerScale(self):
         return self.markerScale
 
-    def setMarkerScaleSlider(self, scale):
+    def setControlScaleSlider(self, scale):
         """Function to cycle through markers and scale"""
         scene = self.scene()
         for item in scene.items():
@@ -162,6 +163,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.updateSceneRect(QtCore.QRectF(self.size[0],self.size[1],self.size[2],self.size[3]))
             if remap: self.reflectionLine.remap(self.width, self.height) # Adjust the Positing and height of the reflection line
             # self.setMinimumSize(self.width,self.height)
+            self.scene().setSceneRect(0,0,self.width,self.height)
+            self.centerOn(QtCore.QPointF(self.width/2,self.height/2))
             self.scene().update()
             self.sizeHint()
 
@@ -376,7 +379,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def keyPressEvent(self, event):
         scene = self.scene()
         key = event.key()
-        print str(key)
         if key == QtCore.Qt.Key_Alt:
             self.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
             self.panSelectableItems()
@@ -572,6 +574,14 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
     def mouseReleaseEvent(self, mouseEvent):
         self.tryMergeNodes() # Test to see if we have the condition for Nodes to be merged
+
+        self.isSelectedList = []
+        scene = self.scene()
+        for item in scene.items(): # Collect all selected items in the scene
+            if item.isSelected(): self.isSelectedList.append(item)
+        self.controlScaler.setControlList(self.isSelectedList)
+        print "Control List : " + str(self.controlScaler.getControlList())
+
         return QtGui.QGraphicsView.mouseReleaseEvent(self, mouseEvent)
 
     def mouseMoveEvent(self, mouseEvent):

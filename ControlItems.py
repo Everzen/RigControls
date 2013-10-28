@@ -880,6 +880,7 @@ class GuideMarker(QtGui.QGraphicsItem):
         self.index = None        
         self.active = False
         self.activeIndex = 0
+        self.minimumScale = 0.8
         self.scale = 1.0
         self.alpha = 1.0
         self.colourList = [QtGui.QColor(255,0,0), QtGui.QColor(0,255,0), QtGui.QColor(0,0,255), QtGui.QColor(0,255,255), QtGui.QColor(255,0,255), QtGui.QColor(255,255,0), QtGui.QColor(255,125,0), QtGui.QColor(125,255,0),QtGui.QColor(255,0,125),QtGui.QColor(125,0,255),QtGui.QColor(0,255,125),QtGui.QColor(0,125,255),QtGui.QColor(255,125,125),QtGui.QColor(125,255,125),QtGui.QColor(125,125,255),QtGui.QColor(255,255,125),QtGui.QColor(255,125,255),QtGui.QColor(125,255,255)]
@@ -923,6 +924,9 @@ class GuideMarker(QtGui.QGraphicsItem):
             elif a.attrib['name'] == 'pos': 
                 newPos = a.attrib['value'].split(",")
                 self.setPos(float(newPos[0]), float(newPos[1]))
+
+    def getMinimumScale(self):
+        return self.minimumScale
 
     def getScale(self):
         return self.scale
@@ -1072,6 +1076,7 @@ class Node(QtGui.QGraphicsItem):
         self.bezierHandles = [None, None]
 
         self.scaleOffset = 7
+        self.minimumScale = 0.8
         self.scale = 1.0
         self.wireName = ""
         self.colour = QtGui.QColor(25,25,255,150)
@@ -1159,6 +1164,9 @@ class Node(QtGui.QGraphicsItem):
 
     def setRadius(self, radius):
         self.radius = radius
+
+    def getMinimumScale(self):
+        return self.minimumScale
 
     def getScale(self):
         return self.scale
@@ -1382,6 +1390,7 @@ class SuperNode(Node):
         self.name = "Badger"
         self.form = "Arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
         self.alpha = 1.0
+        self.minimumScale = 0.2
         self.colour = QtGui.QColor(250,160,100,255*self.alpha)
         self.path = QtGui.QPainterPath()
         self.skinningItem = None

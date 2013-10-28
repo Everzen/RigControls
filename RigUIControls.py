@@ -653,6 +653,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             for index, node in enumerate(wireGroup.getNodes()):
                 if node == self.mergeNode:
                     wireGroup.mergeNode(index, self.targetNode)
+                    wireGroup.createCurve() # Now the Node has been merged in, rebuild the curve
 
             self.mergeNode = None  # Ensure that the mergeNodes and TargetNodes are reset to None
             self.targetNode = None

@@ -146,6 +146,7 @@ class WireGroup():
         self.pinTies = []
         self.curve = None
         self.scene = rigGView.scene()
+        self.rigGView = rigGView
         # self.initBuild()
 
     def store(self):
@@ -170,7 +171,20 @@ class WireGroup():
         return wireRoot
 
     def read(self, wireXml):
-        """A function to read in a block of XML and set all major attributes accordingly"""
+        """A function to read in a block of XML and set all major attributes accordingly
+
+        This is more complex since we can now have references to nodes/pins in other Wiregroups due to a Node Merges
+        As such each Node and Pin is checked as it is loaded, and if it is found to be "native" (stored attribute)
+        then it is read in and built as normal. However if it is a reference to another node/pin in a different 
+        Wiregroup then a NodePinReference() object is used to store the reference to the appropriate Node. 
+
+        All pins and Nodes that can be built (native ones) are built, but no curve is built, since all referenced nodes
+        have to be resolved into the correct Wiregroups before the curves can be drawn. As such the functionality has 
+        to be broken into 3 stages. 
+        1) Build all native Nodes and Pins for all WireGroups
+        2) Resolve all referenced Nodes and Pins for all wiregroups
+        3) Only then can we build the curves for all Wiregroups
+        """
         for a in wireXml.findall( 'attributes/attribute'):
             if a.attrib['name'] == 'name': self.setName(a.attrib['value'])
             elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
@@ -207,7 +221,7 @@ class WireGroup():
                     newNode.getPin().getConstraintItem().setNode(newNode)
             
             elif n.attrib['state'] == 'reference': # We have a reference to a Node in another Wire Group, so read in the reference
-                refNode = NodeReference()
+                refNode = NodePinReference()
                 refNode.read(n)
                 self.nodes.append(refNode)
             # self.scene.addItem(newNode)
@@ -215,6 +229,11 @@ class WireGroup():
         # self.createCurve() # Hold off generating the curve until we have resolved all of the reference Nodes and Pins
 
     def buildFromPositions(self , pinQPointList):
+        """Method used to build an entire Wiregroup from a list of positions provided
+
+        This is not used for when we read a face from a file, since by that stage Nodes could have been merged
+        between Wiregroups and as such the "read" requires more detail.
+        """
         self.pinPositions = pinQPointList
         self.createPins()
         self.createNodes()
@@ -280,20 +299,31 @@ class WireGroup():
             # self.scene.addItem(node)
 
     def createPinTies(self):
+        """This method creates all the PinTies, which is the small yellow dotted line from ControlPin to Node
+
+        This Method is used when reading in nodes/pins too. In this case it has to be careful, since it might
+        meet a NodePinReference instead of a "native" node/pin (see "read" method doc string). In these cases 
+        it is important that even those a PinTie is not going to be built the length of the self.pinTies list 
+        kept in line with the length of the self.nodes and self.pins lists. As such a "None" is added to the 
+        list when a reference is met in order to preserve the list length. This is then resolved in the mergeNode
+        method.
+
+        """
         self.pinTies = []
         if len(self.pins) > 1 and len(self.pins) == len(self.nodes):
             for index, n in enumerate(self.nodes):
-                pin = self.findPin(n.getPinIndex())
-                if pin:
-                    pT = PinTie(n, pin)
-                    pT.setIndex(pin.getIndex()) #Make the tie Index the same as the pins
-                    # n.setPinIndex(index)
-                    self.pinTies.append(pT)
-                    n.setPinTie(pT)
-                    pin.setPinTie(pT)
-                    self.scene.addItem(pT)
-                    pin.activate() #Now that all pins, ties and Nodes are in place
-                else: print "WARNING : NO PIN TIES DRAWN SINCE NO MATCHING PIN WAS FOUND FOR NODE"
+                if type(n) == Node: #Check the type of n, since it might be a reference
+                    pin = self.findPin(n.getPinIndex())
+                    if pin:
+                        pT = PinTie(n, pin)
+                        pT.setIndex(pin.getIndex()) #Make the tie Index the same as the pins
+                        # n.setPinIndex(index)
+                        self.pinTies.append(pT)
+                        n.setPinTie(pT)
+                        pin.setPinTie(pT)
+                        self.scene.addItem(pT)
+                        pin.activate() #Now that all pins, ties and Nodes are in place
+                else: self.pinTies.append(None) # Append None to keep the self.pinTies list the correct length
         else:
             print "WARNING : NO PIN TIES DRAWN SINCE THERE WERE INSUFFICIENT NODES OR UNEQUAL NODES AND PINS"
 
@@ -302,46 +332,72 @@ class WireGroup():
             self.scene.removeItem(self.curve)
             del self.curve
             self.curve = None 
-        for node in self.nodes: node.clearRigCurveList() # Clear out any dead curves from Node CurveLists
+        for node in self.nodes: 
+            if type(node) == Node: node.clearRigCurveList() # Clear out any dead curves from Node CurveLists. if we have a Node
         if len(self.nodes) > 2:
             self.curve = RigCurve(self.colour, self.nodes)
             self.scene.addItem(self.curve)
 
     def findNode(self,index):
+        """Method used to find a node from within a Wiregroup using the nodes index"""
         for n in self.nodes:
             if n.getIndex() == index:
                 return n
 
     def findPin(self,index):
+        """Method used to find a pin from within a Wiregroup using the nodes index"""
         for p in self.pins:
             if p.getIndex() == index:
                 return p
 
     def resetNodes(self):
+        """Method to send all the nodes in the Wiregroup back to the origins (pins)"""
         for node in self.nodes:
             node.goHome()
 
-    def mergeNode(self, index, mergeNode):
-        """A function to replace the index node in self.nodes with a merged node coming from another Wiregroup"""
+    def mergeNode(self, index, mergeNode, goHome = True):
+        """A function to replace the index node in self.nodes with a merged node coming from another Wiregroup
+
+        This method is used both when the user merges nodes in the UI, but also to resolve Node Merges that are 
+        saved out and read in from files. It is this function that takes a NodePinReference and replaces it 
+        in the wiregroup lists with the correct node/pin from a neighbouring wiregroup.
+        """
+
         if index < len(self.nodes):
-            if self.nodes[index].getWireName() == self.name: # This means we have a valid native Node that we can replace
+            # Proceed with Replacement if we have a valid native Node or a NodePinReference Object
+            if self.nodes[index].getWireName() == self.name or self.nodes[index].name == "NodePinReference": 
                 oldNode = self.nodes[index]
-                # print "Got the Node, it is in Position " + str(index)
-                # Directly set the target Node into the WireGroup
+                # Directly set the mergeNode Node into the WireGroup
                 self.pins[index] = mergeNode.getPin()
                 self.nodes[index] = mergeNode
                 self.pinTies[index] = mergeNode.getPinTie()
-                self.createCurve() # Build the new Curve running through the new shared Node
                 
                 # Delete the Old MergeNode Node and Pin
                 if type(oldNode) == Node: # If it is a node then remove it, but it might simply be a reference.
                     self.scene.removeItem(oldNode.getPin())
                     self.scene.removeItem(oldNode.getPinTie())
                     self.scene.removeItem(oldNode)
+                
+                # For neatness sends the merge node back to its pin. This is deactivated when reading in a file            
+                if goHome: mergeNode.goHome() 
 
-                mergeNode.goHome() # For neatness Sends the target node back to its pin            
+    def resolveReferences(self):
+        """This is the method that is called after the intial 'native' nodes are read in from a file
+
+        It scans the self.nodes to find references (NodePinReference objects). From there is scans all 
+        the other wiregroups in the scene to find the referenced node incorporate it into this wiregroup.
+
+        After these references are resolved for all wiregroups then the final wiregroup curves can be built.
+        """
+        for index, refNode in enumerate(self.nodes):
+            if refNode.name == "NodePinReference": # We have found a reference so find and sub in the Node
+                for wireGroup in self.rigGView.wireGroups:
+                    if wireGroup.getName() == refNode.getWireName():
+                        targetNode = wireGroup.findNode(refNode.getIndex())
+                        self.mergeNode(index, targetNode, goHome = False)
 
     def clear(self):
+        """A Function to completely remove all items from Wiregroup"""
         for n in self.nodes:
             self.scene.removeItem(n)
             del n
@@ -579,9 +635,17 @@ class ControlPin(QtGui.QGraphicsItem):
         f.close()
 
     def store(self, wireName):
-        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        """Method to write out a block of XML that records all the major attributes that will be needed for save/load
+
+        The first thing to do is check to see if the pin is natively from this Wiregroup, or to see if it has been 
+        Merged in from another wiregroup. This can be done by checking the wirenames. If it is from this wire group then
+        its state is recorded as "native". It it isnt from this wiregroup then its state is recorded as "reference" 
+
+        The data then stored for each state is identical, but is treated differently when the data is read back in,
+        in the Wiregroup read method. 
+        """
         state = "native"
-        if self.wireName != wireName: state = "referenced" 
+        if self.wireName != wireName: state = "reference" 
 
         # print "Input wireName : " + str(wireName) + " Pin WireName : " + str(self.wireName)
         pinRoot = xml.Element('Pin', state = str(state))
@@ -994,6 +1058,8 @@ class Node(QtGui.QGraphicsItem):
     Nodes can be constrained using a constraintItem, which can restrict their 
     movement to a shape (ellispse/rectangle) or a straight line
     """
+    name = "Node"
+
     def __init__(self, nPos):
         QtGui.QGraphicsItem.__init__(self)
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
@@ -1022,10 +1088,18 @@ class Node(QtGui.QGraphicsItem):
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
     def store(self,wireName):
-        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        """Function to write out a block of XML that records all the major attributes that will be needed for save/load
+
+        The first thing to do is check to see if the node is natively from this Wiregroup, or to see if it has been 
+        Merged in from another wiregroup. This can be done by checking the wirenames. If it is from this wire group then
+        its state is recorded as "native". It it isnt from this wiregroup then its state is recorded as "reference" 
+
+        The data then stored for each state is identical, but is treated differently when the data is read back in,
+        in the Wiregroup read method.
+        """
         # We need to identify if the Node is referenced for is native to this WireGroup
         state = "native"
-        if self.wireName != wireName: state = "referenced" 
+        if self.wireName != wireName: state = "reference" 
         # print "Input wireName : " + str(wireName) + " Node WireName : " + str(self.wireName)
         nodeRoot = xml.Element('Node', state = str(state))
         attributes = xml.SubElement(nodeRoot,'attributes')
@@ -1259,7 +1333,9 @@ class NodePinReference():
 
     This occurs when Nodes are Merged across into other Wiregroups.
     """
-    def __init__():
+    name = "NodePinReference"
+
+    def __init__(self):
         self.index = None
         self.wireName = None
 

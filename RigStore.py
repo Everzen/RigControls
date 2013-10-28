@@ -146,13 +146,22 @@ class FaceGVCapture():
             self.sceneItems.append(wireXml)
     
     def readWireGroups(self):
-        """A Function to generate WireGroups from XML"""
+        """A Function to generate WireGroups from XML
+
+        Broken down into first of all building all native nodes/pins in the wireGroups.
+        Then resolving all the references of Nodes/pins that exist between wiregroups.
+        Then building the required curves.
+        """
         scene = self.view.scene()
         wireGroups = self.viewXML.findBranch("WireGroup")
         for w in wireGroups:
             newWireGroup = WireGroup(self.view)
             newWireGroup.read(w)
             self.view.wireGroups.append(newWireGroup)
+        # Now we have built all the nodes and pins we need to resolve references within the rigGView and build the curves
+        for wireGroup in self.view.wireGroups:
+            wireGroup.resolveReferences()
+            wireGroup.createCurve()
 
     def captureSuperNodeGroups(self):
         """Function to process SuperNodeGroups into XML"""

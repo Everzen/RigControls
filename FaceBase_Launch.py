@@ -5,6 +5,7 @@ from PyQt4 import QtGui, QtCore
 import math
 import sys
 import Icons
+import os
 
 from RigStore import FaceGVCapture
 
@@ -63,6 +64,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.setWindowTitle("Facial Rig Builder v1.0")
         # self.setGeometry(50,50, 600, 600)
         # self.ColourPickerCircle = {"center" : [245, 245], "centerOffset": [20,16] , "radius": 210 , "filename": "images/ColorWheelSat_500.png"}
+        self.faceSaveFile = None
         self.skinTableWidget = None
         self.styleData = styleData
         self.initUI()
@@ -156,7 +158,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         saveFaceAs = QtGui.QAction(QtGui.QIcon('exit.png'), 'Save Face as...', self)        
         saveFaceAs.setShortcut('Ctrl+Shift+S')
         saveFaceAs.setStatusTip('Save current face to a new file')
-        saveFaceAs.triggered.connect(lambda: self.moo())
+        saveFaceAs.triggered.connect(lambda: self.saveFaceAsRig())
 
         exitAction = QtGui.QAction(QtGui.QIcon('exit.png'), '&Exit', self)        
         exitAction.setShortcut('Ctrl+Q')
@@ -352,15 +354,36 @@ class RigFaceSetup(QtGui.QMainWindow):
     def openFaceRig(self):
         """Function to load in a stored XML file of face Rig Data"""
         xMLStructure = FaceGVCapture(self.view, self.messageLogger)
-        xMLStructure.setXMLFile("faceFiles/test.xml")
-        xMLStructure.read()
+        faceFileName = QtGui.QFileDialog.getOpenFileName(self, 'Open Happy Face File', 'faceFiles', filter = "Face XML files (*.xml)")
+        if faceFileName != "": # A Valid File has been selected from the File Diaglogue
+            self.faceSaveFile = faceFileName
+            xMLStructure.setXMLFile(faceFileName)
+            xMLStructure.read()
 
     def saveFaceRig(self):
         """Function to save the entire Rig Graphics View scene out to an XML File"""
         xMLStructure = FaceGVCapture(self.view, self.messageLogger)
-        xMLStructure.setXMLFile("faceFiles/test.xml")
-        xMLStructure.store()
+        isValidSaveFile = False
+        if self.faceSaveFile: # Check a Face File has been set and exists
+            if os.path.isfile(self.faceSaveFile): isValidSaveFile = True
 
+        if isValidSaveFile:  
+            xMLStructure.setXMLFile(self.faceSaveFile)
+            xMLStructure.store()
+        else:
+            self.faceSaveFile = QtGui.QFileDialog.getSaveFileName(self, 'Save Happy Face File', 'faceFiles', filter = "Face XML files (*.xml)")
+            if self.faceSaveFile != "": 
+                xMLStructure.setXMLFile(self.faceSaveFile)
+                xMLStructure.store()
+
+    def saveFaceAsRig(self):
+        """Function to save the entire Rig Graphics View scene out to an XML File"""
+        xMLStructure = FaceGVCapture(self.view, self.messageLogger)
+        faceFileName = QtGui.QFileDialog.getSaveFileName(self, 'Save Happy Face File As...', 'faceFiles', filter = "Face XML files (*.xml)")
+        if faceFileName != "": 
+            self.faceSaveFile = faceFileName
+            xMLStructure.setXMLFile(self.faceSaveFile)
+            xMLStructure.store()
 
     def updateSkinData(self, item):
         """Function that simply calls the skinning table to update"""

@@ -476,7 +476,7 @@ class SuperNodeGroup():
         # Now record the xml for the superNode and Pin
         # pinTies should be able to be drawn from the resulting data of nodes and pins
         superNodeGroupRoot.append(self.superNode.store())
-        superNodeGroupRoot.append(self.pin.store())
+        superNodeGroupRoot.append(self.pin.store(self.name))
 
         return superNodeGroupRoot
 

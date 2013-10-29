@@ -314,6 +314,8 @@ class ControlScale():
         self.controlList = []
         self.scaleSameItems = False
         self.scene = None
+        # This attribute can be set to false, so we can adjust the sliders postion without changing the scale of the whole selection
+        self.isLive = True
 
 
     def setSlider(self, controlSlider):
@@ -341,11 +343,13 @@ class ControlScale():
         else: validControlList = False
 
         if validControlList:
+            self.isLive = False # set to Falso so the slider position adjustment does not cause a scale change in the selection
             self.controlList = controlList
             self.minimum = self.controlList[0].getMinimumScale()*100
             self.currentScale = self.controlList[0].getScale()*100
             self.controlSlider.setRange(self.minimum, self.maximum)
             self.controlSlider.setValue(self.currentScale)
+            self.isLive = True
         
         self.controlSlider.setEnabled(validControlList) # Set the enabled state of the slider depending on whether we have a Valid List
 
@@ -356,13 +360,14 @@ class ControlScale():
         self.scaleSameItems = isSameItems
 
     def update(self):
-        if len(self.controlList) != 0:
-            if self.scaleSameItems: # We have a control and need to scale all items in the scene that are of the same type
-                for control in self.scene.items():
-                    if type(control) == type(self.controlList[0]):
+        if self.isLive:
+            if len(self.controlList) != 0:
+                if self.scaleSameItems: # We have a control and need to scale all items in the scene that are of the same type
+                    for control in self.scene.items():
+                        if type(control) == type(self.controlList[0]):
+                            control.setScale(float(self.controlSlider.value())/100.0)
+                            control.update()
+                else: # We have a control and we need to only scale the controls selected. 
+                    for control in self.controlList:
                         control.setScale(float(self.controlSlider.value())/100.0)
                         control.update()
-            else: # We have a control and we need to only scale the controls selected. 
-                for control in self.controlList:
-                    control.setScale(float(self.controlSlider.value())/100.0)
-                    control.update()

@@ -242,7 +242,9 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.controlScale.setSlider(self.controlScaleSlider)
         self.controlScale.setScene(self.view.scene())
 
+
         self.scaleSameItems = QtGui.QCheckBox("Scale Matching Items")
+        self.scaleSameItems.clicked.connect(lambda: self.controlScale.setScaleSameItems(self.scaleSameItems.isChecked()))
 
         # File Dialogue to load background image 
         self.imgFileLineEdit = QtGui.QLineEdit('Image File path...')

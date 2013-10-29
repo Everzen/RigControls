@@ -340,6 +340,7 @@ class ControlScale():
             if leaderControlType == GuideMarker or leaderControlType == Node or leaderControlType == SuperNode:
                 for control in controlList:
                     if type(control) != leaderControlType: validControlList = False
+            else: validControlList = False # If the controlType is not one of the above then we do not have a valid list
         else: validControlList = False
 
         if validControlList:

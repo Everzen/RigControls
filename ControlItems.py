@@ -523,6 +523,9 @@ class SuperNodeGroup():
         self.pinTie = pT
         self.scene.addItem(pT)
 
+        if self.superNode.getPin().getConstraintItem(): # If We have a constraint Item so make sure we set the node for it
+            self.superNode.getPin().getConstraintItem().setNode(self.superNode)
+
     def getName(self):
         return self.name
 
@@ -1389,6 +1392,7 @@ class SuperNode(Node):
         Node.__init__(self,nPos)
         self.name = "Badger"
         self.form = "Arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
+        self.scale = 0.8
         self.alpha = 1.0
         self.minimumScale = 0.2
         self.colour = QtGui.QColor(250,160,100,255*self.alpha)

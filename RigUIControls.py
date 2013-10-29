@@ -20,11 +20,11 @@ from RigStore import *
 
 class RigGraphicsView(QtGui.QGraphicsView):
 
-    def __init__(self, mainWindow, messageLogger, styleData, itemFactory):
+    def __init__(self, mainWindow, messageLogger, styleData, itemFactory, controlScaler):
 
         QtGui.QGraphicsView.__init__(self) 
-        self.width = 500
-        self.height = 500
+        self.width = 600
+        self.height = 600
         self.size = (0, 0, self.width, self.height)
         self.setAcceptDrops(True)
 
@@ -68,7 +68,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.superNodeGroups = []
 
         self.dragItem = None
-        self.canNodeMerge = False # This attribute is turned on by a keypress of CTRL. When true it enables nodes to merge between WireGroups
+        self.isCtrlPressed = False # This attribute is turned on by a keypress of CTRL. When true it enables nodes to merge between WireGroups
         self.mergeNode = None
         self.targetNode = None
         self.skinningItem = None
@@ -77,6 +77,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.isSelectedList = []
         
         self.mainWindow = mainWindow
+        self.controlScaler = controlScaler
 
         #TESTING ADDING NEW ITEMS
         # el = ConstraintEllipse(80,80)
@@ -117,7 +118,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def getMarkerScale(self):
         return self.markerScale
 
-    def setMarkerScaleSlider(self, scale):
+    def setControlScaleSlider(self, scale):
         """Function to cycle through markers and scale"""
         scene = self.scene()
         for item in scene.items():
@@ -162,6 +163,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.updateSceneRect(QtCore.QRectF(self.size[0],self.size[1],self.size[2],self.size[3]))
             if remap: self.reflectionLine.remap(self.width, self.height) # Adjust the Positing and height of the reflection line
             # self.setMinimumSize(self.width,self.height)
+            self.scene().setSceneRect(0,0,self.width,self.height)
+            self.centerOn(QtCore.QPointF(self.width/2,self.height/2))
             self.scene().update()
             self.sizeHint()
 
@@ -376,12 +379,11 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def keyPressEvent(self, event):
         scene = self.scene()
         key = event.key()
-        print str(key)
         if key == QtCore.Qt.Key_Alt:
             self.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
             self.panSelectableItems()
         elif key == 16777249: # This is the integer representing Left Ctrl - must be a better way of doing this!
-            self.canNodeMerge = True
+            self.isCtrlPressed = True
         elif key == QtCore.Qt.Key_Plus:
             self.scaleView(1.2)
         elif key == QtCore.Qt.Key_Minus:
@@ -414,7 +416,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.setFlag(QtGui.QGraphicsItem.ItemIsMovable, self.isMovableList[index])
                 item.setSelected(self.isSelectedList[index])
         elif key == 16777249: # This is the integer representing Left Ctrl - must be a better way of doing this!
-            self.canNodeMerge = False
+            self.isCtrlPressed = False
         QtGui.QGraphicsView.keyReleaseEvent(self, event)
 
     def wheelEvent(self, event):
@@ -558,8 +560,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
         scene = self.scene()
         if mouseEvent.button() == QtCore.Qt.LeftButton:
             pass
-            # for item in scene.items(QtCore.Qt.DescendingOrder): print str(type(item)) + " " + str(item.zValue())
-            # possibleItems = self.items(mouseEvent.pos())
+            # if self.isCtrlPressed:
+            #     print "Ctrl"
+            #     possibleItems = self.items(mouseEvent.pos())
+            #     if len(possibleItems) != 0:
+            #         possibleItems[0].setSelected(not possibleItems[0].isSelected())
+            #         print "ran"
             # for item in possibleItems:
             #     print str(type(item)) + " " + str(item.zValue())
             # print "\n"
@@ -572,7 +578,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
     def mouseReleaseEvent(self, mouseEvent):
         self.tryMergeNodes() # Test to see if we have the condition for Nodes to be merged
-        return QtGui.QGraphicsView.mouseReleaseEvent(self, mouseEvent)
+        
+        QtGui.QGraphicsView.mouseReleaseEvent(self, mouseEvent) # Call the mouseReleaseEvent, then process the resulting selection
+        # self.isSelectedList = []
+        scene = self.scene()
+        self.controlScaler.setControlList(scene.selectedItems())
+
 
     def mouseMoveEvent(self, mouseEvent):
         scene = self.scene()
@@ -594,7 +605,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             if nodeSelCount == 1:
                 # print "we have one Node Selected Proceed"
                 for node in nodes:
-                    if node != mergeNode and self.canNodeMerge: # Check self.canNodeMerge, which tells us if CTRL is being pressed for the merge
+                    if node != mergeNode and self.isCtrlPressed: # Check self.isCtrlPressed, which tells us if CTRL is being pressed for the merge
                         if not node.isSelected():
                             # print "We have found a potential Target"
                             canMerge = self.isMergeNode(mergeNode,node)

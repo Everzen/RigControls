@@ -8,6 +8,7 @@ import Icons
 import os
 
 from RigStore import FaceGVCapture
+from Widgets import ControlScale
 
 import RigUIControls as rig
 
@@ -86,20 +87,17 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         # The statusBar() call creates the status bar
         self.messageLogger = StatusBarMessageLogger(self.statusBar(), self.styleData)
+
+        self.controlScale = ControlScale() #A control scale is setup early and passed to the rigView - the appropriate Slider is added later
+
         self.view = rig.RigGraphicsView(
                 self,
                 self.messageLogger,
                 self.styleData,
-                itemFactory
+                itemFactory,
+                self.controlScale
                 )
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
-
-        # File Dialogue to load background image 
-        self.imgFileLineEdit = QtGui.QLineEdit('Image File path...')
-        self.imgFileLineEdit.setMinimumWidth(200)
-        self.imgFileLineEdit.setReadOnly(True)
-        self.imgFileSetButton = QtGui.QPushButton("Image")
-        self.imgFileSetButton.pressed.connect(lambda: self.view.loadBackgroundImage())
 
         self.markerSpawn = rig.DragItemButton("GuideMarker")
         # self.showReflectionLineButton = QtGui.QCheckButton("Toggle Reflection Line")
@@ -124,8 +122,8 @@ class RigFaceSetup(QtGui.QMainWindow):
         hBox = QtGui.QHBoxLayout()
         vButtonBox = QtGui.QVBoxLayout()
         hImageBox = QtGui.QHBoxLayout()
-        hImageBox.addWidget(self.imgFileLineEdit)
-        hImageBox.addWidget(self.imgFileSetButton)
+        # hImageBox.addWidget(self.imgFileLineEdit)
+        # hImageBox.addWidget(self.imgFileSetButton)
 
         vButtonBox.addLayout(hImageBox)
         vButtonBox.addWidget(self.markerSpawn)
@@ -235,9 +233,35 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.selNodes.setStatusTip("Toggle node selection")
         self.selNodes.toggled.connect(lambda: self.selectNodes(self.selNodes.isChecked()))
 
+        self.controlScaleLbl = QtGui.QLabel("   Control Scale  ")
+        self.controlScaleSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        # self.controlScaleSlider.setTickPosition(1.0)
+        self.controlScaleSlider.setRange(80, 200)
+        self.controlScaleSlider.setValue(100)
+        self.controlScaleSlider.valueChanged.connect(lambda: self.controlScale.update())
+        self.controlScale.setSlider(self.controlScaleSlider)
+        self.controlScale.setScene(self.view.scene())
+
+
+        self.scaleSameItems = QtGui.QCheckBox("Scale Matching Items")
+        self.scaleSameItems.clicked.connect(lambda: self.controlScale.setScaleSameItems(self.scaleSameItems.isChecked()))
+
+        # File Dialogue to load background image 
+        self.imgFileLineEdit = QtGui.QLineEdit('Image File path...')
+        self.imgFileLineEdit.setMinimumWidth(200)
+        self.imgFileLineEdit.setReadOnly(True)
+        self.imgFileSetButton = QtGui.QPushButton("Set Background Image")
+        self.imgFileSetButton.pressed.connect(lambda: self.view.loadBackgroundImage())
+
         self.filtersToolbar.addWidget(self.selectionFilters)
         self.filtersToolbar.addAction(self.selMarkers)
         self.filtersToolbar.addAction(self.selNodes)
+        self.filtersToolbar.addWidget(self.controlScaleLbl)
+        self.filtersToolbar.addWidget(self.controlScaleSlider)
+        self.filtersToolbar.addWidget(self.scaleSameItems)
+        self.filtersToolbar.addWidget(self.imgFileLineEdit)
+        self.filtersToolbar.addWidget(self.imgFileSetButton)
+
         self.filtersToolbar.addSeparator()
 
         #Creation DockWidget

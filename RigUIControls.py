@@ -296,6 +296,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
             if wireName == wireGroup.getName(): unique = False
         return unique
 
+    def checkUniqueSuperNodeGroup(self, groupName):
+        unique = True
+        for group in self.superNodeGroups: 
+            if groupName == group.getName(): unique = False
+        return unique
+
     def showItem(self,state,objectType):
         """Function to hide and show markers"""
         scene = self.scene()
@@ -390,21 +396,43 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.scaleView(1 / 1.2)
         elif key == QtCore.Qt.Key_Delete:
             for item in scene.items():
-                if type(item) == GuideMarker and item.isSelected() == True: #Delete out any GuideMarkers that are selection and need to be removed
+                if type(item) == GuideMarker and item.isSelected(): #Delete out any GuideMarkers that are selection and need to be removed
                     self.processMarkerDelete(item)
                     scene.removeItem(item)
                     del item
+                elif type(item) == Node and item.isSelected(): #This Delete functionality could be done with polymorphism on a clear() method..
+                    self.deleteWireGroup(item)
+                elif type(item) == SuperNode and item.isSelected():
+                    self.deleteSuperNodeGroup(item)
             self.processMarkerActiveIndex()
         else:
             QtGui.QGraphicsView.keyPressEvent(self, event)
 
-    # def sortSceneOrder(self):
-    #     stackItems = []
-    #     for item in self.scene().items(): stackItems.append(item)
-    #     stackItems.sort(key=lambda x: x.zValue(), reverse=True)
-    #     for item in self.scene().items(): self.scene().removeItem(item)
-    #     for item in stackItems: self.scene().addItem(item)
-    #     return stackItems
+
+    def deleteWireGroup(self,item):
+        delItem = QtGui.QMessageBox()
+        delItem.setStyleSheet(self.styleData)
+        delItem.setWindowTitle("WireGroup Deletion")
+        delItem.setText("Are you sure you want to delete the entire WireGroup: ' " + str(item.getWireName()) + "'?")
+        delItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+        delItem.setDefaultButton(QtGui.QMessageBox.No)
+        response = delItem.exec_()
+        if response == QtGui.QMessageBox.Yes:
+            item.getWireGroup().clear()
+            self.wireGroups.remove(item.getWireGroup())
+
+    def deleteSuperNodeGroup(self, item):
+        delItem = QtGui.QMessageBox()
+        delItem.setStyleSheet(self.styleData)
+        delItem.setWindowTitle("SuperNode Deletion")
+        delItem.setText("Are you sure you want to delete the SuperNode:' " + str(item.getSuperNodeGroup().getName()) + "'?")
+        delItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+        delItem.setDefaultButton(QtGui.QMessageBox.No)
+        response = delItem.exec_()
+        if response == QtGui.QMessageBox.Yes:
+            item.goHome()
+            item.getSuperNodeGroup().clear()
+            self.superNodeGroups.remove(item.getSuperNodeGroup())
 
     def keyReleaseEvent(self, event):
         key = event.key()
@@ -466,6 +494,18 @@ class RigGraphicsView(QtGui.QGraphicsView):
         else:
             event.ignore() 
 
+    def specifySuperNodeGroupName(self):
+        unique = True
+        superNodeName = None
+        superNodeName, ok = QtGui.QInputDialog.getText(self, 'Super Node Name', 'Enter a unique Super Node Name:')
+        while not self.checkUniqueSuperNodeGroup(superNodeName):
+            superNodeName, ok = QtGui.QInputDialog.getText(
+                    self,
+                    'Super Node Name',
+                    'The name was not unique. Please Enter a unique Super Node Name:'
+                    )
+        return superNodeName
+
     def processDrop(self, event):
         scene = self.scene()
         dropNodes = []
@@ -489,7 +529,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 scene.removeItem(self.dragItem) #We missed so delete the item
                 self.dragItem = None
 
-        if type(self.dragItem) == SkinningEllipse:
+        elif type(self.dragItem) == SkinningEllipse:
             possibleItems = self.items(event.pos())
             for item in possibleItems:
                 if type(item) == SuperNode: dropNodes.append(item)
@@ -506,6 +546,15 @@ class RigGraphicsView(QtGui.QGraphicsView):
             else:
                 scene.removeItem(self.dragItem) #We missed so delete the item
                 self.dragItem = None
+
+        elif type(self.dragItem) == ControlPin: #Check to see if we are dealing with a SuperGroup
+            # print str(type(self.dragItem.getGroup()))
+            if type(self.dragItem.getGroup()) == SuperNodeGroup:
+                superName = self.specifySuperNodeGroupName()
+                if superName: self.dragItem.getGroup().setName(superName) #We have a valid Name so set the name
+                else: #We do not have a valid name, so delete the superNodeGroup
+                    self.dragItem.getGroup().clear()
+                    self.superNodeGroups.remove(self.dragItem.getGroup())
 
         if self.dragItem:
             self.dragItem.setAlpha(1.0)
@@ -545,7 +594,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             # item.setPos(self.mapToScene(event.pos()))
             # item.setAlpha(0.5)
             # self.scene().addItem(item)
-            self.dragItem = item.getPin() #set set the gv DragItem
+            self.dragItem = item.getPin() #set the gv DragItem
 
 
     def dragSkinningEllipse(self, event):
@@ -578,7 +627,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
     def mouseReleaseEvent(self, mouseEvent):
         self.tryMergeNodes() # Test to see if we have the condition for Nodes to be merged
-        
+
         QtGui.QGraphicsView.mouseReleaseEvent(self, mouseEvent) # Call the mouseReleaseEvent, then process the resulting selection
         # self.isSelectedList = []
         scene = self.scene()

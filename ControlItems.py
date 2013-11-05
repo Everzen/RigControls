@@ -121,7 +121,7 @@ class ReflectionLine(QtGui.QGraphicsItem):
         self.update()
 
 
-class WireGroup():
+class WireGroup(object):
     """A WireGroups is a class that contains nodes each of which has it own pin
     which represents the location of its home. 
 
@@ -203,7 +203,7 @@ class WireGroup():
                 self.pins.append(newPin)
                 newPin.read(p)
                 self.scene.addItem(newPin)
-                newPin.setWireGroup(self)
+                newPin.setGroup(self)
             elif p.attrib['state'] == 'reference': # We have a reference to a Node in another Wire Group, so read in the reference
                 refPin = NodePinReference()
                 refPin.read(p)
@@ -246,7 +246,7 @@ class WireGroup():
     def setName(self, newName):
         self.name = str(newName)
         for node in self.nodes: node.setWireName(newName)
-        for pin in self.pins: pin.setWireName(newName)
+        for pin in self.pins: pin.setGroupName(newName)
 
     def getColour(self):
         return self.colour
@@ -281,7 +281,7 @@ class WireGroup():
         for index,p in enumerate(self.pinPositions):
             cP = ControlPin(p)   
             cP.setIndex(index)
-            cP.setWireGroup(self)
+            cP.setGroup(self)
             self.pins.append(cP)
             self.scene.addItem(cP)
 
@@ -399,6 +399,7 @@ class WireGroup():
     def clear(self):
         """A Function to completely remove all items from Wiregroup"""
         for n in self.nodes:
+            n.setSelected(False) #Deselecting the node helps when deleting the Wiregroup, to ensure we are only asked once about deletion
             self.scene.removeItem(n)
             del n
         for p in self.pins:
@@ -416,7 +417,8 @@ class WireGroup():
         self.curve = None 
 
 
-class SuperNodeGroup():
+
+class SuperNodeGroup(object):
     """A SuperNodeGroup contains a SuperNode and a pin to represent the original
        position of the superNode.
 
@@ -426,9 +428,11 @@ class SuperNodeGroup():
     is measured with the pin as the origin (local space).
 
     """
+    name = "SuperNodeGroup"
+
     def __init__(self, nPos, form, rigGView):
         #LIST OF ATTRIBUTES
-        self.name = ""
+        self.name = "holdingName" #Put in a holding name, so the name is not reported as None
         self.locked = True
         self.form = form
         self.scale = 1.0 #Not implemented, but it is stored, so could be used to drive the size of the setup of the wiregroup
@@ -443,7 +447,7 @@ class SuperNodeGroup():
     def initBuild(self, nPos):
         #Create pin, SuperNode and PinTie from start position
         cP = ControlPin(nPos) #Build Pin
-        cP.setWireGroup(self)
+        cP.setGroup(self)
         self.pin = cP
 
         sNode = SuperNode(QtCore.QPointF(0,0)) #Build SuperNode
@@ -451,6 +455,7 @@ class SuperNodeGroup():
         sNode.setPin(cP)
         cP.setNode(sNode)
         self.superNode = sNode
+        self.superNode.setSuperNodeGroup(self)
         # sNode.setWireGroup(self)
         
         pT = PinTie(sNode, cP)
@@ -498,7 +503,7 @@ class SuperNodeGroup():
         pinXml = superNodeGroupXml.findall('Pin')[0]
         newPin = ControlPin(QPVec([0,0])) 
         newPin.read(pinXml)
-        newPin.setWireGroup(self)
+        newPin.setGroup(self)
         self.scene.addItem(newPin)
 
         sNodeXml = superNodeGroupXml.findall('SuperNode')[0]
@@ -514,6 +519,7 @@ class SuperNodeGroup():
 
         self.pin = newPin
         self.superNode = newSNode
+        self.superNode.setSuperNodeGroup(self)
 
         self.setScale(self.scale) # The scale now needs to be read into the items
 
@@ -531,6 +537,7 @@ class SuperNodeGroup():
 
     def setName(self, name):
         self.name = str(name)
+        if self.superNode: self.superNode.setName(name)
 
     def isLocked(self):
         return self.locked
@@ -622,8 +629,8 @@ class ControlPin(QtGui.QGraphicsItem):
         self.scale = 1
         self.scaleOffset = 2.5
         self.alpha = 1.0 # Not implemented, since the pin is so subtle.
-        self.wireGroup = None
-        self.wireName = None
+        self.group = None
+        self.groupName = None
         self.constraintItem = None
         self.active = True
         self.node = None
@@ -637,7 +644,7 @@ class ControlPin(QtGui.QGraphicsItem):
         self.styleData = f.read()
         f.close()
 
-    def store(self, wireName):
+    def store(self, groupName):
         """Method to write out a block of XML that records all the major attributes that will be needed for save/load
 
         The first thing to do is check to see if the pin is natively from this Wiregroup, or to see if it has been 
@@ -648,7 +655,7 @@ class ControlPin(QtGui.QGraphicsItem):
         in the Wiregroup read method. 
         """
         state = "native"
-        if self.wireName != wireName: state = "reference" 
+        if self.groupName != groupName: state = "reference" 
 
         # print "Input wireName : " + str(wireName) + " Pin WireName : " + str(self.wireName)
         pinRoot = xml.Element('Pin', state = str(state))
@@ -726,18 +733,18 @@ class ControlPin(QtGui.QGraphicsItem):
     def setAlpha(self, alpha):
         self.alpha = float(alpha)
 
-    def getWireGroup(self):
-        return self.wireGroup
+    def getGroup(self):
+        return self.group
 
-    def setWireGroup(self, wireGroup):
-        self.wireGroup = wireGroup
-        self.wireName = wireGroup.getName()
+    def setGroup(self, group):
+        self.group = group
+        self.groupName = group.getName()
 
-    def getWireName(self):
-        return self.wireName
+    def getGroupName(self):
+        return self.groupName
 
-    def setWireName(self, wireName):
-        self.wireName = str(wireName)   
+    def setGroupName(self, groupName):
+        self.groupName = str(groupName)   
 
     def getConstraintItem(self):
         return self.constraintItem
@@ -1390,10 +1397,11 @@ class SuperNode(Node):
     """
     def __init__(self, nPos):
         Node.__init__(self,nPos)
-        self.name = "Badger"
+        self.name = ""
         self.form = "Arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
         self.scale = 0.8
         self.alpha = 1.0
+        self.superNodeGroup = None
         self.minimumScale = 0.2
         self.colour = QtGui.QColor(250,160,100,255*self.alpha)
         self.path = QtGui.QPainterPath()
@@ -1490,6 +1498,12 @@ class SuperNode(Node):
     def setName(self, name):
         self.name = str(name)
 
+    def getSuperNodeGroup(self):
+        return self.superNodeGroup
+
+    def setSuperNodeGroup(self, superNodeGroup):
+        self.superNodeGroup = superNodeGroup
+
     def getForm(self):
         return self.form
 
@@ -1550,10 +1564,10 @@ class SuperNode(Node):
                 skinPin.goHome()
                 homeNode = skinPin.getPin().getNode()
                 if homeNode:  #Hacky way of updating the curves when the pin is sent home! Maybe wrap into a neat function
-                    for rigCurve in homeNode.rigCurveList:
-                        rigCurve().buildCurve()    
+                    homeNode.dirtyCurve()    
         else:
             print "WARNING : NODE HAS NO ASSOCIATED PIN AND AS SUCH HAS NO HOME TO GO TO :("
+
 
     def drawArrow_4Point(self, painter, option, widget):
         pen = QtGui.QPen(self.colour, 1, QtCore.Qt.SolidLine)
@@ -3072,7 +3086,9 @@ class SkinningPinInfo():
         else: self.skinValue = val
 
     def goHome(self):
-        if self.pin: self.pin.setPos(self.pinSkinPos)
+        if self.pin: 
+            self.pin.setPos(self.pinSkinPos)
+            if self.pin.getPinTie(): self.pin.getPinTie().drawTie() #If we are moving the pin back, update the Tie
 
     def update(self):
         if self.superNode and self.pin:

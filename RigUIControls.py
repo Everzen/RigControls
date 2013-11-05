@@ -390,21 +390,33 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.scaleView(1 / 1.2)
         elif key == QtCore.Qt.Key_Delete:
             for item in scene.items():
-                if type(item) == GuideMarker and item.isSelected() == True: #Delete out any GuideMarkers that are selection and need to be removed
+                if type(item) == GuideMarker and item.isSelected(): #Delete out any GuideMarkers that are selection and need to be removed
                     self.processMarkerDelete(item)
                     scene.removeItem(item)
                     del item
+                elif type(item) == Node and item.isSelected(): #This Delete functionality could be done with polymorphism on a clear() method..
+                    self.deleteWireGroups(item)
+                elif type(item) == SuperNode and item.isSelected():
+                    print "deleting SuperNode"
             self.processMarkerActiveIndex()
         else:
             QtGui.QGraphicsView.keyPressEvent(self, event)
 
-    # def sortSceneOrder(self):
-    #     stackItems = []
-    #     for item in self.scene().items(): stackItems.append(item)
-    #     stackItems.sort(key=lambda x: x.zValue(), reverse=True)
-    #     for item in self.scene().items(): self.scene().removeItem(item)
-    #     for item in stackItems: self.scene().addItem(item)
-    #     return stackItems
+
+    def deleteWireGroups(self,item):
+        delItem = QtGui.QMessageBox()
+        delItem.setStyleSheet(self.styleData)
+        delItem.setWindowTitle("WireGroup Deletion")
+        delItem.setText("Are you sure you want to delete the entire WireGroup: ' " + str(item.getWireName()) + "'?")
+        delItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+        delItem.setDefaultButton(QtGui.QMessageBox.No)
+        response = delItem.exec_()
+        if response == QtGui.QMessageBox.Yes:
+            item.getWireGroup().clear()
+            self.wireGroups.remove(item.getWireGroup())
+
+    def deleteSuperNode(item):
+        pass
 
     def keyReleaseEvent(self, event):
         key = event.key()

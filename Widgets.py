@@ -302,7 +302,7 @@ class SkinTabW(QtGui.QTableWidget):
             self.superNode.getSkinnedPins()[item.row()].update()
             homeNode = self.superNode.getSkinnedPins()[item.row()].getPin().getNode()
             if homeNode:  #Hacky way of updating the curves when the pin is sent home! Maybe wrap into a neat function
-                homeNode.curveUpdate()
+                homeNode.dirtyCurve()
 
 
 class ControlScale():

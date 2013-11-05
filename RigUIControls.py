@@ -395,15 +395,15 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     scene.removeItem(item)
                     del item
                 elif type(item) == Node and item.isSelected(): #This Delete functionality could be done with polymorphism on a clear() method..
-                    self.deleteWireGroups(item)
+                    self.deleteWireGroup(item)
                 elif type(item) == SuperNode and item.isSelected():
-                    print "deleting SuperNode"
+                    self.deleteSuperNodeGroup(item)
             self.processMarkerActiveIndex()
         else:
             QtGui.QGraphicsView.keyPressEvent(self, event)
 
 
-    def deleteWireGroups(self,item):
+    def deleteWireGroup(self,item):
         delItem = QtGui.QMessageBox()
         delItem.setStyleSheet(self.styleData)
         delItem.setWindowTitle("WireGroup Deletion")
@@ -415,8 +415,18 @@ class RigGraphicsView(QtGui.QGraphicsView):
             item.getWireGroup().clear()
             self.wireGroups.remove(item.getWireGroup())
 
-    def deleteSuperNode(item):
-        pass
+    def deleteSuperNodeGroup(self, item):
+        delItem = QtGui.QMessageBox()
+        delItem.setStyleSheet(self.styleData)
+        delItem.setWindowTitle("SuperNode Deletion")
+        delItem.setText("Are you sure you want to delete the SuperNode:' " + str(item.getSuperNodeGroup().getName()) + "'?")
+        delItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+        delItem.setDefaultButton(QtGui.QMessageBox.No)
+        response = delItem.exec_()
+        if response == QtGui.QMessageBox.Yes:
+            item.goHome()
+            item.getSuperNodeGroup().clear()
+            self.superNodeGroups.remove(item.getSuperNodeGroup())
 
     def keyReleaseEvent(self, event):
         key = event.key()

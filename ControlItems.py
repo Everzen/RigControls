@@ -399,6 +399,7 @@ class WireGroup():
     def clear(self):
         """A Function to completely remove all items from Wiregroup"""
         for n in self.nodes:
+            n.setSelected(False) #Deselecting the node helps when deleting the Wiregroup, to ensure we are only asked once about deletion
             self.scene.removeItem(n)
             del n
         for p in self.pins:
@@ -428,7 +429,7 @@ class SuperNodeGroup():
     """
     def __init__(self, nPos, form, rigGView):
         #LIST OF ATTRIBUTES
-        self.name = ""
+        self.name = "Moo"
         self.locked = True
         self.form = form
         self.scale = 1.0 #Not implemented, but it is stored, so could be used to drive the size of the setup of the wiregroup
@@ -451,6 +452,7 @@ class SuperNodeGroup():
         sNode.setPin(cP)
         cP.setNode(sNode)
         self.superNode = sNode
+        self.superNode.setSuperNodeGroup(self)
         # sNode.setWireGroup(self)
         
         pT = PinTie(sNode, cP)
@@ -514,6 +516,7 @@ class SuperNodeGroup():
 
         self.pin = newPin
         self.superNode = newSNode
+        self.superNode.setSuperNodeGroup(self)
 
         self.setScale(self.scale) # The scale now needs to be read into the items
 
@@ -1390,10 +1393,10 @@ class SuperNode(Node):
     """
     def __init__(self, nPos):
         Node.__init__(self,nPos)
-        self.name = "Badger"
         self.form = "Arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
         self.scale = 0.8
         self.alpha = 1.0
+        self.superNodeGroup = None
         self.minimumScale = 0.2
         self.colour = QtGui.QColor(250,160,100,255*self.alpha)
         self.path = QtGui.QPainterPath()
@@ -1408,7 +1411,7 @@ class SuperNode(Node):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
         superNodeRoot = xml.Element('SuperNode')
         attributes = xml.SubElement(superNodeRoot,'attributes')
-        xml.SubElement(attributes, 'attribute', name = 'name', value = str(self.getName()))
+        # xml.SubElement(attributes, 'attribute', name = 'name', value = str(self.getName()))
         xml.SubElement(attributes, 'attribute', name = 'form', value = str(self.getForm()))
         xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
         xml.SubElement(attributes, 'attribute', name = 'radius', value = str(self.getRadius()))
@@ -1436,7 +1439,7 @@ class SuperNode(Node):
         """A function to read in a block of XML and set all major attributes accordingly"""
         for a in superNodeXml.findall( 'attributes/attribute'):
             if a.attrib['name'] == 'index': self.setIndex(int(a.attrib['value']))
-            elif a.attrib['name'] == 'name': self.setName(str(a.attrib['value']))
+            # elif a.attrib['name'] == 'name': self.setName(str(a.attrib['value']))
             elif a.attrib['name'] == 'form': self.setForm(str(a.attrib['value']))
             elif a.attrib['name'] == 'radius': self.setRadius(float(a.attrib['value']))
             elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
@@ -1489,6 +1492,12 @@ class SuperNode(Node):
 
     def setName(self, name):
         self.name = str(name)
+
+    def getSuperNodeGroup(self):
+        return self.superNodeGroup
+
+    def setSuperNodeGroup(self, superNodeGroup):
+        self.superNodeGroup = superNodeGroup
 
     def getForm(self):
         return self.form

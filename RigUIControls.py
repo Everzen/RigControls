@@ -719,17 +719,27 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.targetNode = None
 
     def sortMenuItem(self, event):
-        """Function to ensure that the correct RC menu appears where ever possible. Ensure that SkinningEllipse RC's do not appear over other items"""
+        """Function to ensure that the correct RC menu appears where ever possible.
+
+        To do this we sort throuhg all the items under the mouse RC event. If they are of one of the types
+        in our typeOrder list then they are popped out and appended to a new list. This gives us the items 
+        that we are most interested in at the start of a new list. 
+
+        Then we simply return the first most of these new items
+        """
         scene = self.scene()
         items = self.items(event.pos())
-        noneSkinItems = False
-        if len(items) != 0:
-            for item in items: 
-                if type(item) != SkinningEllipse: noneSkinItems = True
-            if noneSkinItems: #We have other items present that are not skinningEllipses, so return the first one of them that we meet.
-                for item in items: 
-                    if type(item) != SkinningEllipse: return item
-            else: return items[0] #If still false there are no other items under the event so return the skinning Ellipse
+        sortedItems = []
+        #Now hack together a list that moves all the SuperNodes, Nodes to the front, followed by all the Pins, after that we do not care.
+        typeOrder = [SuperNode, Node, ControlPin]
+        for itemType in typeOrder:
+            for index, item in enumerate(items):
+                if type(item) == itemType: sortedItems.append(items.pop(index))        
+        sortedItems = sortedItems + items #Add the rest of the list back on the end of the sorted List
+        # print "items : " + str(items)
+        # print "Sorted items : " + str(sortedItems)
+
+        if len(sortedItems) != 0 : return sortedItems[0]
 
     def contextMenuEvent(self, event):
         # for item in items: print "Hit " + str(item)

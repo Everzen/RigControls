@@ -627,7 +627,7 @@ class ControlPin(QtGui.QGraphicsItem):
         super(ControlPin, self).__init__()      
         self.index = 0 
         self.scale = 1
-        self.scaleOffset = 2.5
+        self.scaleOffset = 1
         self.alpha = 1.0 # Not implemented, since the pin is so subtle.
         self.group = None
         self.groupName = None
@@ -817,44 +817,46 @@ class ControlPin(QtGui.QGraphicsItem):
         pen = QtGui.QPen(QtCore.Qt.black, 0.25, QtCore.Qt.SolidLine)
         painter.setPen(pen)
 
-        wCurve1 = QtGui.QPainterPath()
-        wCurve1.moveTo(QtCore.QPointF(locAx,locAy))
-        wCurve1.cubicTo(QtCore.QPointF(locBx,locBy),QtCore.QPointF(-locBx,locBy),QtCore.QPointF(-locAx,locAy))
+        # wCurve1 = QtGui.QPainterPath()
+        # wCurve1.moveTo(QtCore.QPointF(locAx,locAy))
+        # wCurve1.cubicTo(QtCore.QPointF(locBx,locBy),QtCore.QPointF(-locBx,locBy),QtCore.QPointF(-locAx,locAy))
 
-        wCurve2 = QtGui.QPainterPath()
-        wCurve2.moveTo(QtCore.QPointF(locAy,locAx))
-        wCurve2.cubicTo(QtCore.QPointF(locBy,locBx),QtCore.QPointF(locBy,-locBx),QtCore.QPointF(locAy,-locAx))
+        # wCurve2 = QtGui.QPainterPath()
+        # wCurve2.moveTo(QtCore.QPointF(locAy,locAx))
+        # wCurve2.cubicTo(QtCore.QPointF(locBy,locBx),QtCore.QPointF(locBy,-locBx),QtCore.QPointF(locAy,-locAx))
         
-        wCurve3 = QtGui.QPainterPath()
-        wCurve3.moveTo(QtCore.QPointF(locAx,-locAy))
-        wCurve3.cubicTo(QtCore.QPointF(locBx,-locBy),QtCore.QPointF(-locBx,-locBy),QtCore.QPointF(-locAx,-locAy))
+        # wCurve3 = QtGui.QPainterPath()
+        # wCurve3.moveTo(QtCore.QPointF(locAx,-locAy))
+        # wCurve3.cubicTo(QtCore.QPointF(locBx,-locBy),QtCore.QPointF(-locBx,-locBy),QtCore.QPointF(-locAx,-locAy))
 
-        wCurve4 = QtGui.QPainterPath()
-        wCurve4.moveTo(QtCore.QPointF(-locAy,locAx))
-        wCurve4.cubicTo(QtCore.QPointF(-locBy,locBx),QtCore.QPointF(-locBy,-locBx),QtCore.QPointF(-locAy,-locAx))
+        # wCurve4 = QtGui.QPainterPath()
+        # wCurve4.moveTo(QtCore.QPointF(-locAy,locAx))
+        # wCurve4.cubicTo(QtCore.QPointF(-locBy,locBx),QtCore.QPointF(-locBy,-locBx),QtCore.QPointF(-locAy,-locAx))
         
-        # painter.setBrush(self.color)
-        painter.strokePath(wCurve1, painter.pen())
-        painter.strokePath(wCurve2, painter.pen())
-        painter.strokePath(wCurve3, painter.pen())
-        painter.strokePath(wCurve4, painter.pen())
+        # # painter.setBrush(self.color)
+        # painter.strokePath(wCurve1, painter.pen())
+        # painter.strokePath(wCurve2, painter.pen())
+        # painter.strokePath(wCurve3, painter.pen())
+        # painter.strokePath(wCurve4, painter.pen())
 
     def paint(self, painter, option, widget):
         pen = QtGui.QPen(QtCore.Qt.black, 0.5, QtCore.Qt.SolidLine)
         painter.setPen(pen)
 
-        painter.drawLine(0,self.scale*self.scaleOffset*3.0,0,self.scale*self.scaleOffset*-3.0)
-        painter.drawLine(self.scale*self.scaleOffset*-3.0,0,self.scale*self.scaleOffset*3.0,0)
-        
+        painter.drawLine(0,self.scale*self.scaleOffset*1.0,0,self.scale*self.scaleOffset*-1.0)
+        painter.drawLine(self.scale*self.scaleOffset*-1.0,0,self.scale*self.scaleOffset*1.0,0)
+    
+        # painter.drawRect(self.boundingRect())
+
         if self.active:
             # Now add wire details if needed
             self.drawWireControl(painter)
 
-
     def boundingRect(self):
-        adjust = 5
-        return QtCore.QRectF(self.scale*self.scaleOffset*(-3 - adjust), self.scale*self.scaleOffset*(-3 - adjust),
-                             self.scale*self.scaleOffset*(6 + adjust), self.scale*self.scaleOffset*(6 + adjust))
+        adjust = 0
+        size = 1
+        return QtCore.QRectF(self.scale*self.scaleOffset*(-size - adjust), self.scale*self.scaleOffset*(-size - adjust),
+                             self.scale*self.scaleOffset*2*(size  + adjust), self.scale*self.scaleOffset*2*(size + adjust))
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
@@ -1287,7 +1289,7 @@ class Node(QtGui.QGraphicsItem):
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF((-self.radius - adjust)*self.scale, (-self.radius - adjust)*self.scale,
-                             (2*self.radius + adjust)*self.scale, (2*self.radius + adjust)*self.scale)
+                             (2*(self.radius + adjust))*self.scale, (2*(self.radius + adjust))*self.scale)
 
     def paint(self, painter, option, widget):
         self.prepareGeometryChange()
@@ -1316,6 +1318,7 @@ class Node(QtGui.QGraphicsItem):
         painter.drawEllipse(-self.radius*self.scale, -self.radius*self.scale, 2*self.radius*self.scale, 2*self.radius*self.scale)
         QtGui.QPen(QtCore.Qt.black, 1.2, QtCore.Qt.SolidLine)
         painter.drawEllipse((-self.radius/2)*self.scale, (-self.radius/2)*self.scale, self.radius*self.scale, self.radius*self.scale)
+        # painter.drawRect(self.boundingRect()) #Testing Bounding Box....
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
@@ -2475,9 +2478,9 @@ class ConstraintLine(QtGui.QGraphicsItem):
         self.headLength = 25
         self.tailLength = 25
         self.ghostArea = False
-        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
-        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
-        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,False)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,False)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False)
         self.setFlag(QtGui.QGraphicsItem.ItemStacksBehindParent,True)      
         self.crossOffset = 7
         self.opXHead = None
@@ -2626,8 +2629,11 @@ class ConstraintLine(QtGui.QGraphicsItem):
             print "WARNING : INVALID OBJECT WAS PASSED TO CONSTRAINITEM FOR CONSTRAINT ALLOCATION"
 
     def lock(self):
-        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
-        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        """This method pretty much shuts the graphical representation of the contraintLine down, so that it does
+        not get in the way for when the user tries to interact with more useful objects
+        """
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,False)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,False)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False)  
         self.opXHead.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
         self.opXTail.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 

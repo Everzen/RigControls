@@ -184,11 +184,18 @@ class RigFaceSetup(QtGui.QMainWindow):
         showPins.setChecked(True)
         showPins.toggled.connect(lambda: self.view.showItem(showPins.isChecked(), rig.ControlPin))
 
-
         viewReflectionLine = QtGui.QAction('&Show Reflection Line', self)  
         viewReflectionLine.setCheckable(True)
         viewReflectionLine.setChecked(True)
         viewReflectionLine.toggled.connect(lambda: self.view.setShowReflectionLine(viewReflectionLine.isChecked()))
+
+        self.reflectGuideMarkers = QtGui.QAction("Reflect Markers",self)
+        self.reflectGuideMarkers.triggered.connect(self.view.reflectGuides)
+        self.reflectGuideMarkers.setStatusTip('Reflect Guide Markers about the Reflection Line')
+        
+        self.clearFace = QtGui.QAction("Clear All",self)
+        self.clearFace.triggered.connect(lambda:  self.view.clear(query = True))  
+        self.clearFace.setStatusTip('Clears all Items from the Face Rig')
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
@@ -205,6 +212,10 @@ class RigFaceSetup(QtGui.QMainWindow):
         viewMenu.addSeparator()
         viewMenu.addAction(viewReflectionLine)
 
+        actionMenu = menubar.addMenu('&Action')
+        actionMenu.addAction(self.reflectGuideMarkers)
+        actionMenu.addSeparator()
+        actionMenu.addAction(self.clearFace)
 
         self.spaceToolbar = self.addToolBar('')
         space  = QtGui.QLabel("                         ")

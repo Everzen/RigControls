@@ -120,27 +120,12 @@ class RigFaceSetup(QtGui.QMainWindow):
         # self.selectionButton.pressed.connect(lambda: self.view.printSelection()) #Adjust this to add hide Reflection Line Functionality
 
         hBox = QtGui.QHBoxLayout()
-        vButtonBox = QtGui.QVBoxLayout()
-        hImageBox = QtGui.QHBoxLayout()
-        # hImageBox.addWidget(self.imgFileLineEdit)
-        # hImageBox.addWidget(self.imgFileSetButton)
-
-        vButtonBox.addLayout(hImageBox)
-        vButtonBox.addWidget(self.markerSpawn)
-        vButtonBox.addWidget(self.markerScale)
-        vButtonBox.addWidget(self.reflectGuides)
-        # vButtonBox.addWidget(self.testCheckBox)
-        vButtonBox.addWidget(self.selectionButton)
-        vButtonBox.addWidget(self.addWireGroupButton)
-        vButtonBox.addWidget(self.clearGV)
-        vButtonBox.addStretch(1)
-
         hBox.addWidget(self.view)
-        # hBox.addLayout(vButtonBox)
 
         self.mainWidget.setLayout(hBox)
-
         self.setCentralWidget(self.mainWidget)
+        # self.setCentralWidget(self.mainWidget)
+
 
         # File Menu
         openFace = QtGui.QAction(QtGui.QIcon('exit.png'), 'Open Face', self)        
@@ -320,20 +305,6 @@ class RigFaceSetup(QtGui.QMainWindow):
         creationBox.addWidget(self.createSkinning)
         creationBox.addWidget(self.skinningEllipseCreate)
         creationBox.addStretch(1)
-
-        #Options DockWidget
-        self.dockOptionsWidget = QtGui.QDockWidget(self)
-        # self.dockOptionsWidget.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
-        self.dockOptionsWidget.setWindowTitle("Control Options")
-        # self.dockOptionsWidget.setFeatures(QtGui.QDockWidget.DockWidgetClosable | QtGui.QDockWidget.DockWidgetMovable | QtGui.QDockWidget.DockWidgetFloatable )
-        # self.dockOptionsWidget.setFeatures(QtGui.QDockWidget.DockWidgetMovable)
-        self.optionsWidget = QtGui.QWidget()
-        self.dockOptionsWidget.setWidget(self.optionsWidget)
-
-        self.optionsWidget.setLayout(vButtonBox)
-        # self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dockOptionsWidget)        
-        self.addDockWidget(QtCore.Qt.DockWidgetArea(2), self.dockOptionsWidget)        
-
 
         #Skinning DockWidget
         skinBox = QtGui.QHBoxLayout()

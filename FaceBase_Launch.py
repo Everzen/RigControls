@@ -202,15 +202,8 @@ class RigFaceSetup(QtGui.QMainWindow):
         actionMenu.addSeparator()
         actionMenu.addAction(self.clearFace)
 
-        self.spaceToolbar = self.addToolBar('')
-        space  = QtGui.QLabel("                         ")
-        self.spaceToolbar.addSeparator()
-        self.spaceToolbar.addWidget(space)
-        self.spaceToolbar.addSeparator()
-        self.spaceToolbar.setFloatable(False)
-        self.spaceToolbar.setMovable(False)
-
-        self.filtersToolbar = self.addToolBar('Filter Options')
+        self.filtersToolbar = self.addToolBar('Quick Tools')
+        space  = QtGui.QLabel("                          ")
         self.selectionFilters = QtGui.QLabel("   Selection Filters   ")
 
         self.selMarkers = QtGui.QAction(
@@ -249,6 +242,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.imgFileSetButton = QtGui.QPushButton("Set Background Image")
         self.imgFileSetButton.pressed.connect(lambda: self.view.loadBackgroundImage())
 
+        self.filtersToolbar.addWidget(space)
         self.filtersToolbar.addWidget(self.selectionFilters)
         self.filtersToolbar.addAction(self.selMarkers)
         self.filtersToolbar.addAction(self.selNodes)

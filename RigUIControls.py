@@ -342,15 +342,32 @@ class RigGraphicsView(QtGui.QGraphicsView):
             item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, False)  
             item.setFlag(QtGui.QGraphicsItem.ItemIsMovable, False) 
 
-    def clear(self, isReflectionLine = True):
-        self.scene().clear() # Clear the scene of all items
-        self.setBackgroundImage(None)
-        self.reflectionLine = None
-        self.markerList = []
-        self.markerActiveList = []
-        self.wireGroups = []
-        self.superNodeGroups = []
-        if isReflectionLine: self.reflectionLine = self.addReflectionLine()
+    def clear(self, isReflectionLine = True, query = False):
+        """Method to clear out the entire RigGraphicsView. 
+        Optionality to ask the user first, and to not remove the reflectionLine.
+
+        If 'query' is true, then a message box loads asking if the user is sure they want to clear the Face Rig 
+        """
+        response = QtGui.QMessageBox.Yes #set response to be a Yes reply, so if there s no query option, then the rig automatically clears.
+        
+        if query:
+            clearRig = QtGui.QMessageBox()
+            clearRig.setStyleSheet(self.styleData)
+            clearRig.setWindowTitle("Face Clear")
+            clearRig.setText("Are you sure you want to delete all items from the Face Rig? This action cannot be undone")
+            clearRig.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+            clearRig.setDefaultButton(QtGui.QMessageBox.No)
+            response = clearRig.exec_()
+
+        if response == QtGui.QMessageBox.Yes:
+            self.scene().clear() # Clear the scene of all items
+            self.setBackgroundImage(None)
+            self.reflectionLine = None
+            self.markerList = []
+            self.markerActiveList = []
+            self.wireGroups = []
+            self.superNodeGroups = []
+            if isReflectionLine: self.reflectionLine = self.addReflectionLine()
 
     def store(self, XMLFile):
         """Function to store all the contents of the Graphics View and write it out to a giant XML File - Work through all elements and Store"""

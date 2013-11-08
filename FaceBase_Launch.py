@@ -351,7 +351,7 @@ class RigFaceSetup(QtGui.QMainWindow):
     def openFaceRig(self):
         """Function to load in a stored XML file of face Rig Data"""
         xMLStructure = FaceGVCapture(self.view, self.messageLogger)
-        faceFileName = QtGui.QFileDialog.getOpenFileName(self, 'Open Happy Face File', 'faceFiles', filter = "Face XML files (*.xml)")
+        faceFileName = QtGui.QFileDialog.getOpenFileName(self, 'Open Happy Face File', 'faceFiles', filter = "Face XML files (*.xml)")[0]
         if faceFileName != "": # A Valid File has been selected from the File Diaglogue
             self.faceSaveFile = faceFileName
             xMLStructure.setXMLFile(faceFileName)
@@ -368,7 +368,7 @@ class RigFaceSetup(QtGui.QMainWindow):
             xMLStructure.setXMLFile(self.faceSaveFile)
             xMLStructure.store()
         else:
-            self.faceSaveFile = QtGui.QFileDialog.getSaveFileName(self, 'Save Happy Face File', 'faceFiles', filter = "Face XML files (*.xml)")
+            self.faceSaveFile = QtGui.QFileDialog.getSaveFileName(self, 'Save Happy Face File', 'faceFiles', filter = "Face XML files (*.xml)")[0]
             if self.faceSaveFile != "": 
                 xMLStructure.setXMLFile(self.faceSaveFile)
                 xMLStructure.store()
@@ -376,7 +376,7 @@ class RigFaceSetup(QtGui.QMainWindow):
     def saveFaceAsRig(self):
         """Function to save the entire Rig Graphics View scene out to an XML File"""
         xMLStructure = FaceGVCapture(self.view, self.messageLogger)
-        faceFileName = QtGui.QFileDialog.getSaveFileName(self, 'Save Happy Face File As...', 'faceFiles', filter = "Face XML files (*.xml)")
+        faceFileName = QtGui.QFileDialog.getSaveFileName(self, 'Save Happy Face File As...', 'faceFiles', filter = "Face XML files (*.xml)")[0]
         if faceFileName != "": 
             self.faceSaveFile = faceFileName
             xMLStructure.setXMLFile(self.faceSaveFile)

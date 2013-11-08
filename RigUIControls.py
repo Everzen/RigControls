@@ -146,9 +146,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
         return self.superNodeGroups
 
     def loadBackgroundImage(self):
-        imagePath = QtGui.QFileDialog.getOpenFileName(caption = "Please choose front character face image ~ 500px x 500px", directory="./images" , filter = "*.png")
+        imagePath = QtGui.QFileDialog.getOpenFileName(caption = "Please choose front character face image ~ 500px x 500px", directory="./images" , filter = "*.png")[0]
         if os.path.exists(imagePath):
-            self.backgroundImage = imagePath 
+            self.backgroundImage = imagePath
             self.setupBackground() 
 
 

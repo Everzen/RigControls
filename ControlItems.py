@@ -640,9 +640,6 @@ class ControlPin(QtGui.QGraphicsItem):
         self.setPos(cPos)
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
-        f=open('darkorange.stylesheet', 'r')  #Set up Style Sheet for customising anything within the Graphics View
-        self.styleData = f.read()
-        f.close()
 
     def store(self, groupName):
         """Method to write out a block of XML that records all the major attributes that will be needed for save/load
@@ -762,6 +759,7 @@ class ControlPin(QtGui.QGraphicsItem):
     def activate(self):
         if not self.active: 
             delConstraintItem = QtGui.QMessageBox()
+            self.styleData = self.scene().views[0].styleData
             delConstraintItem.setStyleSheet(self.styleData)
             delConstraintItem.setWindowTitle("Pin Deactivation")
             delConstraintItem.setText("Are you sure you want to deactivate the pin? There is a constraint Item present, and this item will be removed if you continue.")
@@ -1660,7 +1658,8 @@ class SuperNode(Node):
                 skinPin.getPin().itemChange(change, value)
 
         elif change == QtGui.QGraphicsItem.ItemSelectedChange:
-            if value.toBool():
+            # if value.toBool():
+            if value:
                 self.scene().views()[0].populateSkinningTable(self)
                 # self.scene().views()[0].skinTableWidget.populate(self)
 
@@ -1914,14 +1913,16 @@ class OpsCross(QtGui.QGraphicsItem):
                 yPos = 0
                 if self.getIndex() == 0:
                     # print "Hit Head"
-                    yPos = value.toPointF().y()
+                    # yPos = value.toPointF().y()
+                    yPos = value.y()
                     if yPos >= 0 - self.getSliderLimit():
                         yPos = 0 - self.getSliderLimit()
                     self.parentItem().redraw(0)
                     # print "Head Pos : " + str(yPos)
                 elif self.getIndex() == 1:
                     # print "Hit Tail"
-                    yPos = value.toPointF().y()
+                    # yPos = value.toPointF().y()
+                    yPos = value.y()
                     if yPos <= 0 + self.getSliderLimit():
                         yPos = 0 + self.getSliderLimit()
                     self.parentItem().redraw(1)                   

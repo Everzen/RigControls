@@ -1,5 +1,5 @@
 import sys
-from PyQt4 import QtCore, QtGui
+from PySide import QtCore, QtGui
 import numpy as np
 
 #######STANDARD LIBRARY FUNCTIONS THAT SHOULD PROBABLY BE IN A CENTRALISED LIBRARY SOMEWHERE##############################

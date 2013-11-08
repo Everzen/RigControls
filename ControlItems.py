@@ -1,7 +1,7 @@
 
 import sys
 import weakref
-from PyQt4 import QtCore, QtGui
+from PySide import QtCore, QtGui
 import os
 import math
 import xml.etree.ElementTree as xml

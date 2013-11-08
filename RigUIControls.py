@@ -2,7 +2,7 @@
 import sys
 import weakref
 import math
-from PyQt4 import QtCore, QtGui
+from PySide import QtCore, QtGui
 import numpy as np
 import socket #for sending out UPD signals
 import os

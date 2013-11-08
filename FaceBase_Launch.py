@@ -1,6 +1,9 @@
 #HAPPY FACE RIG
 
-from PyQt4 import QtGui, QtCore
+#Import what is needed for launching within the Maya Window
+import maya.OpenMayaUI as omui
+from PySide import QtGui, QtCore
+from shiboken import wrapInstance #Converts pointers to Python Objects
 
 import math
 import sys
@@ -11,6 +14,17 @@ from RigStore import FaceGVCapture
 from Widgets import ControlScale
 
 import RigUIControls as rig
+
+#################################################################################################
+#Function to return Mayas main Window QtWidget so we can parent our UI to it.
+
+def maya_main_window():
+    print "moo"
+    main_window_ptr = omui.MQtUtil.mainWindow()
+    return wrapInstance(long(main_window_ptr), QtGui.QWidget)
+
+#################################################################################################
+
 
 class StatusBarMessageLogger(object):
     """
@@ -43,6 +57,7 @@ class StatusBarMessageLogger(object):
         self.errorWidget.hide()
 
 
+
 class RigFaceSetup(QtGui.QMainWindow):
     """The main Window for the Entire UI.
 
@@ -59,8 +74,8 @@ class RigFaceSetup(QtGui.QMainWindow):
     Tabs on the areas that they are allowed to dock.
 
     """
-    def __init__(self, styleData):
-        super(RigFaceSetup, self).__init__()
+    def __init__(self, styleData, parent = None):
+        super(RigFaceSetup, self).__init__(parent)
 
         self.setWindowTitle("Facial Rig Builder v1.0")
         # self.setGeometry(50,50, 600, 600)
@@ -394,9 +409,32 @@ class RigFaceSetup(QtGui.QMainWindow):
         print "moo"
 
 
-def main():
+# def main():
 
-    stylesheet = 'darkorange.stylesheet'
+#     stylesheet = 'darkorange.stylesheet'
+#     try:
+#         # Read style sheet information
+#         with open(stylesheet, 'r') as handle:
+#             styleData = handle.read()
+#     except IOError:
+#         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
+#         return 1
+
+#     app = QtGui.QApplication([])
+#     app.setStyle('Plastique')
+#     ex = RigFaceSetup(styleData)
+#     ex.show()
+#     app.exec_()
+
+#     return 0
+
+# if __name__ == "__main__":
+#     sys.exit(main())
+
+
+def main():
+    # stylesheet = 'darkorange.stylesheet'
+    stylesheet = (os.path.dirname(os.path.realpath(__file__))) + '/darkorange.stylesheet'
     try:
         # Read style sheet information
         with open(stylesheet, 'r') as handle:
@@ -405,14 +443,28 @@ def main():
         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
         return 1
 
-    app = QtGui.QApplication([])
-    app.setStyle('Plastique')
-    ex = RigFaceSetup(styleData)
-    ex.show()
-    app.exec_()
-
+    happyFaceUI = RigFaceSetup(styleData, parent = maya_main_window())
+    # happyFaceUI = RigFaceSetup(styleData)
+    # happyFaceUI.setWindowFlags(QtCore.Qt.Tool)
+    happyFaceUI.show()
     return 0
 
-if __name__ == "__main__":
-    sys.exit(main())
+# if __name__ == "__main__":
+#     print "launching......"
+#     launch()
 
+
+#     stylesheet = 'darkorange.stylesheet'
+#     try:
+#         # Read style sheet information
+#         with open(stylesheet, 'r') as handle:
+#             styleData = handle.read()
+#     except IOError:
+#         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
+#         return 1
+
+print "Test Directories "
+print str(os.path.dirname(os.path.realpath(__file__)))
+print str(os.getcwd())
+print "launching......"
+main()

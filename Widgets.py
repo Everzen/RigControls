@@ -1,5 +1,5 @@
 
-from PyQt4 import QtCore, QtGui
+from PySide import QtCore, QtGui
 import sys
 import os
 
@@ -238,11 +238,17 @@ class SkinTabW(QtGui.QTableWidget):
     def __init__(self, parent = None):
         super(SkinTabW, self).__init__(parent)
         self.superNode = None
-        self.headers = QtCore.QStringList()
-        self.headers.append(QtCore.QString("  Super Node Controller  "))
-        self.headers.append(QtCore.QString("  Node Wire Group  "))
-        self.headers.append(QtCore.QString("  Node Index  "))
-        self.headers.append(QtCore.QString("  Skin Value  "))
+        #PySide does not support QStrings, so use normal list of strings
+        # self.headers = QtCore.QStringList()
+        # self.headers.append(QtCore.QString("  Super Node Controller  "))
+        # self.headers.append(QtCore.QString("  Node Wire Group  "))
+        # self.headers.append(QtCore.QString("  Node Index  "))
+        # self.headers.append(QtCore.QString("  Skin Value  "))
+        self.headers = []
+        self.headers.append("  Super Node Controller  ")
+        self.headers.append("  Node Wire Group  ")
+        self.headers.append("  Node Index  ")
+        self.headers.append("  Skin Value  ")
         self.populate()
 
     def getSuperNode(self):

@@ -2,6 +2,7 @@
 from PySide import QtCore, QtGui
 import sys
 import os
+import posixpath #This is imported for forcing paths to include "/" on windows - for passing paths to css
 
 from ControlItems import *
 
@@ -77,19 +78,19 @@ class WireGroupButton(QtGui.QPushButton):
             self.setStyleSheet(self.validImageFile())
 
     def validImageFile(self,state=""):
+        imageDir = os.path.dirname(os.path.realpath(__file__))
+        CSSimageDir = imageDir.replace("\\", "/") #Convert everything across to / for css files. Apparently this is ugly, but cannot get os.path and posixpath to work
         imageFile = ""
         imageFileCss = ""
         if state == "hover":
-            imageFile = 'images/' + self.itemName + '_Hover.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.itemName + '_Hover.png'
         elif state == "pressed":
-            imageFile = 'images/' + self.itemName + '_Pressed.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.itemName + '_Pressed.png'
         else:
-            imageFile = 'images/' + self.itemName + '.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.itemName + '.png'
 
-        if os.path.exists(imageFile): #create icon and add to button
+        imageFileCss = 'image: url(' + imageFile + ');'
+        if os.path.exists(os.path.normpath(imageFile)): #create icon and add to button
             self.imageFile = imageFile
             return imageFileCss
         else:
@@ -140,19 +141,19 @@ class DragItemButton(QtGui.QPushButton):
         self.setStyleSheet(self.validImageFile())
 
     def validImageFile(self,state=""):
+        imageDir = os.path.dirname(os.path.realpath(__file__))
+        CSSimageDir = imageDir.replace("\\", "/") #Convert everything across to / for css files. Apparently this is ugly, but cannot get os.path and posixpath to work
         imageFile = ""
         imageFileCss = ""
         if state == "hover":
-            imageFile = 'images/' + self.itemName + '_Hover.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.itemName + '_Hover.png'
         elif state == "pressed":
-            imageFile = 'images/' + self.itemName + '_Pressed.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.itemName + '_Pressed.png'
         else:
-            imageFile = 'images/' + self.itemName + '.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.itemName + '.png'
 
-        if os.path.exists(imageFile): #create icon and add to button
+        imageFileCss = 'image: url(' + imageFile + ');'
+        if os.path.exists(os.path.normpath(imageFile)): #create icon and add to button
             self.imageFile = imageFile
             return imageFileCss
         else:
@@ -194,19 +195,19 @@ class DragSuperNodeButton(DragItemButton):
         
 
     def validImageFile(self,state=""):
+        imageDir = os.path.dirname(os.path.realpath(__file__))
+        CSSimageDir = imageDir.replace("\\", "/") #Convert everything across to / for css files. Apparently this is ugly, but cannot get os.path and posixpath to work
         imageFile = ""
         imageFileCss = ""
         if state == "hover":
-            imageFile = 'images/' + self.form + '_Hover.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.form + '_Hover.png'
         elif state == "pressed":
-            imageFile = 'images/' + self.form + '_Pressed.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.form + '_Pressed.png'
         else:
-            imageFile = 'images/' + self.form + '.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.form + '.png'
 
-        if os.path.exists(imageFile): #create icon and add to button
+        imageFileCss = 'image: url(' + imageFile + ');'
+        if os.path.exists(os.path.normpath(imageFile)): #create icon and add to button
             self.imageFile = imageFile
             return imageFileCss
         else:

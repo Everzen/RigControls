@@ -11,7 +11,7 @@ import Icons
 import os
 
 from RigStore import FaceGVCapture
-from Widgets import ControlScale
+from Widgets import ControlScale, DragItemButton
 
 import RigUIControls as rig
 
@@ -113,26 +113,6 @@ class RigFaceSetup(QtGui.QMainWindow):
                 self.controlScale
                 )
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
-
-        self.markerSpawn = rig.DragItemButton("GuideMarker")
-        # self.showReflectionLineButton = QtGui.QCheckButton("Toggle Reflection Line")
-        self.markerScale = QtGui.QSlider(QtCore.Qt.Horizontal)
-        # self.markerScale.setTickPosition(1.0)
-        self.markerScale.setRange(80, 200)
-        self.markerScale.setValue(100)
-        self.markerScale.valueChanged.connect(lambda: self.view.setMarkerScaleSlider(self.markerScale.value()))
-
-        # self.connect(self.markerScale , QtCore.SIGNAL( ' valueChanged ( int ) ' ), self.changeValue)
-        
-        self.reflectGuides = QtGui.QPushButton("Reflect Markers")
-        self.reflectGuides.clicked.connect(self.view.reflectGuides)
-        # self.testCheckBox = QtGui.QCheckBox("Check me Out")
-        self.selectionButton = QtGui.QPushButton("Test Selection")
-        self.addWireGroupButton = QtGui.QPushButton("Add Wire Group")
-        self.addWireGroupButton.clicked.connect(lambda:  self.view.addWireGroup())
-        self.clearGV = QtGui.QPushButton("CLEAR")
-        self.clearGV.clicked.connect(lambda:  self.view.clear())
-        # self.selectionButton.pressed.connect(lambda: self.view.printSelection()) #Adjust this to add hide Reflection Line Functionality
 
         hBox = QtGui.QHBoxLayout()
         hBox.addWidget(self.view)
@@ -283,7 +263,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.addDockWidget(QtCore.Qt.DockWidgetArea(1), self.dockCreationWidget)
 
 
-        self.markerCreate = rig.DragItemButton(rig.GuideMarker.name)
+        self.markerCreate = DragItemButton(rig.GuideMarker.name)
         self.wireGroupCreate = rig.WireGroupButton()
         self.wireGroupCreate.clicked.connect(lambda:  self.view.addWireGroup())
 

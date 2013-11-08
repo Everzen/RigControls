@@ -476,7 +476,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def dragEnterEvent(self, event):
         """Function to overider dragEnterEvent to check that text is being used"""
         if (event.mimeData().hasFormat('text/plain')):
-            data = QtCore.QString(event.mimeData().data('text/plain'))
+            data = event.mimeData().data('text/plain')
             event.accept()
             print data
             if data == "GuideMarker":
@@ -582,7 +582,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def dragGuideMarker(self, event, data):
             event.acceptProposedAction()
             #Create a new QGraphicsItem and transfer the text across so we have the correct name
-            data = QtCore.QString(event.mimeData().data("text/plain"))
+            data = event.mimeData().data("text/plain")
             item = self.itemFactory.create(data)
             item.setIndex(self.markerCount)
             item.setPos(self.mapToScene(event.pos()))
@@ -596,7 +596,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def dragConstraintItem(self, event, data):
             event.acceptProposedAction()
             #Create a new QGraphicsItem and transfer the text across so we have the correct name
-            data = QtCore.QString(event.mimeData().data("text/plain"))
+            data = event.mimeData().data("text/plain")
             item = self.itemFactory.create(data)
             item.setPos(self.mapToScene(event.pos()))
             item.setAlpha(0.5)

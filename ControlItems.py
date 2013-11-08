@@ -758,15 +758,16 @@ class ControlPin(QtGui.QGraphicsItem):
 
     def activate(self):
         if not self.active: 
-            delConstraintItem = QtGui.QMessageBox()
-            self.styleData = self.scene().views[0].styleData
-            delConstraintItem.setStyleSheet(self.styleData)
-            delConstraintItem.setWindowTitle("Pin Deactivation")
-            delConstraintItem.setText("Are you sure you want to deactivate the pin? There is a constraint Item present, and this item will be removed if you continue.")
-            delConstraintItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
-            delConstraintItem.setDefaultButton(QtGui.QMessageBox.No)
             response = QtGui.QMessageBox.Yes
-            if self.constraintItem: response = delConstraintItem.exec_()
+            if self.constraintItem: 
+                delConstraintItem = QtGui.QMessageBox()
+                self.styleData = self.scene().views[0].styleData
+                delConstraintItem.setStyleSheet(self.styleData)
+                delConstraintItem.setWindowTitle("Pin Deactivation")
+                delConstraintItem.setText("Are you sure you want to deactivate the pin? There is a constraint Item present, and this item will be removed if you continue.")
+                delConstraintItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+                delConstraintItem.setDefaultButton(QtGui.QMessageBox.No)
+                response = delConstraintItem.exec_()
             if response == QtGui.QMessageBox.Yes:
                 self.scaleOffset = 1.0
                 self.getNode().goHome()
@@ -1327,7 +1328,7 @@ class Node(QtGui.QGraphicsItem):
             if self.getPin(): #Check to see if there is a pin
                 if self.getPin().getConstraintItem(): #check to see if there is a constraint Item
                     if type(self.getPin().getConstraintItem()) == ConstraintLine: # We have the special case of the ConstraintLine in place
-                        return self.mapFromScene(self.getPin().getConstraintItem().constrainItemChangedMovement(self.mapToScene(value.toPointF()))) #get the constraint cordinates and map them back to our local space
+                        return self.mapFromScene(self.getPin().getConstraintItem().constrainItemChangedMovement(self.mapToScene(value))) #get the constraint cordinates and map them back to our local space
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
     def mousePressEvent(self, event):

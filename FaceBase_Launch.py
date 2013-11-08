@@ -83,6 +83,8 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.faceSaveFile = None
         self.skinTableWidget = None
         self.styleData = styleData
+        imagePath = os.path.dirname(os.path.realpath(__file__))
+        self.imagePath = imagePath.replace("\\", "/") #Convert everything across to / for css files. Apparently this is ugly, but cannot get os.path and posixpath to work
         self.initUI()
 
     def initUI(self):   
@@ -197,12 +199,12 @@ class RigFaceSetup(QtGui.QMainWindow):
         actionMenu.addSeparator()
         actionMenu.addAction(self.clearFace)
 
-        self.filtersToolbar = self.addToolBar('Quick Tools')
+        self.quickToolbar = self.addToolBar('Quick Tools')
         space  = QtGui.QLabel("                          ")
         self.selectionFilters = QtGui.QLabel("   Selection Filters   ")
 
         self.selMarkers = QtGui.QAction(
-                QtGui.QIcon('images/GuideMarker_toolbar_active.png'),
+                QtGui.QIcon(self.imagePath + '/images/GuideMarker_toolbar_active.png'),
                 'Select Guide Markers',
                 self
                 ) 
@@ -211,7 +213,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.selMarkers.setStatusTip("Toggle guide marker selection")
         self.selMarkers.toggled.connect(lambda: self.selectMarkers(self.selMarkers.isChecked()))
 
-        self.selNodes = QtGui.QAction(QtGui.QIcon('images/Node_toolbar_active.png'), 'Select Nodes', self)
+        self.selNodes = QtGui.QAction(QtGui.QIcon(self.imagePath + '/images/Node_toolbar_active.png'), 'Select Nodes', self)
         self.selNodes.setCheckable(True)
         self.selNodes.setChecked(True)
         self.selNodes.setStatusTip("Toggle node selection")
@@ -237,17 +239,17 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.imgFileSetButton = QtGui.QPushButton("Set Background Image")
         self.imgFileSetButton.pressed.connect(lambda: self.view.loadBackgroundImage())
 
-        self.filtersToolbar.addWidget(space)
-        self.filtersToolbar.addWidget(self.selectionFilters)
-        self.filtersToolbar.addAction(self.selMarkers)
-        self.filtersToolbar.addAction(self.selNodes)
-        self.filtersToolbar.addWidget(self.controlScaleLbl)
-        self.filtersToolbar.addWidget(self.controlScaleSlider)
-        self.filtersToolbar.addWidget(self.scaleSameItems)
-        self.filtersToolbar.addWidget(self.imgFileLineEdit)
-        self.filtersToolbar.addWidget(self.imgFileSetButton)
+        self.quickToolbar.addWidget(space)
+        self.quickToolbar.addWidget(self.selectionFilters)
+        self.quickToolbar.addAction(self.selMarkers)
+        self.quickToolbar.addAction(self.selNodes)
+        self.quickToolbar.addWidget(self.controlScaleLbl)
+        self.quickToolbar.addWidget(self.controlScaleSlider)
+        self.quickToolbar.addWidget(self.scaleSameItems)
+        self.quickToolbar.addWidget(self.imgFileLineEdit)
+        self.quickToolbar.addWidget(self.imgFileSetButton)
 
-        self.filtersToolbar.addSeparator()
+        self.quickToolbar.addSeparator()
 
         #Creation DockWidget
         self.dockCreationWidget = QtGui.QDockWidget(self)
@@ -325,9 +327,9 @@ class RigFaceSetup(QtGui.QMainWindow):
         contradict the icon state.
         """ 
         if state:
-            self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_active.png'))
+            self.selMarkers.setIcon(QtGui.QIcon(self.imagePath + '/images/GuideMarker_toolbar_active.png'))
         else:
-            self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_deactive.png'))
+            self.selMarkers.setIcon(QtGui.QIcon(self.imagePath + '/images/GuideMarker_toolbar_deactive.png'))
         self.view.selectFilter(state, rig.GuideMarker)
 
     def selectNodes(self,state):
@@ -341,9 +343,9 @@ class RigFaceSetup(QtGui.QMainWindow):
         contradict the icon state.
         """
         if state:
-            self.selNodes.setIcon(QtGui.QIcon('images/Node_toolbar_active.png'))
+            self.selNodes.setIcon(QtGui.QIcon(self.imagePath + '/images/Node_toolbar_active.png'))
         else:
-            self.selNodes.setIcon(QtGui.QIcon('images/Node_toolbar_deactive.png'))
+            self.selNodes.setIcon(QtGui.QIcon(self.imagePath + '/images/Node_toolbar_deactive.png'))
         self.view.selectFilter(state, rig.Node)
 
     def openFaceRig(self):

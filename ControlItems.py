@@ -985,9 +985,8 @@ class GuideMarker(QtGui.QGraphicsItem):
 
     def boundingRect(self):
         adjust = 5
-        numberstretch = 5
-        return QtCore.QRectF(self.scale*(-18 - adjust), self.scale*(-18 - adjust),
-                             self.scale*(36 + adjust), self.scale*(36 + adjust + numberstretch))
+        return QtCore.QRectF(self.scale*(-15 - adjust), self.scale*(-15 - adjust),
+                             self.scale*2*(15 + adjust), self.scale*2*(15 + adjust))
 
     def drawActive(self, painter):
         """A function to draw an active glow around the marker when activated"""
@@ -1023,7 +1022,7 @@ class GuideMarker(QtGui.QGraphicsItem):
             if self.scale < 1.0:
                 fontsize = int(9*self.scale)
             painter.setFont(QtGui.QFont('Arial', fontsize))
-            painter.drawText(self.scale*12,self.scale*21,str(self.activeIndex))
+            painter.drawText(self.scale*9,self.scale*5,str(self.activeIndex))
 
     def paint(self, painter, option, widget):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
@@ -1048,6 +1047,8 @@ class GuideMarker(QtGui.QGraphicsItem):
         painter.drawLine(self.scale*-12,self.scale*12,self.scale*12,self.scale*-12)
         # self.drawID(painter) #Now add in the Marker ID if relevant
         self.drawActiveIndex(painter)
+        # painter.drawRect(self.boundingRect())
+
 
 
     def itemChange(self, change, value):

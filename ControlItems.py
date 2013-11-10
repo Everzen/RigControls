@@ -455,7 +455,7 @@ class SuperNodeGroup(object):
         cP.setGroup(self)
         self.pin = cP
 
-        sNode = SuperNode(QtCore.QPointF(0,0)) #Build SuperNode
+        sNode = SuperNode(QtCore.QPointF(0,0), self.dataProcessor) #Build SuperNode
         sNode.setForm(self.form)
         sNode.setPin(cP)
         cP.setNode(sNode)

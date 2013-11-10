@@ -754,6 +754,7 @@ class ControlPin(QtGui.QGraphicsItem):
     def setConstraintItem(self, item):
         if type(item) == ConstraintLine or type(item) == ConstraintRect or type(item) == ConstraintEllipse:
             self.constraintItem = item
+            self.constraintItem.calibrateDataBundle() #This will line up the dataBundle output with the limits of the constraintItem
 
     def isActive(self):
         return self.active
@@ -1289,6 +1290,9 @@ class Node(QtGui.QGraphicsItem):
         """Function to centralise the node back to the pin and update any associated rigCurves and pinTies"""
         if self.pin:
             self.setPos(QtCore.QPointF(0,0))
+            if self.dataBundle:
+                self.dataBundle.setX(0.0)
+                self.dataBundle.setY(0.0)
             if self.pinTie:
                 self.pinTie().drawTie()
             self.dirtyCurve() # Redraw the curve that is going through the WireGroup
@@ -2127,6 +2131,14 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False)  
         self.opX.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
 
+    def calibrateDataBundle(self):
+        if self.node.dataBundle:
+            dBundle = self.node.dataBundle
+            dBundle.setMaxX(self.width)
+            dBundle.setMinX(-self.width)
+            dBundle.setMaxY(self.height)
+            dBundle.setMinY(-self.height)
+
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust - self.extension-3),
@@ -2162,6 +2174,7 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.setRect(self.scale*(-self.width), self.scale*(-self.height),
                              self.scale*(2*self.width), self.scale*(2*self.height)) 
         self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
+        self.calibrateDataBundle()
 
     def sceneCoordinates(self, sMousePt): #Code curtesy of ZetCode
         s_mouse_x = sMousePt.x()

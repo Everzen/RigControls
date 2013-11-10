@@ -12,6 +12,7 @@ import os
 
 from RigStore import FaceGVCapture
 from Widgets import ControlScale, DragItemButton
+from dataProcessor import DataProcessor, DataBundle
 
 import RigUIControls as rig
 
@@ -19,7 +20,6 @@ import RigUIControls as rig
 #Function to return Mayas main Window QtWidget so we can parent our UI to it.
 
 def maya_main_window():
-    print "moo"
     main_window_ptr = omui.MQtUtil.mainWindow()
     return wrapInstance(long(main_window_ptr), QtGui.QWidget)
 
@@ -74,7 +74,7 @@ class RigFaceSetup(QtGui.QMainWindow):
     Tabs on the areas that they are allowed to dock.
 
     """
-    def __init__(self, styleData, parent = None):
+    def __init__(self, styleData, dataProcessor, parent = None):
         super(RigFaceSetup, self).__init__(parent)
 
         self.setWindowTitle("Facial Rig Builder v1.0")
@@ -83,6 +83,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.faceSaveFile = None
         self.skinTableWidget = None
         self.styleData = styleData
+        self.dataProcessor = dataProcessor
         imagePath = os.path.dirname(os.path.realpath(__file__))
         self.imagePath = imagePath.replace("\\", "/") #Convert everything across to / for css files. Apparently this is ugly, but cannot get os.path and posixpath to work
         self.initUI()
@@ -111,6 +112,7 @@ class RigFaceSetup(QtGui.QMainWindow):
                 self,
                 self.messageLogger,
                 self.styleData,
+                self.dataProcessor,
                 itemFactory,
                 self.controlScale
                 )
@@ -425,7 +427,8 @@ def main():
         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
         return 1
 
-    happyFaceUI = RigFaceSetup(styleData, parent = maya_main_window())
+    rigProcessor = DataProcessor()
+    happyFaceUI = RigFaceSetup(styleData, rigProcessor, parent = maya_main_window())
     # happyFaceUI = RigFaceSetup(styleData)
     # happyFaceUI.setWindowFlags(QtCore.Qt.Tool)
     happyFaceUI.show()
@@ -445,8 +448,7 @@ def main():
 #         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
 #         return 1
 
-print "Test Directories "
 print str(os.path.dirname(os.path.realpath(__file__)))
 print str(os.getcwd())
-print "launching......"
+print "launching Happy Face......"
 main()

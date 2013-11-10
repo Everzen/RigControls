@@ -134,7 +134,7 @@ class WireGroup(object):
     Finally a curve (Rigcurve) is the drawn between all the nodes of the WireGroup
 
     """
-    def __init__(self, rigGView):
+    def __init__(self, rigGView, dataProcessor):
         #LIST OF ATTRIBUTES
         self.name = ""
         self.colour = QtGui.QColor(0,0,0)
@@ -147,6 +147,8 @@ class WireGroup(object):
         self.curve = None
         self.scene = rigGView.scene()
         self.rigGView = rigGView
+
+        self.dataProcessor = dataProcessor
         # self.initBuild()
 
     def store(self):
@@ -289,7 +291,7 @@ class WireGroup(object):
         self.nodes = []
         for index, p in enumerate(self.pins):
             # node = Node(p.pos())
-            node = Node(QtCore.QPointF(0,0))
+            node = Node(QtCore.QPointF(0,0), self.dataProcessor)
             node.setIndex(p.getIndex())
             node.setPin(p)
             p.setNode(node)
@@ -430,7 +432,7 @@ class SuperNodeGroup(object):
     """
     name = "SuperNodeGroup"
 
-    def __init__(self, nPos, form, rigGView):
+    def __init__(self, nPos, form, rigGView, dataProcessor):
         #LIST OF ATTRIBUTES
         self.name = "holdingName" #Put in a holding name, so the name is not reported as None
         self.locked = True
@@ -442,6 +444,9 @@ class SuperNodeGroup(object):
         self.pin = None
         self.pinTie = None
         self.scene = rigGView.scene()
+
+        self.dataProcessor = dataProcessor
+
         self.initBuild(nPos)
 
     def initBuild(self, nPos):
@@ -1076,7 +1081,7 @@ class Node(QtGui.QGraphicsItem):
     """
     name = "Node"
 
-    def __init__(self, nPos):
+    def __init__(self, nPos, dataProcessor):
         QtGui.QGraphicsItem.__init__(self)
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
@@ -1103,6 +1108,8 @@ class Node(QtGui.QGraphicsItem):
         self.hightlighted = False
         self.setPos(nPos)
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
+
+        self.dataProcessor = dataProcessor
 
     def store(self,wireName):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load
@@ -1398,8 +1405,8 @@ class SuperNode(Node):
     upgraded to using polymorphism.
 
     """
-    def __init__(self, nPos):
-        Node.__init__(self,nPos)
+    def __init__(self, nPos, dataProcessor):
+        Node.__init__(self, nPos, dataProcessor)
         self.name = ""
         self.form = "Arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
         self.scale = 0.8

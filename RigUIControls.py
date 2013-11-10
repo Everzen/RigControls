@@ -20,7 +20,7 @@ from RigStore import *
 
 class RigGraphicsView(QtGui.QGraphicsView):
 
-    def __init__(self, mainWindow, messageLogger, styleData, itemFactory, controlScaler):
+    def __init__(self, mainWindow, messageLogger, styleData, dataProcessor, itemFactory, controlScaler):
 
         QtGui.QGraphicsView.__init__(self) 
         self.width = 600
@@ -30,6 +30,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
         self.messageLogger = messageLogger
         self.styleData = styleData
+        self.dataProcessor = dataProcessor
         self.itemFactory = itemFactory
 
         policy = QtCore.Qt.ScrollBarAlwaysOff
@@ -279,7 +280,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if ok:
             posList = []
             for m in self.markerActiveList: posList.append(m.pos())
-            newWireGroup = WireGroup(self)
+            newWireGroup = WireGroup(self, self.dataProcessor)
             newWireGroup.buildFromPositions(posList)
             newWireGroup.setScale(self.markerScale)
             print "wirename : " + str(wireName)
@@ -606,7 +607,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def dragSuperNode(self, event, form):
             event.acceptProposedAction()
             #Create a new QGraphicsItem and transfer the text across so we have the correct name
-            item = SuperNodeGroup(self.mapToScene(event.pos()), form, self)
+            item = SuperNodeGroup(self.mapToScene(event.pos()), form, self, self.dataProcessor)
             self.superNodeGroups.append(item)
             # item.setPos(self.mapToScene(event.pos()))
             # item.setAlpha(0.5)

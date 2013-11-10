@@ -1342,7 +1342,7 @@ class Node(QtGui.QGraphicsItem):
                 newPos = self.pos()
                 self.dataBundle.setX(newPos.x())
                 self.dataBundle.setY(newPos.y())
-                # print "Float Data : " + str(self.dataBundle.getX()) + ", " + str(self.dataBundle.getY()) 
+                print "Float Data : " + str(self.dataBundle.getX()) + ", " + str(self.dataBundle.getY()) 
             if self.pinTie:
                 # print "There is a tie"
                 self.pinTie().drawTie()
@@ -1676,12 +1676,6 @@ class SuperNode(Node):
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
-            #Item has been moved so report out the data using the dataBundle
-            if self.dataBundle:
-                newPos = self.pos()
-                self.dataBundle.setX(newPos.x())
-                self.dataBundle.setY(newPos.y())
-                # print "Float Data : " + str(self.dataBundle.getX()) + ", " + str(self.dataBundle.getY()) 
             for skinPin in self.skinnedPins: 
                 skinPin.update() #Update the pin positions of the skinned Nodes
                 skinPin.getPin().itemChange(change, value)

@@ -427,7 +427,8 @@ def main():
         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
         return 1
 
-    rigProcessor = DataProcessor()
+    #Create DataProcessor for the rig and use the DataBundle Class to determine how it will behave.
+    rigProcessor = DataProcessor(DataBundle()) 
     happyFaceUI = RigFaceSetup(styleData, rigProcessor, parent = maya_main_window())
     # happyFaceUI = RigFaceSetup(styleData)
     # happyFaceUI.setWindowFlags(QtCore.Qt.Tool)

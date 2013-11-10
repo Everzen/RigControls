@@ -1110,6 +1110,8 @@ class Node(QtGui.QGraphicsItem):
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
         self.dataProcessor = dataProcessor
+        self.dataBundle = None
+        self.dataProcessor.attachBundle(self) #This method will create a new DataBundle and attach it to both this Node and the central DataProcessor
 
     def store(self,wireName):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load
@@ -1273,6 +1275,12 @@ class Node(QtGui.QGraphicsItem):
         self.wireGroup = wireGroup
         self.wireName = wireGroup.getName()
 
+    def getDataBundle(self):
+        return self.dataBundle
+
+    def setDataBundle(self, bundle):
+        self.dataBundle = bundle
+
     def resetWireGroup(self):
         if self.wireGroup:
             self.wireGroup.resetNodes()
@@ -1329,6 +1337,12 @@ class Node(QtGui.QGraphicsItem):
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
+            #Item has been moved so report out the data using the dataBundle
+            if self.dataBundle:
+                newPos = self.pos()
+                self.dataBundle.setX(newPos.x())
+                self.dataBundle.setY(newPos.y())
+                # print "Float Data : " + str(self.dataBundle.getX()) + ", " + str(self.dataBundle.getY()) 
             if self.pinTie:
                 # print "There is a tie"
                 self.pinTie().drawTie()
@@ -1410,6 +1424,7 @@ class SuperNode(Node):
         self.name = ""
         self.form = "Arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
         self.scale = 0.8
+        self.scaleOffset = 2
         self.alpha = 1.0
         self.superNodeGroup = None
         self.minimumScale = 0.2
@@ -1417,10 +1432,9 @@ class SuperNode(Node):
         self.path = QtGui.QPainterPath()
         self.skinningItem = None
         self.skinnedPins = []
-        self.initBuild()
-
-    def initBuild(self):
-        self.scaleOffset = 2
+        
+        self.dataProcessor = dataProcessor
+        
 
     def store(self):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
@@ -1662,6 +1676,12 @@ class SuperNode(Node):
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
+            #Item has been moved so report out the data using the dataBundle
+            if self.dataBundle:
+                newPos = self.pos()
+                self.dataBundle.setX(newPos.x())
+                self.dataBundle.setY(newPos.y())
+                # print "Float Data : " + str(self.dataBundle.getX()) + ", " + str(self.dataBundle.getY()) 
             for skinPin in self.skinnedPins: 
                 skinPin.update() #Update the pin positions of the skinned Nodes
                 skinPin.getPin().itemChange(change, value)

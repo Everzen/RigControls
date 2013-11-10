@@ -2,17 +2,19 @@
 ##dataProcessor - Module to grab positions of the RigGraphicsView Nodes and SuperNodes
 ##			      and return their positions as useful float data that can be wired into 
 ##				  Maya scene Control Nodes (Control Curver or Locator) to drive rig movement.
-
+import copy
 
 
 class DataProcessor(object):
 	"""This class contains a number of data bundles and performs operations on them to pass out the Node and SuperNode data
 	as useful float data for the x and y axis
 	"""
-	def __init__(self):
+	def __init__(self, sampleBundle):
 		#LIST OF ATTRIBUTES
 		self.mayaControl = None
+		self.sampleBundle = sampleBundle
 		self.dataBundles = []
+
 
 	def getMayaControl(self):
 		return self.mayaControl
@@ -21,11 +23,12 @@ class DataProcessor(object):
 		"""Function to take a node selected in the Maya Scene and assign it to the class"""
 		self.MayaControl = mayaControl
 
-	def addBundle(self, bundle):
+	def attachBundle(self, item):
 		"""Takes a DataBundle and adds it to the list, assigning the Maya control along the way"""
-		if type(bundle) == dataBundle:
-			self.dataBundles.append(bundle)
-			bundle.setMayaControl(self.mayaControl)
+		newBundle = copy.deepcopy(self.sampleBundle)
+		newBundle.setMayaControl(self.mayaControl)
+		item.setDataBundle(newBundle)
+		self.dataBundles.append(newBundle)
 
 	def removeBundle(self, bundle):
 		if type(bundle) == dataBundle:
@@ -59,7 +62,7 @@ class DataBundle(object):
 		self.maxY = None
 		self.minX = None 
 		self.minY = None
-		self.standardScale= 50.0
+		self.standardScale = 50.0
 
 	def getMayaControl(self):
 		return self.mayaControl
@@ -76,27 +79,44 @@ class DataBundle(object):
 
 	def setX(self, x):
 		posX = x
-		if posX > self.maxX:
-			posX = self.maxX
-		elif posX < self.minX:
-			posX = self.minX
+		if self.maxX:
+			if posX > self.maxX:
+				posX = self.maxX
+		if self.minX:
+			if posX < self.minX:
+				posX = self.minX
+
 		#Now calculate the proportion from -1 -> 0 -> 1 that we should be returning
 		if posX > 0:
-			self.x = float(posX)/float(self.maxX)
+			if self.maxX:
+				self.x = float(posX)/float(self.maxX)
+			else: 
+				self.x = float(posX)/self.standardScale
 		else:
-			self.x = -float(posX)/float(self.minX)
+			if self.minX:
+				self.x = float(posX)/float(self.minX)
+			else: 
+				self.x = float(posX)/self.standardScale
 
 	def setY(self, y):
 		posY = y
-		if posY > self.maxY:
-			posY = self.maxY
-		elif posY < self.minY:
-			posY = self.minY
+		if self.maxY:
+			if posY > self.maxY:
+				posY = self.maxY
+		if self.minY:
+			if posY < self.minY:
+				posY = self.minY
 		#Now calculate the proportion from -1 -> 0 -> 1 that we should be returning
 		if posY > 0:
-			self.y = float(posY)/float(self.maxY)
+			if self.maxY:
+				self.y = float(posY)/float(self.maxY)
+			else: 
+				self.y = float(posY)/self.standardScale
 		else:
-			self.y = -float(posY)/float(self.minY)
+			if self.minY:
+				self.y = float(posY)/float(self.minY)
+			else: 
+				self.y = float(posY)/self.standardScale
 
 	def getMaxX(self):
 		return self.maxX

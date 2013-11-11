@@ -89,14 +89,14 @@ class DataBundle(object):
 		#Now calculate the proportion from -1 -> 0 -> 1 that we should be returning
 		if posX > 0:
 			if self.maxX:
-				self.x = float(posX)/float(self.maxX)
+				self.x = round(float(posX)/float(self.maxX),3)
 			else: 
-				self.x = float(posX)/self.standardScale
+				self.x = round(float(posX)/self.standardScale,3)
 		else:
 			if self.minX:
-				self.x = float(posX)/float(self.minX)
+				self.x = -round(float(posX)/float(self.minX),3)
 			else: 
-				self.x = float(posX)/self.standardScale
+				self.x = round(float(posX)/self.standardScale,3)
 
 	def setY(self, y):
 		posY = y
@@ -109,14 +109,14 @@ class DataBundle(object):
 		#Now calculate the proportion from -1 -> 0 -> 1 that we should be returning
 		if posY > 0:
 			if self.maxY:
-				self.y = float(posY)/float(self.maxY)
+				self.y = -round(float(posY)/float(self.maxY),3)
 			else: 
-				self.y = float(posY)/self.standardScale
+				self.y = -round(float(posY)/self.standardScale,3)
 		else:
 			if self.minY:
-				self.y = float(posY)/float(self.minY)
+				self.y = round(float(posY)/float(self.minY),3)
 			else: 
-				self.y = float(posY)/self.standardScale
+				self.y = -round(float(posY)/self.standardScale,3)
 
 	def getMaxX(self):
 		return self.maxX

@@ -2402,6 +2402,15 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False)  
         self.opX.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
 
+
+    def calibrateDataBundle(self):
+        if self.node.dataBundle:
+            dBundle = self.node.dataBundle
+            dBundle.setMaxX(self.width)
+            dBundle.setMinX(-self.width)
+            dBundle.setMaxY(self.height)
+            dBundle.setMinY(-self.height)
+
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust - self.extension),
@@ -2437,6 +2446,7 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.setRect(self.scale*(-self.width), self.scale*(-self.height),
                              self.scale*(2*self.width), self.scale*(2*self.height))  
         self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
+        self.calibrateDataBundle()
 
     def sceneCoordinates(self, sMousePt): #Code curtesy of ZetCode
         s_mouse_x = sMousePt.x()
@@ -2675,6 +2685,14 @@ class ConstraintLine(QtGui.QGraphicsItem):
         self.opXHead.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
         self.opXTail.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
 
+    def calibrateDataBundle(self):
+        if self.node.dataBundle:
+            dBundle = self.node.dataBundle
+            dBundle.setMaxX(0)
+            dBundle.setMinX(0)
+            dBundle.setMaxY(self.tailLength)
+            dBundle.setMinY(-self.headLength)
+
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-5 - adjust), self.scale*(-self.headLength - adjust +1 ),
@@ -2699,6 +2717,7 @@ class ConstraintLine(QtGui.QGraphicsItem):
         elif index == 1:
             self.setTailLength(abs(self.opXTail.pos().y()) - self.crossOffset)
         self.update()
+        self.calibrateDataBundle()
 
 
     def sceneCoordinates(self, sMousePt): #Code curtesy of ZetCode

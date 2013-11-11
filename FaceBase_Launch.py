@@ -449,7 +449,5 @@ def main():
 #         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
 #         return 1
 
-print str(os.path.dirname(os.path.realpath(__file__)))
-print str(os.getcwd())
 print "launching Happy Face......"
 main()

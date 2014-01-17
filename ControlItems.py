@@ -1063,8 +1063,9 @@ class GuideMarker(QtGui.QGraphicsItem):
             # print "Marker Move pos : " + str(self.scenePos())  
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
-    # def mouseMoveEvent(self, event):
-    #     QtGui.QGraphicsItem.mouseMoveEvent(self, event)
+    def mousePressEvent(self, event):
+        self.setPos(self.mapToScene(event.pos())) #Trying to line centre of node to mouse move
+        QtGui.QGraphicsItem.mousePressEvent(self, event)
 
 
 ###Nodes for selection in the Graphics View
@@ -1358,6 +1359,10 @@ class Node(QtGui.QGraphicsItem):
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
     def mousePressEvent(self, event):
+        self.setPos(self.mapToParent(event.pos())) #Trying to line centre of node to mouse move
+        if self.pinTie:
+            # print "There is a tie"
+            self.pinTie().drawTie()
         self.update()
         QtGui.QGraphicsItem.mousePressEvent(self, event)
 

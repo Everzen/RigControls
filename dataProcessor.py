@@ -151,3 +151,41 @@ class DataBundle(object):
 			pass #Make sure that the Maya attribute is unlocked and shown in the scene
 		else:
 			pass #Make sure that the Maya attribute is locked and hidden in the scene, animation is deleted and the node is return to rest position
+
+
+class DataServoBundle(DataBundle):
+	"""This class inherits DataBundle, and bolts on to it some functionality for applying servo numbers and angle limits to those servos
+
+	"""
+	def __init__(self):
+		DataBundle.__init__(self) 
+		self.xServoNo = None
+		self.yServoNo = None
+		self.minXServoAngle = 0
+		self.maxXServoAngle = 180
+		self.minYServoAngle = 0
+		self.maxYServoAngle = 180
+
+	def getMinXServoAngle(self):
+		return self.minXServoAngle
+
+	def getMaxXServoAngle(self):
+		return self.maxXServoAngle
+
+	def setMinXServoAngle(self, angle):
+		self.minXServoAngle = angle
+
+	def setMaxXServoAngle(self, angle):
+		self.maxXServoAngle = angle
+
+	def getMinYServoAngle(self):
+		return self.minYServoAngle
+
+	def getMaxYServoAngle(self):
+		return self.maxYServoAngle
+
+	def setMinYServoAngle(self, angle):
+		self.minXServoAngle = angle
+
+	def setMaxYServoAngle(self, angle):
+		self.maxXServoAngle = angle

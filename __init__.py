@@ -12,7 +12,7 @@ import os
 
 from RigStore import FaceGVCapture
 from Widgets import ControlScale, DragItemButton
-from dataProcessor import DataProcessor, DataBundle
+from dataProcessor import DataProcessor, DataBundle, DataServoBundle
 
 import RigUIControls as rig
 
@@ -428,7 +428,7 @@ def main():
         return 1
 
     #Create DataProcessor for the rig and use the DataBundle Class to determine how it will behave.
-    rigProcessor = DataProcessor(DataBundle()) 
+    rigProcessor = DataProcessor(DataServoBundle()) 
     happyFaceUI = RigFaceSetup(styleData, rigProcessor, parent = maya_main_window())
     # happyFaceUI = RigFaceSetup(styleData)
     # happyFaceUI.setWindowFlags(QtCore.Qt.Tool)

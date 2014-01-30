@@ -16,6 +16,8 @@ from dataProcessor import DataProcessor, DataBundle, DataServoBundle
 
 import RigUIControls as rig
 
+from mayaData import MayaData
+
 #################################################################################################
 #Function to return Mayas main Window QtWidget so we can parent our UI to it.
 
@@ -200,6 +202,16 @@ class RigFaceSetup(QtGui.QMainWindow):
         actionMenu.addAction(self.reflectGuideMarkers)
         actionMenu.addSeparator()
         actionMenu.addAction(self.clearFace)
+
+
+        self.createDataSceneControl = QtGui.QAction("Create " + self.dataProcessor.getAppName() +" Control",self)
+        self.createDataSceneControl.triggered.connect(self.createSceneControl)
+        self.createDataSceneControl.setStatusTip('Create a Locator with attributes representing all the control movements on the face setup')
+
+        dataMenu = menubar.addMenu('&Data')
+        dataMenu.addAction(self.createDataSceneControl)
+        # dataMenu.addSeparator()
+        # dataMenu.addAction(self.clearFace)
 
         self.quickToolbar = self.addToolBar('Quick Tools')
         space  = QtGui.QLabel("                          ")
@@ -392,6 +404,28 @@ class RigFaceSetup(QtGui.QMainWindow):
         """Random Test funciton to see if things get called"""
         print "moo"
 
+    def createSceneControl(self):
+        """Check to see if there is a scene Controller, and if there is not, then build one"""
+        #Check to see if there is an established controller already setup
+        sceneControllerName, ok = QtGui.QInputDialog.getText(
+                self, self.dataProcessor.getAppName() + ' Scene Controller Name',
+                'Please Enter a unique Scene Contoller Name:'
+                )
+        while not self.dataProcessor.isSceneControllerNameUnique(sceneControllerName):
+            sceneControllerName, ok = QtGui.QInputDialog.getText(
+                    self, self.dataProcessor.getAppName() + ' Scene Controller Name',
+                    'Sadly that name already exists in the current Scene. Please Enter a unique Scene Contoller Name:'
+                    )
+        if ok:
+            if sceneControllerName == self.dataProcessor.getSceneControl():
+                reply = QtGui.QMessageBox.question(self, 'There already seems to be a controller in place called : ' + self.dataProcessor.getSceneControl(sceneControllerName) + '. Do you want to override it with a new controller?', QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+                if reply == QtGui.QMessageBox.Yes:
+                    self.dataProcessor.createSceneControl(sceneControllerName)
+                    self.dataProcessor.setSceneControl(sceneControllerName)
+            else:
+                self.dataProcessor.createSceneControl(sceneControllerName)
+                self.dataProcessor.setSceneControl(sceneControllerName)
+
 
 # def main():
 
@@ -428,7 +462,7 @@ def main():
         return 1
 
     #Create DataProcessor for the rig and use the DataBundle Class to determine how it will behave.
-    rigProcessor = DataProcessor(DataServoBundle()) 
+    rigProcessor = DataProcessor(DataServoBundle(), MayaData()) 
     happyFaceUI = RigFaceSetup(styleData, rigProcessor, parent = maya_main_window())
     # happyFaceUI = RigFaceSetup(styleData)
     # happyFaceUI.setWindowFlags(QtCore.Qt.Tool)

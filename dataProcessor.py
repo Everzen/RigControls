@@ -3,30 +3,34 @@
 ##			      and return their positions as useful float data that can be wired into 
 ##				  Maya scene Control Nodes (Control Curver or Locator) to drive rig movement.
 import copy
-
+# from mayaData import MayaData as SceneData #Importing Maya Data information. This module can be changed if decelopment occurs for other 3D applications
 
 class DataProcessor(object):
 	"""This class contains a number of data bundles and performs operations on them to pass out the Node and SuperNode data
 	as useful float data for the x and y axis
 	"""
-	def __init__(self, sampleBundle):
+	def __init__(self, sampleBundle, sceneAppData):
 		#LIST OF ATTRIBUTES
-		self.mayaControl = None
+		self.appName = sceneAppData.getAppName()
+		self.sceneAppData = sceneAppData
+		self.sceneControl = None
 		self.sampleBundle = sampleBundle
 		self.dataBundles = []
 
+	def createSceneControl(self, name):
+		self.sceneControl = self.sceneAppData.createSceneController(name)
 
-	def getMayaControl(self):
-		return self.mayaControl
+	def getSceneControl(self):
+		return self.sceneControl
 
-	def setMayaControl(self, mayaControl):
-		"""Function to take a node selected in the Maya Scene and assign it to the class"""
-		self.MayaControl = mayaControl
+	def setSceneControl(self, sceneControl):
+		"""Function to take a node selected in the Scene and assign it to the class"""
+		self.sceneControl = sceneControl
 
 	def attachBundle(self, item):
 		"""Takes a DataBundle and adds it to the list, assigning the Maya control along the way"""
 		newBundle = copy.deepcopy(self.sampleBundle)
-		newBundle.setMayaControl(self.mayaControl)
+		newBundle.setSceneControl(self.sceneControl)
 		item.setDataBundle(newBundle)
 		self.dataBundles.append(newBundle)
 
@@ -39,7 +43,18 @@ class DataProcessor(object):
 					return True
 		return False
 
+	def isControllerActive(self):
+		"""Function to check that the Controller is Active"""
+		#Basic Check - Expand to include checking whether the Node has been deleted from the scene
+		if self.sceneControl: return True
+		else: return false
 
+	def getAppName(self):
+		"""Returns the 3D application Name which is specified upon creation of the DataProcessor"""
+		return self.appName
+
+	def isSceneControllerNameUnique(self, name):
+		return self.sceneAppData.isNameUnique(name)
 
 class DataBundle(object):
 	"""This class looks at the node or the SuperNode and the associated constraints on that node and 
@@ -52,8 +67,8 @@ class DataBundle(object):
 	"""
 	def __init__(self):
 		#LIST OF ATTRIBUTES
-		self.mayaControl = None
-		self.mayaAttribute = None
+		self.sceneControl = None
+		self.controlAttribute = None
 		self.node = None
 		self.active = True
 		self.x = 0
@@ -64,12 +79,12 @@ class DataBundle(object):
 		self.minY = None
 		self.standardScale = 50.0
 
-	def getMayaControl(self):
-		return self.mayaControl
+	def getSceneControl(self):
+		return self.sceneControl
 
-	def setMayaControl(self, mayaControl):
-		"""Function to take a node selected in the Maya Scene and assign it to the class"""
-		self.MayaControl = mayaControl
+	def setSceneControl(self, sceneControl):
+		"""Function to take a node selected in the Scene and assign it to the class"""
+		self.sceneControl = sceneControl
 
 	def getX(self):
 		return self.x

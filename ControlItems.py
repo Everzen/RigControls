@@ -219,6 +219,7 @@ class WireGroup(object):
                 newNode.setPin(self.findPin(newNode.getPinIndex())) # Set the pin for Node
                 self.findPin(newNode.getPinIndex()).setNode(newNode) # Set the Node for the Pin
                 newNode.setWireGroup(self)
+                node.setDataBundleInfo() #This methods sets up details such as the attribute name within the Node DataBundle, which is determined by the WireGroup Name and Index
                 if newNode.getPin().getConstraintItem(): # We have a constraint Item so make sure we set the node for it
                     newNode.getPin().getConstraintItem().setNode(newNode)
             
@@ -297,6 +298,7 @@ class WireGroup(object):
             p.setNode(node)
             node.setWireGroup(self)
             node.setWireName(self.name)
+            node.setDataBundleInfo() #This methods sets up details such as the attribute name within the Node DataBundle, which is determined by the WireGroup Name and Index
             self.nodes.append(node)
             # self.scene.addItem(node)
 
@@ -1299,6 +1301,12 @@ class Node(QtGui.QGraphicsItem):
             self.dirtyCurve() # Redraw the curve that is going through the WireGroup
         else:
             print "WARNING : NODE HAS NO ASSOCIATED PIN AND AS SUCH HAS NO HOME TO GO TO :("
+
+    def setDataBundleInfo(self):
+        """Sets the Expected Attribute Name that will eventually be assigned to the Scene Controller as an extra attribute"""
+        attrName = str(self.wireName) + str(self.index)
+        self.dataBundle.setAttrName(attrName)
+
 
     def dirtyCurve(self):
         "Marks any associated curves as dirty"

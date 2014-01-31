@@ -5,6 +5,7 @@
 import copy
 # from mayaData import MayaData as SceneData #Importing Maya Data information. This module can be changed if decelopment occurs for other 3D applications
 
+
 class DataProcessor(object):
 	"""This class contains a number of data bundles and performs operations on them to pass out the Node and SuperNode data
 	as useful float data for the x and y axis
@@ -56,12 +57,17 @@ class DataProcessor(object):
 	def isSceneControllerNameUnique(self, name):
 		return self.sceneAppData.isNameUnique(name)
 
+	def sceneControllerExists(self):
+		return not self.sceneAppData.isNameUnique(self.sceneControl)
+
+
+
 class DataBundle(object):
 	"""This class looks at the node or the SuperNode and the associated constraints on that node and 
 	from the x and y postions returns some nice float data for us to wire into Maya scene Nodes etc
 
-	mayaControl - The master scene Node that we are using in Maya to load all the float data into
-	mayaAttribute - The attribute on the mayaControl that refers to this dataBundle
+	SceneControl - The master scene Node that we are using in Maya to load all the float data into
+	SceneAttribute - The attribute on the Scene Control that refers to this dataBundle
 	node - is the Node or the SuperNode whose data we are trying to convert out data for
 
 	"""
@@ -69,7 +75,8 @@ class DataBundle(object):
 		#LIST OF ATTRIBUTES
 		self.sceneControl = None
 		self.controlAttribute = None
-		self.node = None
+		self.connectedNode = None
+		self.attrName = None
 		self.active = True
 		self.x = 0
 		self.y = 0
@@ -166,6 +173,12 @@ class DataBundle(object):
 			pass #Make sure that the Maya attribute is unlocked and shown in the scene
 		else:
 			pass #Make sure that the Maya attribute is locked and hidden in the scene, animation is deleted and the node is return to rest position
+
+	def getAttrName(self):
+		return self.attrName
+
+	def setAttrName(self, name):
+		self.attrName = str(name)
 
 
 class DataServoBundle(DataBundle):

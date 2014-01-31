@@ -417,8 +417,9 @@ class RigFaceSetup(QtGui.QMainWindow):
                     'Sadly that name already exists in the current Scene. Please Enter a unique Scene Contoller Name:'
                     )
         if ok:
-            if sceneControllerName == self.dataProcessor.getSceneControl():
-                reply = QtGui.QMessageBox.question(self, 'There already seems to be a controller in place called : ' + self.dataProcessor.getSceneControl(sceneControllerName) + '. Do you want to override it with a new controller?', QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+            print "Name is : " + str(sceneControllerName) + " " + str(self.dataProcessor.getSceneControl())
+            if self.dataProcessor.getSceneControl() != None and self.dataProcessor.sceneControllerExists() :
+                reply = QtGui.QMessageBox.question(self, "Scene Controller Conflict", 'There already seems to be a controller in place called : ' + self.dataProcessor.getSceneControl() + '. Do you want to override it with a new controller?', QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
                 if reply == QtGui.QMessageBox.Yes:
                     self.dataProcessor.createSceneControl(sceneControllerName)
                     self.dataProcessor.setSceneControl(sceneControllerName)

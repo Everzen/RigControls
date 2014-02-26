@@ -20,6 +20,17 @@ class MayaData(object):
 		cmds.setAttr(controller[0] + ".localScaleX", 5)
 		cmds.setAttr(controller[0] + ".localScaleY", 5)
 		cmds.setAttr(controller[0] + ".localScaleZ", 5)
+		cmds.setAttr(controller[0] + ".tx", channelBox=False, keyable=False)
+		cmds.setAttr(controller[0] + ".ty", channelBox=False, keyable=False)
+		cmds.setAttr(controller[0] + ".tz", channelBox=False, keyable=False)
+		cmds.setAttr(controller[0] + ".rx", channelBox=False, keyable=False)
+		cmds.setAttr(controller[0] + ".ry", channelBox=False, keyable=False)
+		cmds.setAttr(controller[0] + ".rz", channelBox=False, keyable=False)
+		cmds.setAttr(controller[0] + ".sx", channelBox=False, keyable=False)
+		cmds.setAttr(controller[0] + ".sy", channelBox=False, keyable=False)
+		cmds.setAttr(controller[0] + ".sz", channelBox=False, keyable=False)
+		#Add an initial attribute called "Happy Face". This is just a marker to show the start of the code added attrbiutes.
+		self.addTitleAttr(controller[0], "HappyFace")
 		print "My controller is : " + controller[0]
 		return controller[0]
 
@@ -31,10 +42,21 @@ class MayaData(object):
 		cmds.delete(sceneName)
 		return sceneName == name
 
-	def addAttr(self, node, att):
+	def addAttr(self, node, att, isLocked=False, atType='double'):
 		"""Function to add a float attribute to the node specified. No restrictions will be applied to the node, but the default will be 0"""
 		if not self.attExists(node, att):
-			cmds.addAttr(node, longName=att, attributeType='double', keyable=True)
+			cmds.addAttr(node, longName=att, attributeType=atType, keyable=True)
+			cmds.setAttr(node + "." + att, lock=isLocked, keyable=not(isLocked))
+			return True
+		else: 
+			return False
+
+	def addTitleAttr(self, node, titleAttr):
+		"""This function just adds a simple name attribute that is a locked off boolean to mark a key point in the Maya Node attribute list"""
+		if not self.attExists(node, titleAttr):
+			cmds.addAttr(node, longName=titleAttr, attributeType='bool', keyable=True)
+			cmds.setAttr(node + "." + titleAttr, True)
+			cmds.setAttr(node + "." + titleAttr, lock=True)
 			return True
 		else: 
 			return False

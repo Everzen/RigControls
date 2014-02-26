@@ -19,6 +19,9 @@ class DataProcessor(object):
 		self.dataBundles = []
 
 	def createSceneControl(self, name):
+		"""Function to create the scene controller for the appropriate 3DApp. 
+		The function should cycle through all the controls in the Happy Face and add the appropriate attributes to the scene Controller
+		Wiring them into the associated data bundles"""
 		self.sceneControl = self.sceneAppData.createSceneController(name)
 
 	def getSceneControl(self):

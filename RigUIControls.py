@@ -30,7 +30,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
         self.messageLogger = messageLogger
         self.styleData = styleData
-        self.dataProcessor = dataProcessor
+        
+        self.dataProcessor = dataProcessor #This passes the movement data of the rigGV nodes and controls out to teh 3D app
+        self.dataProcessor.setRigGraphicsView(self) #This ensures the dataProcessor continually can reference which controls are currently active and in use on the HappyFace
+
         self.itemFactory = itemFactory
 
         policy = QtCore.Qt.ScrollBarAlwaysOff

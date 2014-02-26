@@ -17,12 +17,35 @@ class DataProcessor(object):
 		self.sceneControl = None
 		self.sampleBundle = sampleBundle
 		self.dataBundles = []
+		self.rigGraphicsView = None
 
 	def createSceneControl(self, name):
 		"""Function to create the scene controller for the appropriate 3DApp. 
 		The function should cycle through all the controls in the Happy Face and add the appropriate attributes to the scene Controller
 		Wiring them into the associated data bundles"""
 		self.sceneControl = self.sceneAppData.createSceneController(name)
+		self.collectActiveControlNodes()
+
+	def collectActiveControlNodes(self):
+		"""Function loops throuhgh all wiregroups and superNodegroups in the rigGraphicsView and collects all the appropriateNodes"""
+		wireGroups = self.rigGraphicsView.getWireGroups()
+		superNodegroups = self.rigGraphicsView.getSuperNodeGroups()
+
+		activeNodes = []
+		for wG in wireGroups: activeNodes += wG.getNodes() #loop through the wiregroups adding the nodes to the activeNodes list
+		for sG in superNodegroups: activeNodes.append(sG.getSuperNode()) #loop through all the superNodeGroups adding the nodes to the activeNodes list
+		print "My active Node Count : " + str(len(activeNodes)) + " " + str(activeNodes)
+		for n in activeNodes : print str(n.getDataBundle().getHostName())
+		return activeNodes
+
+	def addSceneControlAttributes(self):
+		"""Function loops through the rigGraphicsView and picks out all the wiregroups and superNodegroups and makes attributes for them"""
+		pass
+
+	def updatedDataBundles(self):
+		"""Function loops through controls in rigGraphicsView and checks them for consistency against the current dataBundle list"""
+		newSampleBundles = []
+		pass
 
 	def getSceneControl(self):
 		return self.sceneControl
@@ -63,6 +86,13 @@ class DataProcessor(object):
 	def sceneControllerExists(self):
 		return not self.sceneAppData.isNameUnique(self.sceneControl)
 
+	def getRigGraphicsView(self):
+		return self.rigGraphicsView
+
+	def setRigGraphicsView(self, rigGraphicsView):
+		"""Function to pass the main rigGraphicsView to the dataprocessor, so we can always keep track of exactly which controls are drawn and active"""
+		self.rigGraphicsView = rigGraphicsView
+
 
 
 class DataBundle(object):
@@ -80,6 +110,7 @@ class DataBundle(object):
 		self.controlAttribute = None
 		self.connectedNode = None
 		self.attrName = None
+		self.hostName = None #This is the name of the wiregroup or superNodegroup that the associated node belongs to - Do we just pass a reference to the Node itself?
 		self.active = True
 		self.x = 0
 		self.y = 0
@@ -182,6 +213,14 @@ class DataBundle(object):
 
 	def setAttrName(self, name):
 		self.attrName = str(name)
+
+	def getHostName(self):
+		return self.hostName
+
+	def setHostName(self, hostName):
+		"""Function to set the hostName which is the name of the wiregroup or superNodegroup that the associated node belongs to"""
+		self.hostName = str(hostName)
+
 
 
 class DataServoBundle(DataBundle):

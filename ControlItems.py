@@ -1278,6 +1278,7 @@ class Node(QtGui.QGraphicsItem):
     def setWireGroup(self, wireGroup):
         self.wireGroup = wireGroup
         self.wireName = wireGroup.getName()
+        self.setDataBundleHostName(self.wireName) #Passes the name of the wireGroup through to the DataBundle so attrbute names can be checked
 
     def getDataBundle(self):
         return self.dataBundle
@@ -1307,6 +1308,9 @@ class Node(QtGui.QGraphicsItem):
         attrName = str(self.wireName) + str(self.index)
         self.dataBundle.setAttrName(attrName)
 
+    def setDataBundleHostName(self, name):
+        """Function to pass the name of the wiregroup or superNodeGroup that the Node belongs to"""
+        self.dataBundle.setHostName(name)
 
     def dirtyCurve(self):
         "Marks any associated curves as dirty"
@@ -1544,6 +1548,7 @@ class SuperNode(Node):
 
     def setSuperNodeGroup(self, superNodeGroup):
         self.superNodeGroup = superNodeGroup
+        self.setDataBundleHostName(superNodeGroup.getName()) #Passes the name of the SuperNodeGroup through to the DataBundle so attribute names can be checked
 
     def getForm(self):
         return self.form

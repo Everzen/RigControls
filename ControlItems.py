@@ -1612,7 +1612,7 @@ class SuperNode(Node):
                 skinInfo.setSuperNode(self)
                 skinInfo.setPin(node.getPin())
                 # print "Wire Name : " + str(node.getWireGroup().getName())
-                skinInfo.setWireGroup(node.getWireGroup())
+                skinInfo.setWireGroup(node.getGroup())
                 # print "get skin wire Name " + str(skinInfo.getWireGroupName())
                 skinInfo.setSkinValue(skinValue)
                 self.skinnedPins.append(skinInfo)

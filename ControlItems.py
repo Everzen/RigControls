@@ -218,7 +218,8 @@ class WireGroup(object):
                 newNode.read(n)
                 newNode.setPin(self.findPin(newNode.getPinIndex())) # Set the pin for Node
                 self.findPin(newNode.getPinIndex()).setNode(newNode) # Set the Node for the Pin
-                newNode.setWireGroup(self)
+                # newNode.setWireGroup(self)
+                newNode.setGroup(self)
                 node.setDataBundleInfo() #This methods sets up details such as the attribute name within the Node DataBundle, which is determined by the WireGroup Name and Index
                 if newNode.getPin().getConstraintItem(): # We have a constraint Item so make sure we set the node for it
                     newNode.getPin().getConstraintItem().setNode(newNode)
@@ -248,7 +249,7 @@ class WireGroup(object):
 
     def setName(self, newName):
         self.name = str(newName)
-        for node in self.nodes: node.setWireGroup(self) #Setting The WireGroup again, will update the link to the WireGroup, and set the right names in the DataBundles too.
+        for node in self.nodes: node.setGroup(self) #Setting The Group again, will update the link to the Group, and set the right names in the DataBundles too.
         for pin in self.pins: pin.setGroup(self) #Do we need to set the Group instead to update DataBundles?
 
     def getColour(self):
@@ -296,8 +297,9 @@ class WireGroup(object):
             node.setIndex(p.getIndex())
             node.setPin(p)
             p.setNode(node)
-            node.setWireGroup(self)
-            node.setWireName(self.name)
+            # node.setWireGroup(self)
+            # node.setWireName(self.name)
+            node.setGroup(self)
             node.setDataBundleInfo() #This methods sets up details such as the attribute name within the Node DataBundle, which is determined by the WireGroup Name and Index
             self.nodes.append(node)
             # self.scene.addItem(node)
@@ -396,7 +398,8 @@ class WireGroup(object):
         for index, refNode in enumerate(self.nodes):
             if refNode.name == "NodePinReference": # We have found a reference so find and sub in the Node
                 for wireGroup in self.rigGView.wireGroups:
-                    if wireGroup.getName() == refNode.getWireName():
+                    # if wireGroup.getName() == refNode.getWireName():
+                    if wireGroup.getName() == refNode.getGroupName():
                         targetNode = wireGroup.findNode(refNode.getIndex())
                         self.mergeNode(index, targetNode, goHome = False)
 
@@ -462,8 +465,8 @@ class SuperNodeGroup(object):
         sNode.setPin(cP)
         cP.setNode(sNode)
         self.superNode = sNode
-        self.superNode.setSuperNodeGroup(self)
-        # sNode.setWireGroup(self)
+        # self.superNode.setSuperNodeGroup(self)
+        self.superNode.setGroup(self)
         
         pT = PinTie(sNode, cP)
         sNode.setPinTie(pT)
@@ -526,7 +529,9 @@ class SuperNodeGroup(object):
 
         self.pin = newPin
         self.superNode = newSNode
-        self.superNode.setSuperNodeGroup(self)
+        # self.superNode.setSuperNodeGroup(self)
+        self.superNode.setGroup(self)
+
 
         self.setScale(self.scale) # The scale now needs to be read into the items
 
@@ -544,7 +549,7 @@ class SuperNodeGroup(object):
 
     def setName(self, name):
         self.name = str(name)
-        if self.superNode: self.superNode.setSuperNodeGroup(self)
+        if self.superNode: self.superNode.setGroup(self)
 
     def isLocked(self):
         return self.locked
@@ -1099,7 +1104,6 @@ class Node(QtGui.QGraphicsItem):
         self.scaleOffset = 7
         self.minimumScale = 0.8
         self.scale = 1.0
-        self.wireName = ""
         self.colour = QtGui.QColor(25,25,255,150)
         # self.pin.append(weakref.ref(pin))
         self.pin = None
@@ -1108,7 +1112,12 @@ class Node(QtGui.QGraphicsItem):
         self.pinTie = None
         self.pinTieIndex = None
 
-        self.wireGroup = None
+        self.group = None #group is now used whether it is WireGroup or SuperNodeGroup. Testing Implentation
+        self.groupName = None
+
+        # self.wireGroup = None
+        # self.wireName = ""
+
         self.hightlighted = False
         self.setPos(nPos)
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
@@ -1121,7 +1130,7 @@ class Node(QtGui.QGraphicsItem):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load
 
         The first thing to do is check to see if the node is natively from this Wiregroup, or to see if it has been 
-        Merged in from another wiregroup. This can be done by checking the wirenames. If it is from this wire group then
+        Merged in from another wiregroup. This can be done by checking the groupNames. If it is from this wire group then
         its state is recorded as "native". It it isnt from this wiregroup then its state is recorded as "reference" 
 
         The data then stored for each state is identical, but is treated differently when the data is read back in,
@@ -1129,7 +1138,7 @@ class Node(QtGui.QGraphicsItem):
         """
         # We need to identify if the Node is referenced for is native to this WireGroup
         state = "native"
-        if self.wireName != wireName: state = "reference" 
+        if self.groupName != wireName: state = "reference" 
         # print "Input wireName : " + str(wireName) + " Node WireName : " + str(self.wireName)
         nodeRoot = xml.Element('Node', state = str(state))
         attributes = xml.SubElement(nodeRoot,'attributes')
@@ -1138,7 +1147,8 @@ class Node(QtGui.QGraphicsItem):
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
         xml.SubElement(attributes, 'attribute', name = 'pinIndex', value = str(self.getPinIndex()))
         xml.SubElement(attributes, 'attribute', name = 'pinTieIndex', value = str(self.getPinTieIndex()))
-        xml.SubElement(attributes, 'attribute', name = 'wireName', value = str(self.getWireName()))
+        # xml.SubElement(attributes, 'attribute', name = 'wireName', value = str(self.getWireName()))
+        xml.SubElement(attributes, 'attribute', name = 'groupName', value = str(self.getGroupName()))
         xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.getColour().red()) + "," + str(self.getColour().green()) + "," + str(self.getColour().blue())))
         xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
@@ -1158,7 +1168,8 @@ class Node(QtGui.QGraphicsItem):
             elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
             elif a.attrib['name'] == 'pinIndex': self.setPinIndex(int(a.attrib['value']))
             elif a.attrib['name'] == 'pinTieIndex': self.setPinTieIndex(int(a.attrib['value']))
-            elif a.attrib['name'] == 'wireName': self.setWireName(str(a.attrib['value']))
+            # elif a.attrib['name'] == 'wireName': self.setWireName(str(a.attrib['value']))
+            elif a.attrib['name'] == 'groupName': self.setGroupName(str(a.attrib['value']))
             elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
             elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
             elif a.attrib['name'] == 'pos': 
@@ -1211,11 +1222,35 @@ class Node(QtGui.QGraphicsItem):
     def setPinTieIndex(self, index):
         self.pinTieIndex = index
 
-    def getWireName(self):
-        return self.wireName
+    # def getWireName(self):
+    #     return self.wireName
 
-    def setWireName(self,name):
-        self.wireName = str(name)
+    # def setWireName(self,name):
+    #     self.wireName = str(name)
+
+    # def getWireGroup(self):
+    #     if not self.wireGroup: print "WARNING : NO REGISTERED WIRE GROUP ON THE NODE, SO NO GROUP TO RETURN"
+    #     return self.wireGroup
+
+    # def setWireGroup(self, wireGroup):
+    #     self.wireGroup = wireGroup
+    #     self.wireName = wireGroup.getName()
+    #     self.dataBundle.setHostName(self.wireName) #Passes the name of the wireGroup through to the DataBundle so attrbute names can be checked
+
+    def getGroup(self):
+        if not self.group: print "WARNING : NO REGISTERED GROUP ON THE NODE, SO NO GROUP TO RETURN"
+        return self.group
+
+    def setGroup(self, group):
+        self.group = group
+        self.groupName = group.getName()
+        self.dataBundle.setHostName(self.groupName) #Passes the name of the wireGroup through to the DataBundle so attrbute names can be checked
+
+    def getGroupName(self):
+        return self.groupName
+
+    def setGroupName(self, groupName):
+        self.groupName = str(groupName) 
 
     def getColour(self):
         return self.colour
@@ -1271,16 +1306,6 @@ class Node(QtGui.QGraphicsItem):
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PINTIE ALLOCATION"
 
-    def getWireGroup(self):
-        if not self.wireGroup: print "WARNING : NO REGISTERED WIRE GROUP ON THE NODE, SO NO GROUP TO RETURN"
-        return self.wireGroup
-
-    def setWireGroup(self, wireGroup):
-        self.wireGroup = wireGroup
-        self.wireName = wireGroup.getName()
-        self.dataBundle.setHostName(self.wireName) #Passes the name of the wireGroup through to the DataBundle so attrbute names can be checked
-        # print "Nodey Wirename : " + self.wireName
-
     def getDataBundle(self):
         return self.dataBundle
 
@@ -1288,8 +1313,8 @@ class Node(QtGui.QGraphicsItem):
         self.dataBundle = bundle
 
     def resetWireGroup(self):
-        if self.wireGroup:
-            self.wireGroup.resetNodes()
+        if self.group:
+            self.group.resetNodes()
 
     def goHome(self):
         """Function to centralise the node back to the pin and update any associated rigCurves and pinTies"""
@@ -1306,7 +1331,8 @@ class Node(QtGui.QGraphicsItem):
 
     def setDataBundleInfo(self):
         """Sets the Expected Attribute Name that will eventually be assigned to the Scene Controller as an extra attribute"""
-        attrName = str(self.wireName) + str(self.index)
+        # attrName = str(self.wireName) + str(self.index)
+        attrName = str(self.groupName) + str(self.index)
         self.dataBundle.setAttrName(attrName)
 
     def dirtyCurve(self):
@@ -1444,7 +1470,7 @@ class SuperNode(Node):
         self.scale = 0.8
         self.scaleOffset = 2
         self.alpha = 1.0
-        self.superNodeGroup = None
+        # self.superNodeGroup = None
         self.minimumScale = 0.2
         self.colour = QtGui.QColor(250,160,100,255*self.alpha)
         self.path = QtGui.QPainterPath()
@@ -1465,7 +1491,8 @@ class SuperNode(Node):
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
         xml.SubElement(attributes, 'attribute', name = 'pinIndex', value = str(self.getPinIndex()))
         xml.SubElement(attributes, 'attribute', name = 'pinTieIndex', value = str(self.getPinTieIndex()))
-        xml.SubElement(attributes, 'attribute', name = 'wireName', value = str(self.getWireName()))
+        # xml.SubElement(attributes, 'attribute', name = 'wireName', value = str(self.getWireName()))
+        xml.SubElement(attributes, 'attribute', name = 'groupName', value = str(self.getGroupName()))
         xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.getColour().red()) + "," + str(self.getColour().green()) + "," + str(self.getColour().blue())))
         xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
@@ -1492,7 +1519,8 @@ class SuperNode(Node):
             elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
             elif a.attrib['name'] == 'pinIndex': self.setPinIndex(int(a.attrib['value']))
             elif a.attrib['name'] == 'pinTieIndex': self.setPinTieIndex(int(a.attrib['value']))
-            elif a.attrib['name'] == 'wireName': self.setWireName(str(a.attrib['value']))
+            # elif a.attrib['name'] == 'wireName': self.setWireName(str(a.attrib['value']))
+            elif a.attrib['name'] == 'groupName': self.setGroupName(str(a.attrib['value']))
             elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
             elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
             elif a.attrib['name'] == 'pos': 
@@ -1540,12 +1568,12 @@ class SuperNode(Node):
     def setName(self, name):
         self.name = str(name)
 
-    def getSuperNodeGroup(self):
-        return self.superNodeGroup
+    # def getSuperNodeGroup(self):
+    #     return self.superNodeGroup
 
-    def setSuperNodeGroup(self, superNodeGroup):
-        self.superNodeGroup = superNodeGroup
-        self.dataBundle.setHostName(superNodeGroup.getName()) #Passes the name of the SuperNodeGroup through to the DataBundle so attribute names can be checked
+    # def setSuperNodeGroup(self, superNodeGroup):
+    #     self.superNodeGroup = superNodeGroup
+    #     self.dataBundle.setHostName(superNodeGroup.getName()) #Passes the name of the SuperNodeGroup through to the DataBundle so attribute names can be checked
 
     def getForm(self):
         return self.form

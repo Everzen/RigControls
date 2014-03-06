@@ -289,7 +289,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
             print "wirename : " + str(wireName) + " This ran"
             newWireGroup.setName(str(wireName))
             self.wireGroups.append(newWireGroup)
-            print "Group name is now: " + newWireGroup.getName()
             for m in self.markerActiveList:
                 m.setActive(False)
                 m.setSelected(False) #Deactivate all markers and deselect them
@@ -712,7 +711,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
     def isMergeNode(self, mergeNode, targetNode):
         canMerge = True
-        if mergeNode.getWireName() == targetNode.getWireName(): # The node is from the same WireGroup do not merge!
+        # if mergeNode.getWireName() == targetNode.getWireName(): # The node is from the same WireGroup do not merge!
+        if mergeNode.getGroupName() == targetNode.getGroupName(): # The node is from the same WireGroup do not merge!
             # print "No Merge : Node is the same Wiregroup"
             canMerge = False
         return canMerge
@@ -730,7 +730,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if type(self.mergeNode) == Node and type(self.targetNode) == Node:
             # print "Boom: We have a node Merge Match"
             # We need to delete the merge Node along with its Pin Etc, and then replace it with the targetNode
-            wireGroup = self.mergeNode.getWireGroup()
+            # wireGroup = self.mergeNode.getWireGroup()
+            wireGroup = self.mergeNode.getGroup()
 
             for index, node in enumerate(wireGroup.getNodes()):
                 if node == self.mergeNode:

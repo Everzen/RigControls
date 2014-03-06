@@ -248,8 +248,8 @@ class WireGroup(object):
 
     def setName(self, newName):
         self.name = str(newName)
-        for node in self.nodes: node.setWireName(newName)
-        for pin in self.pins: pin.setGroupName(newName)
+        for node in self.nodes: node.setWireGroup(self) #Setting The WireGroup again, will update the link to the WireGroup, and set the right names in the DataBundles too.
+        for pin in self.pins: pin.setGroup(self) #Do we need to set the Group instead to update DataBundles?
 
     def getColour(self):
         return self.colour
@@ -544,7 +544,7 @@ class SuperNodeGroup(object):
 
     def setName(self, name):
         self.name = str(name)
-        if self.superNode: self.superNode.setName(name)
+        if self.superNode: self.superNode.setSuperNodeGroup(self)
 
     def isLocked(self):
         return self.locked
@@ -1278,7 +1278,8 @@ class Node(QtGui.QGraphicsItem):
     def setWireGroup(self, wireGroup):
         self.wireGroup = wireGroup
         self.wireName = wireGroup.getName()
-        self.setDataBundleHostName(self.wireName) #Passes the name of the wireGroup through to the DataBundle so attrbute names can be checked
+        self.dataBundle.setHostName(self.wireName) #Passes the name of the wireGroup through to the DataBundle so attrbute names can be checked
+        # print "Nodey Wirename : " + self.wireName
 
     def getDataBundle(self):
         return self.dataBundle
@@ -1307,10 +1308,6 @@ class Node(QtGui.QGraphicsItem):
         """Sets the Expected Attribute Name that will eventually be assigned to the Scene Controller as an extra attribute"""
         attrName = str(self.wireName) + str(self.index)
         self.dataBundle.setAttrName(attrName)
-
-    def setDataBundleHostName(self, name):
-        """Function to pass the name of the wiregroup or superNodeGroup that the Node belongs to"""
-        self.dataBundle.setHostName(name)
 
     def dirtyCurve(self):
         "Marks any associated curves as dirty"
@@ -1548,7 +1545,7 @@ class SuperNode(Node):
 
     def setSuperNodeGroup(self, superNodeGroup):
         self.superNodeGroup = superNodeGroup
-        self.setDataBundleHostName(superNodeGroup.getName()) #Passes the name of the SuperNodeGroup through to the DataBundle so attribute names can be checked
+        self.dataBundle.setHostName(superNodeGroup.getName()) #Passes the name of the SuperNodeGroup through to the DataBundle so attribute names can be checked
 
     def getForm(self):
         return self.form

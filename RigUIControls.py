@@ -286,9 +286,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
             newWireGroup = WireGroup(self, self.dataProcessor)
             newWireGroup.buildFromPositions(posList)
             newWireGroup.setScale(self.markerScale)
-            print "wirename : " + str(wireName)
+            print "wirename : " + str(wireName) + " This ran"
             newWireGroup.setName(str(wireName))
             self.wireGroups.append(newWireGroup)
+            print "Group name is now: " + newWireGroup.getName()
             for m in self.markerActiveList:
                 m.setActive(False)
                 m.setSelected(False) #Deactivate all markers and deselect them

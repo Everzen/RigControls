@@ -434,26 +434,26 @@ class RigGraphicsView(QtGui.QGraphicsView):
         delItem = QtGui.QMessageBox()
         delItem.setStyleSheet(self.styleData)
         delItem.setWindowTitle("WireGroup Deletion")
-        delItem.setText("Are you sure you want to delete the entire WireGroup: ' " + str(item.getWireName()) + "'?")
+        delItem.setText("Are you sure you want to delete the entire WireGroup: ' " + str(item.getGroupName()) + "'?")
         delItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
         delItem.setDefaultButton(QtGui.QMessageBox.No)
         response = delItem.exec_()
         if response == QtGui.QMessageBox.Yes:
-            item.getWireGroup().clear()
-            self.wireGroups.remove(item.getWireGroup())
+            item.getGroup().clear()
+            self.wireGroups.remove(item.getGroup())
 
     def deleteSuperNodeGroup(self, item):
         delItem = QtGui.QMessageBox()
         delItem.setStyleSheet(self.styleData)
         delItem.setWindowTitle("SuperNode Deletion")
-        delItem.setText("Are you sure you want to delete the SuperNode:' " + str(item.getSuperNodeGroup().getName()) + "'?")
+        delItem.setText("Are you sure you want to delete the SuperNode:' " + str(item.getGroup().getName()) + "'?")
         delItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
         delItem.setDefaultButton(QtGui.QMessageBox.No)
         response = delItem.exec_()
         if response == QtGui.QMessageBox.Yes:
             item.goHome()
-            item.getSuperNodeGroup().clear()
-            self.superNodeGroups.remove(item.getSuperNodeGroup())
+            item.getGroup().clear()
+            self.superNodeGroups.remove(item.getGroup())
 
     def keyReleaseEvent(self, event):
         key = event.key()

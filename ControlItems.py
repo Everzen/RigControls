@@ -249,8 +249,10 @@ class WireGroup(object):
 
     def setName(self, newName):
         self.name = str(newName)
-        for node in self.nodes: node.setGroup(self) #Setting The Group again, will update the link to the Group, and set the right names in the DataBundles too.
-        for pin in self.pins: pin.setGroup(self) #Do we need to set the Group instead to update DataBundles?
+        for node in self.nodes: 
+            node.setGroup(self) #Setting The Group again, will update the link to the Group, and set the right names in the DataBundles too.
+            node.setDataBundleInfo() #With the name updated, then pass this information through to the DataBundles
+        for pin in self.pins: pin.setGroup(self) 
 
     def getColour(self):
         return self.colour
@@ -549,7 +551,10 @@ class SuperNodeGroup(object):
 
     def setName(self, name):
         self.name = str(name)
-        if self.superNode: self.superNode.setGroup(self)
+        if self.superNode: 
+            self.superNode.setGroup(self) #Setting The Group again, will update the link to the Group, and set the right names in the DataBundles too.
+            self.superNode.setDataBundleInfo()#With the name updated, then pass this information through to the DataBundles
+        self.pin.setGroup(self)
 
     def isLocked(self):
         return self.locked

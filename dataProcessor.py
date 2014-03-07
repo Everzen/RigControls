@@ -27,7 +27,7 @@ class DataProcessor(object):
 		self.collectActiveControlNodes()
 
 	def collectActiveControlNodes(self):
-		"""Function loops throuhgh all wiregroups and superNodegroups in the rigGraphicsView and collects all the appropriateNodes"""
+		"""Function loops through all wiregroups and superNodegroups in the rigGraphicsView and collects all the appropriateNodes"""
 		wireGroups = self.rigGraphicsView.getWireGroups()
 		superNodegroups = self.rigGraphicsView.getSuperNodeGroups()
 

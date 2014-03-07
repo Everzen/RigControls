@@ -11,7 +11,7 @@ import Icons
 import os
 
 from RigStore import FaceGVCapture
-from Widgets import ControlScale, DragItemButton
+from Widgets import ControlScale, DragItemButton, SkinTabW, SceneLinkTabW
 from dataProcessor import DataProcessor, DataBundle, DataServoBundle
 
 import RigUIControls as rig
@@ -312,22 +312,38 @@ class RigFaceSetup(QtGui.QMainWindow):
         creationBox.addStretch(1)
 
         #Skinning DockWidget
-        skinBox = QtGui.QHBoxLayout()
-        skinBox.addStretch(1)
+        # skinBox = QtGui.QHBoxLayout()
+        # skinBox.addStretch(1)
 
-        #Build the Skinning Table
-        self.skinTableWidget = rig.SkinTabW()
-        self.skinTableWidget.itemChanged.connect(self.updateSkinData)
 
-        self.dockSkinningWidget = QtGui.QDockWidget(self)
-        self.dockSkinningWidget.setWindowTitle("Skinning Values")
+
+        self.dockDataTablesWidget = QtGui.QDockWidget(self)
+        self.dockDataTablesWidget.setWindowTitle("Data Tables")
         # self.skinningWidget = QtGui.QWidget()
-        self.dockSkinningWidget.setWidget(self.skinTableWidget)
-        # self.dockSkinningWidget.setWidget(self.skinTableWidget)
+        self.dataTabsWidget = QtGui.QTabWidget()
+        
+        tabSkinning = QtGui.QWidget()
+        layoutSkinning = QtGui.QVBoxLayout(tabSkinning)
+        self.dataTabsWidget.addTab(tabSkinning, "Skinning Values")
+        #Build the Skinning Table
+        self.skinTableWidget = SkinTabW()
+        self.skinTableWidget.itemChanged.connect(self.updateSkinData)
+        layoutSkinning.addWidget(self.skinTableWidget)
 
-        # self.skinningWidget .setLayout(skinBox)
-        # self.skinningWidget.setWidget(self.skinTableWidget)
-        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dockSkinningWidget) 
+
+        tabNodeLinks = QtGui.QWidget()
+        layoutNodeLinks = QtGui.QVBoxLayout(tabNodeLinks)
+        self.dataTabsWidget.addTab(tabNodeLinks, "Node and Servo Links")
+        #Build the Skinning Table
+        self.nodeLinksTableWidget = SceneLinkTabW() #Replace this when the correct data table is actually written! 
+        self.updateNodeLinksButton = QtGui.QPushButton("Update")
+        self.updateNodeLinksButton.pressed.connect(lambda: self.nodeLinksTableWidget.populate()) 
+
+        layoutNodeLinks.addWidget(self.nodeLinksTableWidget)
+        layoutNodeLinks.addWidget(self.updateNodeLinksButton)
+
+        self.dockDataTablesWidget.setWidget(self.dataTabsWidget) #Now set the Tab Widget to be the main Widget for this bottom Dock
+        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dockDataTablesWidget) 
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dockCreationWidget)
 
     def selectMarkers(self,state):

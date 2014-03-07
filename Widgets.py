@@ -239,12 +239,7 @@ class SkinTabW(QtGui.QTableWidget):
     def __init__(self, parent = None):
         super(SkinTabW, self).__init__(parent)
         self.superNode = None
-        #PySide does not support QStrings, so use normal list of strings
-        # self.headers = QtCore.QStringList()
-        # self.headers.append(QtCore.QString("  Super Node Controller  "))
-        # self.headers.append(QtCore.QString("  Node Wire Group  "))
-        # self.headers.append(QtCore.QString("  Node Index  "))
-        # self.headers.append(QtCore.QString("  Skin Value  "))
+
         self.headers = []
         self.headers.append("  Super Node Controller  ")
         self.headers.append("  Node Wire Group  ")
@@ -310,6 +305,61 @@ class SkinTabW(QtGui.QTableWidget):
             homeNode = self.superNode.getSkinnedPins()[item.row()].getPin().getNode()
             if homeNode:  #Hacky way of updating the curves when the pin is sent home! Maybe wrap into a neat function
                 homeNode.dirtyCurve()
+
+
+
+class SceneLinkTabW(QtGui.QTableWidget):
+    """Class to subclass QTableWidget to give us control over how we handle
+    the links from the Happy face nodes to the 3d scene Nodes
+
+    Consider how the table data should be updated. Possible only when SuperNodes Or WireGroups are created/deleted
+
+    """
+    def __init__(self, parent = None):
+        super(SceneLinkTabW, self).__init__(parent)
+        self.headers = []
+        self.headers.append("  Node ID  ")
+        self.headers.append("  Direction  ")
+        self.headers.append("  Group  ")
+        self.headers.append("  Min OutPut  ")
+        self.headers.append("  Max OutPut  ")
+        self.headers.append("  Scene Link Node  ")
+        self.headers.append("  Servo Channel ")
+        self.populate()
+
+
+    def populate(self):
+        """Function to take all the dataProcessor info and write it out in table form"""
+        self.clear()
+        self.setColumnCount(7)
+        self.setHorizontalHeaderLabels(self.headers)
+
+        nodeIdData = QtGui.QTableWidgetItem("Mr Node")
+        nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+        directionData = QtGui.QTableWidgetItem("x")
+        directionData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+        groupData = QtGui.QTableWidgetItem("FredTheWireGroup")
+        groupData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+        minOutPutData = QtGui.QTableWidgetItem(str(-600))
+        minOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+        maxOutPutData = QtGui.QTableWidgetItem(str(1000))
+        maxOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+        sceneNodeLinkData = QtGui.QTableWidgetItem("mayaBadgerNode")
+        sceneNodeLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+        servoChannelData = QtGui.QTableWidgetItem(str(1))
+        servoChannelData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+
+        self.setItem(0,0,nodeIdData)
+        self.setItem(0,1,directionData)
+        self.setItem(0,2,groupData)
+        self.setItem(0,3,minOutPutData)
+        self.setItem(0,4,maxOutPutData)
+        self.setItem(0,5,sceneNodeLinkData)
+        self.setItem(0,6,servoChannelData)
+
+        self.setRowCount(1)
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
 
 
 class ControlScale():

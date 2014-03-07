@@ -17,6 +17,7 @@ class DataProcessor(object):
 		self.sceneControl = None
 		self.sampleBundle = sampleBundle
 		self.dataBundles = []
+		self.activeAttributeConnectors = []
 		self.rigGraphicsView = None
 
 	def createSceneControl(self, name):
@@ -27,24 +28,34 @@ class DataProcessor(object):
 		self.collectActiveControlNodes()
 
 	def collectActiveControlNodes(self):
-		"""Function loops through all wiregroups and superNodegroups in the rigGraphicsView and collects all the appropriateNodes"""
+		"""Function loops through all wiregroups and superNodegroups in the rigGraphicsView and collects all the appropriate Nodes, and update the dataBundles list"""
 		wireGroups = self.rigGraphicsView.getWireGroups()
 		superNodegroups = self.rigGraphicsView.getSuperNodeGroups()
 
 		activeNodes = []
 		for wG in wireGroups: activeNodes += wG.getNodes() #loop through the wiregroups adding the nodes to the activeNodes list
 		for sG in superNodegroups: activeNodes.append(sG.getSuperNode()) #loop through all the superNodeGroups adding the nodes to the activeNodes list
-		print "My active Node Count : " + str(len(activeNodes)) + " " + str(activeNodes)
-		for n in activeNodes : print str(n.getDataBundle().getHostName())
+		# print "My active Node Count : " + str(len(activeNodes)) + " " + str(activeNodes)
+		# for n in activeNodes : print str(n.getDataBundle().getHostName())
+		#Now use this list to define the relevant dataBundles
+		self.dataBundles = []
+		for n in activeNodes: self.dataBundles.append(n.getDataBundle())
 		return activeNodes
+
+	def collectActiveAttributeConnectors(self):
+		"""A function to run through all of the dataBundles and collect from them all the active AttributeConnectors into an array that can be used to fill the SceneLinkTabW"""
+		activeNodes = self.collectActiveControlNodes()
+		activeAttributeConnectors = [] 
+
+		for node in activeNodes:
+			for att in node.getDataBundle().getAttributeConnectors():
+				if att.isActive(): #check if the attributeConnector is active, or whether it has been deativated by the pin/node being deativated 
+					activeAttributeConnectors.append(att)
+		self.activeAttributeConnectors = activeAttributeConnectors
+		return self.activeAttributeConnectors
 
 	def addSceneControlAttributes(self):
 		"""Function loops through the rigGraphicsView and picks out all the wiregroups and superNodegroups and makes attributes for them"""
-		pass
-
-	def updatedDataBundles(self):
-		"""Function loops through controls in rigGraphicsView and checks them for consistency against the current dataBundle list"""
-		newSampleBundles = []
 		pass
 
 	def getSceneControl(self):
@@ -100,126 +111,86 @@ class DataBundle(object):
 	from the x and y postions returns some nice float data for us to wire into Maya scene Nodes etc
 
 	SceneControl - The master scene Node that we are using in Maya to load all the float data into
-	SceneAttribute - The attribute on the Scene Control that refers to this dataBundle
-	node - is the Node or the SuperNode whose data we are trying to convert out data for
+
 
 	"""
 	def __init__(self):
 		#LIST OF ATTRIBUTES
 		self.sceneControl = None
-		self.controlAttribute = None
-		self.connectedNode = None
-		self.attrName = None
-		self.hostName = None #This is the name of the wiregroup or superNodegroup that the associated node belongs to - Do we just pass a reference to the Node itself?
-		self.active = True
-		self.x = 0
-		self.y = 0
-		self.maxX = None
-		self.maxY = None
-		self.minX = None 
-		self.minY = None
-		self.standardScale = 50.0
+		self.hostName = None
+		self.controllerAttrName = None
+		self.attributeConnectorX = AttributeConnector()
+		self.attributeConnectorY = AttributeConnector()
+		self.attributeConnectors = [self.attributeConnectorX, self.attributeConnectorY]
 
 	def getSceneControl(self):
 		return self.sceneControl
 
 	def setSceneControl(self, sceneControl):
 		"""Function to take a node selected in the Scene and assign it to the class"""
-		self.sceneControl = sceneControl
+		self.sceneControl = sceneControl #cycle through all attribute connectors and update sceneControl
+		for att in self.attributeConnectors: att.setSceneControl(sceneControl) 
 
-	def getX(self):
-		return self.x
-
-	def getY(self):
-		return self.y
-
-	def setX(self, x):
-		posX = x
-		if self.maxX:
-			if posX > self.maxX:
-				posX = self.maxX
-		if self.minX:
-			if posX < self.minX:
-				posX = self.minX
-
-		#Now calculate the proportion from -1 -> 0 -> 1 that we should be returning
-		if posX > 0:
-			if self.maxX:
-				self.x = round(float(posX)/float(self.maxX),3)
-			else: 
-				self.x = round(float(posX)/self.standardScale,3)
-		else:
-			if self.minX:
-				self.x = -round(float(posX)/float(self.minX),3)
-			else: 
-				self.x = round(float(posX)/self.standardScale,3)
-
-	def setY(self, y):
-		posY = y
-		if self.maxY:
-			if posY > self.maxY:
-				posY = self.maxY
-		if self.minY:
-			if posY < self.minY:
-				posY = self.minY
-		#Now calculate the proportion from -1 -> 0 -> 1 that we should be returning
-		if posY > 0:
-			if self.maxY:
-				self.y = -round(float(posY)/float(self.maxY),3)
-			else: 
-				self.y = -round(float(posY)/self.standardScale,3)
-		else:
-			if self.minY:
-				self.y = round(float(posY)/float(self.minY),3)
-			else: 
-				self.y = -round(float(posY)/self.standardScale,3)
-
-	def getMaxX(self):
-		return self.maxX
-
-	def getminX(self):
-		return self.minX
-
-	def getMaxY(self):
-		return self.maxY
-
-	def getminY(self):
-		return self.minY
-
-	def setMaxX(self, maxX):
-		self.maxX = float(maxX)
-
-	def setMinX(self, minX):
-		self.minX = float(minX)
-
-	def setMaxY(self, maxY):
-		self.maxY = float(maxY)
-
-	def setMinY(self, minY):
-		self.minY = float(minY)
-
-	def isActive(self):
-		return self.active
-
-	def setActive(self, active):
-		self.active = bool(active)
-		if active:
-			pass #Make sure that the Maya attribute is unlocked and shown in the scene
-		else:
-			pass #Make sure that the Maya attribute is locked and hidden in the scene, animation is deleted and the node is return to rest position
-
-	def getAttrName(self):
-		return self.attrName
-
-	def setAttrName(self, name):
-		self.attrName = str(name)
+	def getAttributeConnectors(self):
+		return self.attributeConnectors
 
 	def getHostName(self):
 		return self.hostName
 
 	def setHostName(self, hostName):
 		"""Function to set the hostName which is the name of the wiregroup or superNodegroup that the associated node belongs to"""
-		self.hostName = str(hostName)
+		self.hostName = str(hostName) #cycle through all attribute connectors and update hostName
+		for att in self.attributeConnectors: att.setHostName(str(hostName))
+
+	def getControllerAttrName(self):
+		return self.controllerAttrName
+
+	def setControllerAttrName(self, name):
+		"""Function to set the standard attribute name, based on the Happy Face Node, we can then add X or Y to define the attributeConnectors"""
+		self.controllerAttrName = str(name)
+		#Now set the standard X and Y channels for the Data Bundle
+		self.attributeConnectorX.setControllerAttrName(name + "X")
+		self.attributeConnectorY.setControllerAttrName(name + "Y")
+
+	def getX(self):
+		return self.attributeConnectorX.getValue()
+
+	def getY(self):
+		return -self.attributeConnectorY.getValue() #Flip the value to produce a positive 
+
+	def setX(self, x):
+		"""Function reaches down into the attributeConnectorX to set the X value"""
+		self.attributeConnectorX.setValue(x)
+
+	def setY(self, y):
+		"""Function reaches down into the attributeConnectorY to set the Y value"""
+		self.attributeConnectorY.setValue(y)
+
+	def getMaxX(self):
+		return self.attributeConnectorX.getMaxValue()
+
+	def getMinX(self):
+		return self.attributeConnectorX.getMinValue()
+
+	def setMaxX(self, maxX):
+		"""Function reaches down into the attributeConnectorX to set the maxX value"""
+		self.attributeConnectorX.setMaxValue(float(maxX)) 
+
+	def setMinX(self, minX):
+		self.attributeConnectorX.setMinValue(float(minX)) 
+
+	def getMaxY(self):
+		return self.attributeConnectorY.getMaxValue()
+
+	def getMinY(self):
+		return self.attributeConnectorY.getMinValue()
+
+	def setMaxY(self, maxY):
+		"""Function reaches down into the attributeConnectorX to set the maxX value"""
+		self.attributeConnectorY.setMaxValue(float(maxY)) 
+
+	def setMinY(self, minY):
+		self.attributeConnectorY.setMinValue(float(minY)) 
 
 
 
@@ -259,3 +230,125 @@ class DataServoBundle(DataBundle):
 
 	def setMaxYServoAngle(self, angle):
 		self.maxXServoAngle = angle
+
+
+
+class AttributeConnector(object):
+	"""
+
+	"""
+	def __init__(self, flipOutput = False):
+		#LIST OF ATTRIBUTES
+		self.sceneController = None
+		self.controlAttribute = None
+		self.connectedNode = None
+		self.controllerAttrName = None
+		self.hostName = None #This is the name of the wiregroup or superNodegroup that the associated node belongs to - Do we just pass a reference to the Node itself?
+		self.active = True
+		self.value = 0
+		self.flipOutput = flipOutput
+		self.maxValue = None
+		self.minValue = None 
+		self.standardScale = 50.0
+		self.sceneNode = None
+		self.sceneNodeAttr = None
+
+	def getSceneControl(self):
+		return self.sceneControl
+
+	def setSceneControl(self, sceneControl):
+		"""Function to take a node selected in the Scene and assign it to the class"""
+		self.sceneControl = sceneControl
+
+	def getValue(self):
+		"""Function to return the value of the attributeConnector. Flip is used to invert the input if needed"""
+		if self.flipOutput:
+			return -self.value
+		else:
+			return self.value
+
+	def setValue(self, value):
+		pValue = value
+		if self.maxValue:
+			if pValue > self.maxValue:
+				pValue = self.maxValue
+		if self.minValue:
+			if pValue < self.minValue:
+				pValue = self.minValue
+
+		#Now calculate the proportion from -1 -> 0 -> 1 that we should be returning
+		if pValue > 0:
+			if self.maxValue:
+				self.value = round(float(pValue)/float(self.maxValue),3)
+			else: 
+				self.value = round(float(pValue)/self.standardScale,3)
+		else:
+			if self.minValue:
+				self.value = -round(float(pValue)/float(self.minValue),3)
+			else: 
+				self.value = round(float(pValue)/self.standardScale,3)
+
+	def getMaxValue(self):
+		return self.maxValue
+
+	def getMinValue(self):
+		return self.minValue
+
+	def setMaxValue(self, maxValue):
+		self.maxValue = float(maxValue)
+
+	def setMinValue(self, minValue):
+		self.minValue = float(minValue)
+
+	def getControllerAttrName(self):
+		"""Function to get name of the attribute that will be setup on the Scene Controller to represent the movement in that attribute of the Node"""
+		return self.controllerAttrName
+
+	def setControllerAttrName(self, name):
+		"""Function to set name of the attribute that will be setup on the Scene Controller to represent the movement in that attribute of the Node"""
+		self.controllerAttrName = str(name)
+
+	def getHostName(self):
+		return self.hostName
+
+	def setHostName(self, hostName):
+		"""Function to set the hostName which is the name of the wiregroup or superNodegroup that the associated node belongs to"""
+		self.hostName = str(hostName)
+
+	def isActive(self):
+		"""Function to query is the AttributeConnector is active. AttributeConnectors can be deactivated if the pin/Node they are tied to is deactiveated"""
+		return self.active
+
+	def setActive(self, active):
+		self.active = active
+
+	def isFlipped(self):
+		return self.flipOutput
+
+	def setFlipped(self, flipped):
+		self.flipOutput = flipped
+
+	def getSceneNode(self):
+		"""Function to get the name of the 3D app scene Node that the attributeConnector is looking to control"""
+		return self.sceneNode
+
+	def setSceneNode(self, sceneNode):
+		"""Function to set the name of the 3D app scene Node that the attributeConnector is looking to control"""
+		self.sceneNode = sceneNode
+
+	def getSceneNodeAttr(self):
+		"""Function to get the name of the 3D app scene Node attribute that the attributeConnector is looking to control"""
+		return self.sceneNodeAttr
+
+	def setSceneNodeAttr(self, sceneNodeAttr):
+		"""Function to set the name of the 3D app scene Node attribute that the attributeConnector is looking to control"""
+		self.sceneNodeAttr = sceneNodeAttr
+
+
+class AttributeServoConnector(DataBundle):
+	"""This class inherits AttributeConnector, and bolts on to it some functionality for applying servo numbers and angle limits to those servos
+
+	"""
+	def __init__(self):
+		AttributeConnector.__init__(self) 
+		pass

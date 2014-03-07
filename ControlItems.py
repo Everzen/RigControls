@@ -1333,7 +1333,7 @@ class Node(QtGui.QGraphicsItem):
         """Sets the Expected Attribute Name that will eventually be assigned to the Scene Controller as an extra attribute"""
         # attrName = str(self.wireName) + str(self.index)
         attrName = str(self.groupName) + str(self.index)
-        self.dataBundle.setAttrName(attrName)
+        self.dataBundle.setControllerAttrName(attrName)
 
     def dirtyCurve(self):
         "Marks any associated curves as dirty"

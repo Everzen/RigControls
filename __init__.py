@@ -336,6 +336,8 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.dataTabsWidget.addTab(tabNodeLinks, "Node and Servo Links")
         #Build the Skinning Table
         self.nodeLinksTableWidget = SceneLinkTabW() #Replace this when the correct data table is actually written! 
+        self.nodeLinksTableWidget.setDataProcessor(self.dataProcessor)
+        self.nodeLinksTableWidget.populate()
         self.updateNodeLinksButton = QtGui.QPushButton("Update")
         self.updateNodeLinksButton.pressed.connect(lambda: self.nodeLinksTableWidget.populate()) 
 

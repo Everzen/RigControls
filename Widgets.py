@@ -317,50 +317,78 @@ class SceneLinkTabW(QtGui.QTableWidget):
     """
     def __init__(self, parent = None):
         super(SceneLinkTabW, self).__init__(parent)
+        self.dataProcessor = None
+
         self.headers = []
         self.headers.append("  Node ID  ")
-        self.headers.append("  Direction  ")
+        # self.headers.append("  Direction  ")
         self.headers.append("  Group  ")
         self.headers.append("  Min OutPut  ")
         self.headers.append("  Max OutPut  ")
+        self.headers.append("  Flip OutPut  ")
         self.headers.append("  Scene Link Node  ")
+        self.headers.append("  Scene Link Attribute  ")
         self.headers.append("  Servo Channel ")
-        self.populate()
+        self.headers.append("  Servo Max Angle ")
+        self.headers.append("  Servo Min Angle ")
 
+        # self.populate()
+
+    def getDataProcessor(self):
+        return self.dataProcessor
+
+    def setDataProcessor(self, dataProcessor):
+        self.dataProcessor = dataProcessor
 
     def populate(self):
         """Function to take all the dataProcessor info and write it out in table form"""
         self.clear()
-        self.setColumnCount(7)
+        self.setColumnCount(10)
         self.setHorizontalHeaderLabels(self.headers)
 
-        nodeIdData = QtGui.QTableWidgetItem("Mr Node")
-        nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-        directionData = QtGui.QTableWidgetItem("x")
-        directionData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-        groupData = QtGui.QTableWidgetItem("FredTheWireGroup")
-        groupData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-        minOutPutData = QtGui.QTableWidgetItem(str(-600))
-        minOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-        maxOutPutData = QtGui.QTableWidgetItem(str(1000))
-        maxOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-        sceneNodeLinkData = QtGui.QTableWidgetItem("mayaBadgerNode")
-        sceneNodeLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-        servoChannelData = QtGui.QTableWidgetItem(str(1))
-        servoChannelData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+        if not self.dataProcessor:
+            print "ERROR: No data processor was found, so links cannot be forged to scene nodes"
+            return 0
+        else:
+            for index, att in enumerate(self.dataProcessor.collectActiveAttributeConnectors()):
+                nodeIdData = QtGui.QTableWidgetItem(str(att.getControllerAttrName()))
+                nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                # directionData = QtGui.QTableWidgetItem("x")
+                # directionData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                groupData = QtGui.QTableWidgetItem(str(att.getHostName()))
+                groupData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                minOutPutData = QtGui.QTableWidgetItem(str(att.getMinValue()))
+                minOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                maxOutPutData = QtGui.QTableWidgetItem(str(att.getMaxValue()))
+                maxOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                flipOutPutData = QtGui.QTableWidgetItem(str(att.isFlipped()))
+                flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)        
+                sceneNodeLinkData = QtGui.QTableWidgetItem(str(att.getSceneNode()))
+                sceneNodeLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                nodeAttrLinkData = QtGui.QTableWidgetItem(str(att.getSceneNodeAttr()))
+                nodeAttrLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                servoChannelData = QtGui.QTableWidgetItem(str(None))
+                servoChannelData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                servoMinAngleData = QtGui.QTableWidgetItem(str(None))
+                servoMinAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                servoMaxAngleData = QtGui.QTableWidgetItem(str(None))
+                servoMaxAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
 
-        self.setItem(0,0,nodeIdData)
-        self.setItem(0,1,directionData)
-        self.setItem(0,2,groupData)
-        self.setItem(0,3,minOutPutData)
-        self.setItem(0,4,maxOutPutData)
-        self.setItem(0,5,sceneNodeLinkData)
-        self.setItem(0,6,servoChannelData)
+                self.setItem(index,0,nodeIdData)
+                # self.setItem(index,1,directionData)
+                self.setItem(index,1,groupData)
+                self.setItem(index,2,minOutPutData)
+                self.setItem(index,3,maxOutPutData)
+                self.setItem(index,4,flipOutPutData)
+                self.setItem(index,5,sceneNodeLinkData)
+                self.setItem(index,6,nodeAttrLinkData)
+                self.setItem(index,7,servoChannelData)
+                self.setItem(index,8,servoMinAngleData)
+                self.setItem(index,9,servoMaxAngleData)
 
-        self.setRowCount(1)
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-
+            self.setRowCount(len(self.dataProcessor.collectActiveAttributeConnectors()))
+            self.resizeColumnsToContents()
+            self.resizeRowsToContents()
 
 class ControlScale():
     def __init__(self):

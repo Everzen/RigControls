@@ -1339,6 +1339,7 @@ class Node(QtGui.QGraphicsItem):
         # attrName = str(self.wireName) + str(self.index)
         attrName = str(self.groupName) + str(self.index)
         self.dataBundle.setControllerAttrName(attrName)
+        self.dataBundle.setNodeIndexes(self.index)
 
     def dirtyCurve(self):
         "Marks any associated curves as dirty"

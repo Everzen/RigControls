@@ -315,9 +315,11 @@ class SceneLinkTabW(QtGui.QTableWidget):
     Consider how the table data should be updated. Possible only when SuperNodes Or WireGroups are created/deleted
 
     """
-    def __init__(self, parent = None):
+    def __init__(self, styleData, parent = None):
         super(SceneLinkTabW, self).__init__(parent)
         self.dataProcessor = None
+        self.styleData = styleData
+        self.setStyleSheet(self.styleData)
 
         self.headers = []
         self.headers.append("  Node ID  ")
@@ -350,6 +352,8 @@ class SceneLinkTabW(QtGui.QTableWidget):
             print "ERROR: No data processor was found, so links cannot be forged to scene nodes"
             return 0
         else:
+            count = len(self.dataProcessor.collectActiveAttributeConnectors())
+            self.setRowCount(count)
             for index, att in enumerate(self.dataProcessor.collectActiveAttributeConnectors()):
                 nodeIdData = QtGui.QTableWidgetItem(str(att.getControllerAttrName()))
                 nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
@@ -357,9 +361,13 @@ class SceneLinkTabW(QtGui.QTableWidget):
                 # directionData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 groupData = QtGui.QTableWidgetItem(str(att.getHostName()))
                 groupData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                minOutPutData = QtGui.QTableWidgetItem(str(att.getMinValue()))
+                minOutPutData = QtGui.QTableWidgetItem("unlimited")
+                if att.getMinValue() != None: 
+                    minOutPutData = QtGui.QTableWidgetItem(str(att.getMinValue()))
                 minOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                maxOutPutData = QtGui.QTableWidgetItem(str(att.getMaxValue()))
+                maxOutPutData = QtGui.QTableWidgetItem("unlimited")
+                if att.getMaxValue() != None: 
+                    maxOutPutData = QtGui.QTableWidgetItem(str(att.getMaxValue()))
                 maxOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 flipOutPutData = QtGui.QTableWidgetItem(str(att.isFlipped()))
                 flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)        
@@ -367,11 +375,11 @@ class SceneLinkTabW(QtGui.QTableWidget):
                 sceneNodeLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 nodeAttrLinkData = QtGui.QTableWidgetItem(str(att.getSceneNodeAttr()))
                 nodeAttrLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                servoChannelData = QtGui.QTableWidgetItem(str(None))
+                servoChannelData = QtGui.QTableWidgetItem(str(att.getServoChannel()))
                 servoChannelData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                servoMinAngleData = QtGui.QTableWidgetItem(str(None))
+                servoMinAngleData = QtGui.QTableWidgetItem(str(att.getServoMinAngle()))
                 servoMinAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                servoMaxAngleData = QtGui.QTableWidgetItem(str(None))
+                servoMaxAngleData = QtGui.QTableWidgetItem(str(att.getServoMaxAngle()))
                 servoMaxAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
 
                 self.setItem(index,0,nodeIdData)
@@ -386,9 +394,66 @@ class SceneLinkTabW(QtGui.QTableWidget):
                 self.setItem(index,8,servoMinAngleData)
                 self.setItem(index,9,servoMaxAngleData)
 
-            self.setRowCount(len(self.dataProcessor.collectActiveAttributeConnectors()))
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
+
+
+    def contextMenuEvent(self, event):
+        menu = QtGui.QMenu()
+        menu.setStyleSheet(self.styleData)
+        index = self.indexAt(event.pos())
+        if index.column() == 4:
+            self.flipContextMenu(event)
+        elif index.column() == 7:
+            self.servoChannelContextMenu(event)
+
+    def flipContextMenu(self,event):
+        menu = QtGui.QMenu()
+        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        index = self.indexAt(event.pos())
+        if self.itemFromIndex(index).text() == "True":
+            menu.addAction('False')
+        elif self.itemFromIndex(index).text() == "False":
+            menu.addAction('True')
+        action = menu.exec_(event.globalPos())
+        if action: #Check that the menu has been hit at all
+            if action.text() == 'False': 
+                self.itemFromIndex(index).setText('False')
+                attConnectors[self.itemFromIndex(index).row()].setFlipped(False)
+            elif action.text() == 'True': 
+                self.itemFromIndex(index).setText('True')
+                attConnectors[self.itemFromIndex(index).row()].setFlipped(True)
+
+    def servoChannelContextMenu(self,event):
+        menu = QtGui.QMenu()
+        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        index = self.indexAt(event.pos())
+        for i in xrange(0,25):
+            menu.addAction(str(i))
+        menu.addAction("None")
+
+        action = menu.exec_(event.globalPos())
+        if action: #Check that the menu has been hit at all
+            for i in xrange(0,25):
+                if action.text() == str(i): 
+                    self.itemFromIndex(index).setText(str(i))
+                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                    currAttConnector.setServoChannel(i)
+                    self.dataProcessor.checkUniqueServoChannels(currAttConnector, i)
+
+            if action.text() == "None": 
+                self.itemFromIndex(index).setText("None")
+                attConnectors[self.itemFromIndex(index).row()].setServoChannel(None)
+            self.dataProcessor.setupServoMinMaxAngles() #If an action then run through servo min and Max angles
+            self.populate() #If an action was taken then repopulate the DataTable, because servoChannels may well have been adjusted
+
+
+
+
+
+
+
+
 
 class ControlScale():
     def __init__(self):

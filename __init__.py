@@ -12,7 +12,7 @@ import os
 
 from RigStore import FaceGVCapture
 from Widgets import ControlScale, DragItemButton, SkinTabW, SceneLinkTabW
-from dataProcessor import DataProcessor, DataBundle, DataServoBundle
+from dataProcessor import DataProcessor, DataServoProcessor, DataBundle, DataServoBundle
 
 import RigUIControls as rig
 
@@ -335,7 +335,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         layoutNodeLinks = QtGui.QVBoxLayout(tabNodeLinks)
         self.dataTabsWidget.addTab(tabNodeLinks, "Node and Servo Links")
         #Build the Skinning Table
-        self.nodeLinksTableWidget = SceneLinkTabW() #Replace this when the correct data table is actually written! 
+        self.nodeLinksTableWidget = SceneLinkTabW(self.styleData) #Replace this when the correct data table is actually written! 
         self.nodeLinksTableWidget.setDataProcessor(self.dataProcessor)
         self.nodeLinksTableWidget.populate()
         self.updateNodeLinksButton = QtGui.QPushButton("Update")
@@ -481,7 +481,8 @@ def main():
         return 1
 
     #Create DataProcessor for the rig and use the DataBundle Class to determine how it will behave.
-    rigProcessor = DataProcessor(DataServoBundle(), MayaData()) 
+    # rigProcessor = DataProcessor(MayaData()) 
+    rigProcessor = DataServoProcessor(MayaData()) 
     happyFaceUI = RigFaceSetup(styleData, rigProcessor, parent = maya_main_window())
     # happyFaceUI = RigFaceSetup(styleData)
     # happyFaceUI.setWindowFlags(QtCore.Qt.Tool)

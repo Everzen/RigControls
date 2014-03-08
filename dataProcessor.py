@@ -10,12 +10,12 @@ class DataProcessor(object):
 	"""This class contains a number of data bundles and performs operations on them to pass out the Node and SuperNode data
 	as useful float data for the x and y axis
 	"""
-	def __init__(self, sampleBundle, sceneAppData):
+	def __init__(self, sceneAppData):
 		#LIST OF ATTRIBUTES
 		self.appName = sceneAppData.getAppName()
 		self.sceneAppData = sceneAppData
 		self.sceneControl = None
-		self.sampleBundle = sampleBundle
+		self.sampleBundle = DataBundle()
 		self.dataBundles = []
 		self.activeAttributeConnectors = []
 		self.rigGraphicsView = None
@@ -52,6 +52,10 @@ class DataProcessor(object):
 				if att.isActive(): #check if the attributeConnector is active, or whether it has been deativated by the pin/node being deativated 
 					activeAttributeConnectors.append(att)
 		self.activeAttributeConnectors = activeAttributeConnectors
+		return self.activeAttributeConnectors
+
+	def getActiveAttributeConnectors(self):
+		"""Function to return the current list of attributeConnectors as processed by collectActiveAttributeConnectors"""
 		return self.activeAttributeConnectors
 
 	def addSceneControlAttributes(self):
@@ -105,6 +109,24 @@ class DataProcessor(object):
 		self.rigGraphicsView = rigGraphicsView
 
 
+class DataServoProcessor(DataProcessor):
+	"""This class inherits DataProcessor, and bolts on to it some functionality for processing servos
+
+	"""
+	def __init__(self, sceneAppData):
+		DataProcessor.__init__(self, sceneAppData) 
+		self.sampleBundle = DataServoBundle() #Load in  the new DataServoBundle to access extra Servo functionality
+
+	def checkUniqueServoChannels(self, attributeConnector, channel):
+		"""A function to cycle through all the attributeConnectors and check that no other attributeConnector has the same servoChannel as the input attributeConnector"""
+		for att in self.activeAttributeConnectors:
+			if att != attributeConnector:
+				if att.getServoChannel() == channel: att.setServoChannel(None)
+
+	def setupServoMinMaxAngles(self):
+		"""Function to run through all active attributeConnectors and make sure their servo min and max angles are initiated correctly"""
+		for att in self.activeAttributeConnectors: att.setupServoMinMaxAngles()
+
 
 class DataBundle(object):
 	"""This class looks at the node or the SuperNode and the associated constraints on that node and 
@@ -151,6 +173,11 @@ class DataBundle(object):
 		#Now set the standard X and Y channels for the Data Bundle
 		self.attributeConnectorX.setControllerAttrName(name + "X")
 		self.attributeConnectorY.setControllerAttrName(name + "Y")
+
+	def setNodeIndexes(self, index):
+		self.attributeConnectorX.setNodeIndex(index)
+		self.attributeConnectorX.setNodeIndex(index)
+
 
 	def getX(self):
 		return self.attributeConnectorX.getValue()
@@ -200,36 +227,9 @@ class DataServoBundle(DataBundle):
 	"""
 	def __init__(self):
 		DataBundle.__init__(self) 
-		self.xServoNo = None
-		self.yServoNo = None
-		self.minXServoAngle = 0
-		self.maxXServoAngle = 180
-		self.minYServoAngle = 0
-		self.maxYServoAngle = 180
-
-	def getMinXServoAngle(self):
-		return self.minXServoAngle
-
-	def getMaxXServoAngle(self):
-		return self.maxXServoAngle
-
-	def setMinXServoAngle(self, angle):
-		self.minXServoAngle = angle
-
-	def setMaxXServoAngle(self, angle):
-		self.maxXServoAngle = angle
-
-	def getMinYServoAngle(self):
-		return self.minYServoAngle
-
-	def getMaxYServoAngle(self):
-		return self.maxYServoAngle
-
-	def setMinYServoAngle(self, angle):
-		self.minXServoAngle = angle
-
-	def setMaxYServoAngle(self, angle):
-		self.maxXServoAngle = angle
+		self.attributeConnectorX = AttributeServoConnector()
+		self.attributeConnectorY = AttributeServoConnector()
+		self.attributeConnectors = [self.attributeConnectorX, self.attributeConnectorY]
 
 
 
@@ -242,6 +242,7 @@ class AttributeConnector(object):
 		self.sceneController = None
 		self.controlAttribute = None
 		self.connectedNode = None
+		self.nodeIndex = None
 		self.controllerAttrName = None
 		self.hostName = None #This is the name of the wiregroup or superNodegroup that the associated node belongs to - Do we just pass a reference to the Node itself?
 		self.active = True
@@ -308,6 +309,12 @@ class AttributeConnector(object):
 		"""Function to set name of the attribute that will be setup on the Scene Controller to represent the movement in that attribute of the Node"""
 		self.controllerAttrName = str(name)
 
+	def getNodeIndex(self):
+		return self.nodeIndex
+
+	def setNodeIndex(self, index):
+		self.nodeIndex = index
+
 	def getHostName(self):
 		return self.hostName
 
@@ -345,10 +352,48 @@ class AttributeConnector(object):
 		self.sceneNodeAttr = sceneNodeAttr
 
 
-class AttributeServoConnector(DataBundle):
+class AttributeServoConnector(AttributeConnector):
 	"""This class inherits AttributeConnector, and bolts on to it some functionality for applying servo numbers and angle limits to those servos
 
 	"""
 	def __init__(self):
 		AttributeConnector.__init__(self) 
-		pass
+		self.servoChannel = None
+		self.servoMinAngle = None
+		self.servoMaxAngle = None
+
+	def getServoChannel(self):
+		return self.servoChannel
+
+	def setServoChannel(self, channel):
+		if channel == None:
+			self.servoChannel = None
+		else:
+			if channel > 24 or channel < 0:
+				self.servoChannel = None
+			else:
+				self.servoChannel = int(channel)
+
+
+	def getServoMinAngle(self):
+		return self.servoMinAngle
+
+	def setServoMinAngle(self, angle):
+		self.servoMinAngle = angle
+		return self.servoMinAngle
+
+	def getServoMaxAngle(self):
+		return self.servoMaxAngle
+
+	def setServoMaxAngle(self, angle):
+		self.servoMaxAngle = angle
+		return self.servoMaxAngle
+
+	def setupServoMinMaxAngles(self):
+		if self.servoChannel == None: #The servo channel has been shut down, so set Min Max Angles to None
+			self.servoMinAngle = None
+			self.servoMaxAngle = None
+		else: #ServoChannel has been initialised with an channel number
+			if self.servoMinAngle == None: self.servoMinAngle = 0
+			if self.servoMaxAngle == None: self.servoMaxAngle = 180
+

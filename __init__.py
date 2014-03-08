@@ -336,6 +336,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.dataTabsWidget.addTab(tabNodeLinks, "Node and Servo Links")
         #Build the Skinning Table
         self.nodeLinksTableWidget = SceneLinkTabW(self.styleData) #Replace this when the correct data table is actually written! 
+        self.nodeLinksTableWidget.itemChanged.connect(self.updateSceneLinkOutputData) #Function called to see which Table item has been changed, and adjust the appropriate output
         self.nodeLinksTableWidget.setDataProcessor(self.dataProcessor)
         self.nodeLinksTableWidget.populate()
         self.updateNodeLinksButton = QtGui.QPushButton("Update")
@@ -417,6 +418,10 @@ class RigFaceSetup(QtGui.QMainWindow):
     def updateSkinData(self, item):
         """Function that simply calls the skinning table to update"""
         self.skinTableWidget.updateSkinning(item)
+
+    def updateSceneLinkOutputData(self, item):
+        """Function that simply calls the skinning table to update"""
+        self.nodeLinksTableWidget.updateSceneLinkOutputData(item)
 
     def itemTest(self):
         """Random Test funciton to see if things get called"""

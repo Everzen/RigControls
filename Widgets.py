@@ -259,6 +259,8 @@ class SkinTabW(QtGui.QTableWidget):
             self.clear()
             self.setColumnCount(4)
             self.setHorizontalHeaderLabels(self.headers)
+            self.setRowCount(len(self.superNode.getSkinnedPins()))
+            self.blockSignals(True) #Disable updating while populating, to stop signals being emitted.
             for index, skinPin in enumerate(self.superNode.getSkinnedPins()):
                 superNodeNameitem = QtGui.QTableWidgetItem(self.superNode.getName())
                 superNodeNameitem.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
@@ -272,7 +274,7 @@ class SkinTabW(QtGui.QTableWidget):
                 self.setItem(index,1,wireGroupNameitem)
                 self.setItem(index,2,pinIndexItem)
                 self.setItem(index,3,skinValueItem)
-            self.setRowCount(len(self.superNode.getSkinnedPins()))
+            self.blockSignals(False) #Disable updating while populating, to stop signals being emitted.
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
 
@@ -331,8 +333,8 @@ class SceneLinkTabW(QtGui.QTableWidget):
         self.headers.append("  Scene Link Node  ")
         self.headers.append("  Scene Link Attribute  ")
         self.headers.append("  Servo Channel ")
-        self.headers.append("  Servo Max Angle ")
         self.headers.append("  Servo Min Angle ")
+        self.headers.append("  Servo Max Angle ")
 
         # self.populate()
 
@@ -354,6 +356,7 @@ class SceneLinkTabW(QtGui.QTableWidget):
         else:
             count = len(self.dataProcessor.collectActiveAttributeConnectors())
             self.setRowCount(count)
+            self.blockSignals(True) #Disable updating while populating, to stop signals being emitted.
             for index, att in enumerate(self.dataProcessor.collectActiveAttributeConnectors()):
                 nodeIdData = QtGui.QTableWidgetItem(str(att.getControllerAttrName()))
                 nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
@@ -378,9 +381,9 @@ class SceneLinkTabW(QtGui.QTableWidget):
                 servoChannelData = QtGui.QTableWidgetItem(str(att.getServoChannel()))
                 servoChannelData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 servoMinAngleData = QtGui.QTableWidgetItem(str(att.getServoMinAngle()))
-                servoMinAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                servoMinAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
                 servoMaxAngleData = QtGui.QTableWidgetItem(str(att.getServoMaxAngle()))
-                servoMaxAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                servoMaxAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
 
                 self.setItem(index,0,nodeIdData)
                 # self.setItem(index,1,directionData)
@@ -394,11 +397,19 @@ class SceneLinkTabW(QtGui.QTableWidget):
                 self.setItem(index,8,servoMinAngleData)
                 self.setItem(index,9,servoMaxAngleData)
 
+            self.blockSignals(False) #Enable updating while populating, to allow signals to be emitted.
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
 
+    def checkDigit(self, newValue):
+        """Function to check that we are putting in valid numbers for our outputs in the SceneLinkTabW"""
+        if newValue.isdigit(): 
+            return newValue
+        else:
+            return "None"
 
     def contextMenuEvent(self, event):
+        """Function to setup the main RC context menus for the SceneLinkTabW"""
         menu = QtGui.QMenu()
         menu.setStyleSheet(self.styleData)
         index = self.indexAt(event.pos())
@@ -446,6 +457,21 @@ class SceneLinkTabW(QtGui.QTableWidget):
                 attConnectors[self.itemFromIndex(index).row()].setServoChannel(None)
             self.dataProcessor.setupServoMinMaxAngles() #If an action then run through servo min and Max angles
             self.populate() #If an action was taken then repopulate the DataTable, because servoChannels may well have been adjusted
+
+    def updateSceneLinkOutputData(self, item):
+        """Function to see which tableWidgetItem has been changed and take the appropriate action to update the correct attribute Connector"""
+        if item.column() == 8:
+            newValue = self.checkDigit(item.text())
+            if newValue != "None": 
+                item.setText(self.checkDigit(item.text()))
+            else: 
+                item.setText(self.checkDigit("0"))
+        elif item.column() == 9:
+            newValue = self.checkDigit(item.text())
+            if newValue != "None": 
+                item.setText(self.checkDigit(item.text()))
+            else: 
+                item.setText(self.checkDigit("180"))
 
 
 

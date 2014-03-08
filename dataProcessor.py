@@ -51,7 +51,8 @@ class DataProcessor(object):
 			for att in node.getDataBundle().getAttributeConnectors():
 				if att.isActive(): #check if the attributeConnector is active, or whether it has been deativated by the pin/node being deativated 
 					activeAttributeConnectors.append(att)
-		self.activeAttributeConnectors = activeAttributeConnectors
+		self.activeAttributeConnectors = list(set(activeAttributeConnectors)) #By converting to a set and the back to a list, we remove duplicates caused by merged Nodes
+		self.activeAttributeConnectors.sort(key=lambda att: att.getControllerAttrName()) #Sort the list by the controller attribute Names
 		return self.activeAttributeConnectors
 
 	def getActiveAttributeConnectors(self):

@@ -685,7 +685,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
                                 self.targetNode = node
                             return QtGui.QGraphicsView.mouseMoveEvent(self, mouseEvent)
 
-        self.deactivateNodes() # If we get here then we have not found a target node, so make sure all nodes are deactivated
+        for item in self.items():
+            if type(item) == Node or type(item) == SuperNode:
+                if item.isHighlighted(): item.setHighlighted(False) # If we get here then we have not found a target node, so make sure all nodes are deactivated
+            # self.deactivateNodes() 
 
         return QtGui.QGraphicsView.mouseMoveEvent(self, mouseEvent)
 

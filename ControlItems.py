@@ -373,7 +373,7 @@ class WireGroup(object):
 
         if index < len(self.nodes):
             # Proceed with Replacement if we have a valid native Node or a NodePinReference Object
-            if self.nodes[index].getWireName() == self.name or self.nodes[index].name == "NodePinReference": 
+            if self.nodes[index].getGroupName() == self.name or self.nodes[index].name == "NodePinReference": 
                 oldNode = self.nodes[index]
                 # Directly set the mergeNode Node into the WireGroup
                 self.pins[index] = mergeNode.getPin()
@@ -1268,6 +1268,8 @@ class Node(QtGui.QGraphicsItem):
 
     def setHighlighted(self, highlighted):
         self.hightlighted = bool(highlighted)
+        self.update()
+        print "Highlighted Called: " + str(highlighted)
         # self.update()
 
     def addRigCurve(self, rigCurve):
@@ -1339,7 +1341,7 @@ class Node(QtGui.QGraphicsItem):
         # attrName = str(self.wireName) + str(self.index)
         attrName = str(self.groupName) + str(self.index)
         self.dataBundle.setControllerAttrName(attrName)
-        self.dataBundle.setNodeIndexes(self.index)
+        self.dataBundle.setNode(self)
 
     def dirtyCurve(self):
         "Marks any associated curves as dirty"
@@ -1647,8 +1649,15 @@ class SuperNode(Node):
 
 
     def drawArrow_4Point(self, painter, option, widget):
-        pen = QtGui.QPen(self.colour, 1, QtCore.Qt.SolidLine)
+        penCol = self.colour
+        pen = QtGui.QPen(penCol, 1, QtCore.Qt.SolidLine)
+
+        if self.hightlighted: #If the node is highlighted for dataTable Identifying purposes
+            penCol = QtGui.QColor(240,240,255,200)
+            pen = QtGui.QPen(penCol, 3 , QtCore.Qt.SolidLine)
+
         painter.setPen(pen)
+
         self.path = QtGui.QPainterPath()
         self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
         self.path.lineTo(QtCore.QPointF(9*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
@@ -1677,8 +1686,15 @@ class SuperNode(Node):
         self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
 
     def drawArrow_sidePoint(self, painter, option, widget):
-        pen = QtGui.QPen(self.colour, 1, QtCore.Qt.SolidLine)
+        penCol = self.colour
+        pen = QtGui.QPen(penCol, 1, QtCore.Qt.SolidLine)
+
+        if self.hightlighted: #If the node is highlighted for dataTable Identifying purposes
+            penCol = QtGui.QColor(240,240,255,200)
+            pen = QtGui.QPen(penCol, 3 , QtCore.Qt.SolidLine)
+
         painter.setPen(pen)
+
         self.path = QtGui.QPainterPath()
         self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
         self.path.lineTo(QtCore.QPointF(9*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
@@ -1697,11 +1713,17 @@ class SuperNode(Node):
         self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
 
     def drawArrow_upDownPoint(self, painter, option, widget):
-        pen = QtGui.QPen(self.colour, 1, QtCore.Qt.SolidLine)
+        penCol = self.colour
+        pen = QtGui.QPen(penCol, 1, QtCore.Qt.SolidLine)
+
+        if self.hightlighted: #If the node is highlighted for dataTable Identifying purposes
+            penCol = QtGui.QColor(240,240,255,200)
+            pen = QtGui.QPen(penCol, 3 , QtCore.Qt.SolidLine)
+
         painter.setPen(pen)
+
         self.path = QtGui.QPainterPath()
         self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
-
         self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,-3*self.scaleOffset*self.scale))
         self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,-9*self.scaleOffset*self.scale))
         self.path.lineTo(QtCore.QPointF(6*self.scaleOffset*self.scale,-9*self.scaleOffset*self.scale))

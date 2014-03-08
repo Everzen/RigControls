@@ -408,6 +408,31 @@ class SceneLinkTabW(QtGui.QTableWidget):
         else:
             return "None"
 
+    def mousePressEvent(self, mouseEvent):
+        # print "Node"
+        nodeItem = self.indexAt(mouseEvent.pos())
+        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        if nodeItem.row() == -1:
+            self.clearSelection()
+        else:  
+            for att in attConnectors: att.getNode().setHighlighted(False) #Turn off all highlighting when the mouse is clicked
+            currAttConnector = attConnectors[nodeItem.row()]
+            currAttConnector.getNode().setHighlighted(True) #Highlight just the relevant Node
+                # self.selectRow(mItem.row())
+        return QtGui.QAbstractItemView.mousePressEvent(self, mouseEvent)
+
+    # def mouseReleaseEvent(self, mouseEvent):
+    #     # print "Release"
+    #     # print "Sel No " + str(self.selectionModel().selection().indexes())
+    #     if self.superNode:
+    #         for skinPin in self.superNode.getSkinnedPins() : skinPin.getPin().getNode().setHighlighted(False) #Turn off all Highlighting
+    #         for mItem in self.selectionModel().selection().indexes():
+    #             if mItem.row() >= 0 :
+    #                 self.superNode.getSkinnedPins()[mItem.row()].getPin().getNode().setHighlighted(True)
+    #     mItem = self.indexAt(mouseEvent.pos())
+    #     # if mItem.row() == -1 : print "missed"
+    #     return QtGui.QAbstractItemView.mouseReleaseEvent(self, mouseEvent)
+
     def contextMenuEvent(self, event):
         """Function to setup the main RC context menus for the SceneLinkTabW"""
         menu = QtGui.QMenu()
@@ -436,6 +461,7 @@ class SceneLinkTabW(QtGui.QTableWidget):
                 attConnectors[self.itemFromIndex(index).row()].setFlipped(True)
 
     def servoChannelContextMenu(self,event):
+        """Function for Context menu to directly choose a servo channel"""
         menu = QtGui.QMenu()
         attConnectors = self.dataProcessor.getActiveAttributeConnectors()
         index = self.indexAt(event.pos())

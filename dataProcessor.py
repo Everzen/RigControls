@@ -174,10 +174,9 @@ class DataBundle(object):
 		self.attributeConnectorX.setControllerAttrName(name + "X")
 		self.attributeConnectorY.setControllerAttrName(name + "Y")
 
-	def setNodeIndexes(self, index):
-		self.attributeConnectorX.setNodeIndex(index)
-		self.attributeConnectorX.setNodeIndex(index)
-
+	def setNode(self, node):
+		self.attributeConnectorX.setNode(node)
+		self.attributeConnectorY.setNode(node)
 
 	def getX(self):
 		return self.attributeConnectorX.getValue()
@@ -242,6 +241,7 @@ class AttributeConnector(object):
 		self.sceneController = None
 		self.controlAttribute = None
 		self.connectedNode = None
+		self.node = None
 		self.nodeIndex = None
 		self.controllerAttrName = None
 		self.hostName = None #This is the name of the wiregroup or superNodegroup that the associated node belongs to - Do we just pass a reference to the Node itself?
@@ -308,6 +308,13 @@ class AttributeConnector(object):
 	def setControllerAttrName(self, name):
 		"""Function to set name of the attribute that will be setup on the Scene Controller to represent the movement in that attribute of the Node"""
 		self.controllerAttrName = str(name)
+
+	def getNode(self):
+		return self.node
+
+	def setNode(self, node):
+		self.node = node
+		self.nodeIndex = node.getIndex()
 
 	def getNodeIndex(self):
 		return self.nodeIndex

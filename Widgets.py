@@ -518,19 +518,19 @@ class SceneLinkTabW(QtGui.QTableWidget):
 
             if action.text() == "Wire to selected scene Node":
                 selObject = self.dataProcessor.returnSelectedObject()
-                if selObject: 
+                if selObject: #Set the scene Node to the Object, and reset the attribute to None, so it can be chosen manually
                     currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                     currAttConnector.setSceneNode(selObject)
                     currAttConnector.setSceneNodeAttr(None) 
-                else:
+                else: #Object does not exist, so reset to None
                     currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                     currAttConnector.setSceneNode(None)
                     currAttConnector.setSceneNodeAttr(None) 
-            elif action.text() == "Detach Connection":
+            elif action.text() == "Detach Connection": #reset Node and Node Attribute
                     currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                     currAttConnector.setSceneNode(None)
                     currAttConnector.setSceneNodeAttr(None) 
-        self.populate()
+        self.populate() #The AttributeConnectors have been updated throughout, but no text change. Calling Populate, will then update the entire Table so text is correct.
 
     def sceneNodeAttrContextMenu(self,event):
         """Function to setup a RC menu for a list of specified filtered nodes"""
@@ -539,15 +539,15 @@ class SceneLinkTabW(QtGui.QTableWidget):
         index = self.indexAt(event.pos())
         currAttConnector = attConnectors[self.itemFromIndex(index).row()]
 
-        if not self.dataProcessor.objExists(currAttConnector.getSceneNode()): #The registered scene Node Does not exist so reset it! 
+        if not self.dataProcessor.objExists(currAttConnector.getSceneNode()): #The registered scene Node Does not exist so reset it to None, set Attribute to None too. 
             currAttConnector.setSceneNode(None)
             currAttConnector.setSceneNodeAttr(None)
         else:
             menu.addAction("Detach Node and Attribute") 
             menu.addSeparator()
             # print "This item is : " + str(self.item(self.itemFromIndex(index).row(),5).text())
-            linkAttrs = self.dataProcessor.listLinkAttrs(self.item(self.itemFromIndex(index).row(),5).text())
-            for att in linkAttrs:
+            linkAttrs = self.dataProcessor.listLinkAttrs(self.item(self.itemFromIndex(index).row(),5).text()) #List all linkable attributes
+            for att in linkAttrs: #Loop through list and add approriate actions
                 menu.addAction(att)    
             
             action = menu.exec_(event.globalPos())
@@ -556,12 +556,11 @@ class SceneLinkTabW(QtGui.QTableWidget):
                     if action.text() == str(att): 
                         currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                         currAttConnector.setSceneNodeAttr(str(att))
-
                 if action.text() == "Detach Node and Attribute":
                     currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                     currAttConnector.setSceneNode(None)                
                     currAttConnector.setSceneNodeAttr(None) 
-        self.populate()
+        self.populate() #The AttributeConnectors have been updated throughout, but no text change. Calling Populate, will then update the entire Table so text is correct.
 
 
     def updateSceneLinkOutputData(self, item):

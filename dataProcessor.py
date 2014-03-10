@@ -109,6 +109,25 @@ class DataProcessor(object):
 		"""Function to pass the main rigGraphicsView to the dataprocessor, so we can always keep track of exactly which controls are drawn and active"""
 		self.rigGraphicsView = rigGraphicsView
 
+	def returnSelectedObject(self):
+		return self.sceneAppData.returnSelectedObject()
+
+	def returnFilteredObjects(self, filterName):
+		return self.sceneAppData.returnFilteredObjects(filterName)
+
+	def checkAttributeConnectors(self):
+		"""Function to run through all AttributeConnectors and check that the scene Nodes that they are connected to exist"""
+		pass
+
+	def objExists(self, objName):
+		"""Function to determine whether a node exists in the Maya scene with the name objName"""
+		return self.sceneAppData.objExists(objName)
+
+	def listLinkAttrs(self, node):
+		"""Function to list all the float connectable, keyable attributes on node"""
+		return self.sceneAppData.listLinkAttrs(node)
+
+
 
 class DataServoProcessor(DataProcessor):
 	"""This class inherits DataProcessor, and bolts on to it some functionality for processing servos

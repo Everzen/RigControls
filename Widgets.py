@@ -336,6 +336,8 @@ class SceneLinkTabW(QtGui.QTableWidget):
         self.headers.append("  Servo Min Angle ")
         self.headers.append("  Servo Max Angle ")
 
+        self.nodeSubString = "hFCtrl" #Initialise the string filter as hFCtrl
+
         # self.populate()
 
     def getDataProcessor(self):
@@ -343,6 +345,12 @@ class SceneLinkTabW(QtGui.QTableWidget):
 
     def setDataProcessor(self, dataProcessor):
         self.dataProcessor = dataProcessor
+
+    def getNodeSubString(self):
+        return self.nodeSubString
+
+    def setNodeSubString(self, nodeSubString):
+        self.nodeSubString = str(nodeSubString)
 
     def populate(self):
         """Function to take all the dataProcessor info and write it out in table form"""
@@ -440,6 +448,10 @@ class SceneLinkTabW(QtGui.QTableWidget):
         index = self.indexAt(event.pos())
         if index.column() == 4:
             self.flipContextMenu(event)
+        elif index.column() == 5:
+            self.sceneNodeContextMenu(event)  
+        elif index.column() == 6:
+            self.sceneNodeAttrContextMenu(event)        
         elif index.column() == 7:
             self.servoChannelContextMenu(event)
 
@@ -483,6 +495,74 @@ class SceneLinkTabW(QtGui.QTableWidget):
                 attConnectors[self.itemFromIndex(index).row()].setServoChannel(None)
             self.dataProcessor.setupServoMinMaxAngles() #If an action then run through servo min and Max angles
             self.populate() #If an action was taken then repopulate the DataTable, because servoChannels may well have been adjusted
+
+    def sceneNodeContextMenu(self,event):
+        """Function to setup a RC menu for a list of specified filtered nodes"""
+        menu = QtGui.QMenu()
+        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        index = self.indexAt(event.pos())
+        filteredSceneNodes = self.dataProcessor.returnFilteredObjects(self.nodeSubString) #Return all selected Nodes with specified substring
+        
+        menu.addAction("Wire to selected scene Node")
+        menu.addAction("Detach Connection")
+        menu.addSeparator()
+
+        for node in filteredSceneNodes:
+            menu.addAction(node)
+        action = menu.exec_(event.globalPos())
+        if action: #Check that the menu has been hit at all
+            for node in filteredSceneNodes:
+                if action.text() == str(node): 
+                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                    currAttConnector.setSceneNode(str(node))
+
+            if action.text() == "Wire to selected scene Node":
+                selObject = self.dataProcessor.returnSelectedObject()
+                if selObject: 
+                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                    currAttConnector.setSceneNode(selObject)
+                    currAttConnector.setSceneNodeAttr(None) 
+                else:
+                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                    currAttConnector.setSceneNode(None)
+                    currAttConnector.setSceneNodeAttr(None) 
+            elif action.text() == "Detach Connection":
+                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                    currAttConnector.setSceneNode(None)
+                    currAttConnector.setSceneNodeAttr(None) 
+        self.populate()
+
+    def sceneNodeAttrContextMenu(self,event):
+        """Function to setup a RC menu for a list of specified filtered nodes"""
+        menu = QtGui.QMenu()
+        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        index = self.indexAt(event.pos())
+        currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+
+        if not self.dataProcessor.objExists(currAttConnector.getSceneNode()): #The registered scene Node Does not exist so reset it! 
+            currAttConnector.setSceneNode(None)
+            currAttConnector.setSceneNodeAttr(None)
+        else:
+            menu.addAction("Detach Node and Attribute") 
+            menu.addSeparator()
+            # print "This item is : " + str(self.item(self.itemFromIndex(index).row(),5).text())
+            linkAttrs = self.dataProcessor.listLinkAttrs(self.item(self.itemFromIndex(index).row(),5).text())
+            for att in linkAttrs:
+                menu.addAction(att)    
+            
+            action = menu.exec_(event.globalPos())
+            if action: #Check that the menu has been hit at all
+                for att in linkAttrs:
+                    if action.text() == str(att): 
+                        currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                        currAttConnector.setSceneNodeAttr(str(att))
+
+                if action.text() == "Detach Node and Attribute":
+                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                    currAttConnector.setSceneNode(None)                
+                    currAttConnector.setSceneNodeAttr(None) 
+        self.populate()
+
 
     def updateSceneLinkOutputData(self, item):
         """Function to see which tableWidgetItem has been changed and take the appropriate action to update the correct attribute Connector"""

@@ -1269,8 +1269,7 @@ class Node(QtGui.QGraphicsItem):
     def setHighlighted(self, highlighted):
         self.hightlighted = bool(highlighted)
         self.update()
-        print "Highlighted Called: " + str(highlighted)
-        # self.update()
+        # print "Highlighted Called: " + str(highlighted)
 
     def addRigCurve(self, rigCurve):
         self.rigCurveList.append(weakref.ref(rigCurve))

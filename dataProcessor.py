@@ -127,6 +127,14 @@ class DataProcessor(object):
 		"""Function to list all the float connectable, keyable attributes on node"""
 		return self.sceneAppData.listLinkAttrs(node)
 
+	def checkSceneNodeLinks(self, attributeConnector):
+		"""Function to check that no other attributeConnector has the same node and scene setup. If so, then set attribute to none"""
+		for att in self.activeAttributeConnectors:
+			if att != attributeConnector:
+				if att.getSceneNode() == attributeConnector.getSceneNode(): #we have a matching node, so check to see if there is a matching attribute
+					if att.getSceneNodeAttr() == attributeConnector.getSceneNodeAttr(): #We have a matching connection so set the attribute to None
+						att.setSceneNodeAttr(None)
+
 
 
 class DataServoProcessor(DataProcessor):
@@ -377,6 +385,8 @@ class AttributeConnector(object):
 	def setSceneNodeAttr(self, sceneNodeAttr):
 		"""Function to set the name of the 3D app scene Node attribute that the attributeConnector is looking to control"""
 		self.sceneNodeAttr = sceneNodeAttr
+
+
 
 
 class AttributeServoConnector(AttributeConnector):

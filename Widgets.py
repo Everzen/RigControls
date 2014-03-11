@@ -556,6 +556,7 @@ class SceneLinkTabW(QtGui.QTableWidget):
                     if action.text() == str(att): 
                         currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                         currAttConnector.setSceneNodeAttr(str(att))
+                        self.dataProcessor.checkSceneNodeLinks(currAttConnector) #Check all the other attributeConnectors to see if they have teh same node & attribute setup.
                 if action.text() == "Detach Node and Attribute":
                     currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                     currAttConnector.setSceneNode(None)                

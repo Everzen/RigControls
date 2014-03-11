@@ -99,3 +99,7 @@ class MayaData(object):
 		for node in currSel:
 			if filterName in node: filterList.append(node)
 		return filterList
+
+	def setAttr(self, node, attribute, data):
+		"""Function to simply set an attribute"""
+		cmds.setAttr((node + "." + attribute), data)

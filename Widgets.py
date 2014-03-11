@@ -515,6 +515,7 @@ class SceneLinkTabW(QtGui.QTableWidget):
                 if action.text() == str(node): 
                     currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                     currAttConnector.setSceneNode(str(node))
+                    currAttConnector.setSceneNodeAttr(None) 
 
             if action.text() == "Wire to selected scene Node":
                 selObject = self.dataProcessor.returnSelectedObject()

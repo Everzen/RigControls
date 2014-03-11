@@ -15,7 +15,7 @@ class DataProcessor(object):
 		self.appName = sceneAppData.getAppName()
 		self.sceneAppData = sceneAppData
 		self.sceneControl = None
-		self.sampleBundle = DataBundle()
+		self.sampleBundle = DataBundle(self.sceneAppData)
 		self.dataBundles = []
 		self.activeAttributeConnectors = []
 		self.rigGraphicsView = None
@@ -143,7 +143,7 @@ class DataServoProcessor(DataProcessor):
 	"""
 	def __init__(self, sceneAppData):
 		DataProcessor.__init__(self, sceneAppData) 
-		self.sampleBundle = DataServoBundle() #Load in  the new DataServoBundle to access extra Servo functionality
+		self.sampleBundle = DataServoBundle(sceneAppData) #Load in  the new DataServoBundle to access extra Servo functionality
 
 	def checkUniqueServoChannels(self, attributeConnector, channel):
 		"""A function to cycle through all the attributeConnectors and check that no other attributeConnector has the same servoChannel as the input attributeConnector"""
@@ -164,7 +164,7 @@ class DataBundle(object):
 
 
 	"""
-	def __init__(self):
+	def __init__(self, sceneAppData):
 		#LIST OF ATTRIBUTES
 		self.sceneControl = None
 		self.hostName = None
@@ -172,6 +172,7 @@ class DataBundle(object):
 		self.attributeConnectorX = AttributeConnector()
 		self.attributeConnectorY = AttributeConnector()
 		self.attributeConnectors = [self.attributeConnectorX, self.attributeConnectorY]
+		self.sceneAppData = sceneAppData
 
 	def getSceneControl(self):
 		return self.sceneControl
@@ -215,10 +216,18 @@ class DataBundle(object):
 	def setX(self, x):
 		"""Function reaches down into the attributeConnectorX to set the X value"""
 		self.attributeConnectorX.setValue(x)
+		attValue = self.attributeConnectorX.getValue()
+		if self.attributeConnectorX.isSceneNodeActive(): #If active, then we have a valid scene Node and attribute wired into the Node
+			self.sceneAppData.setAttr(self.attributeConnectorX.getSceneNode(), self.attributeConnectorX.getSceneNodeAttr(), attValue)
+			print "Moving x to : " + str(attValue)
 
 	def setY(self, y):
 		"""Function reaches down into the attributeConnectorY to set the Y value"""
 		self.attributeConnectorY.setValue(y)
+		attValue = self.attributeConnectorY.getValue()
+		if self.attributeConnectorY.isSceneNodeActive(): #If active, then we have a valid scene Node and attribute wired into the Node
+			self.sceneAppData.setAttr(self.attributeConnectorY.getSceneNode(), self.attributeConnectorY.getSceneNodeAttr(), attValue)
+			print "Moving y to : " + str(attValue)
 
 	def getMaxX(self):
 		return self.attributeConnectorX.getMaxValue()
@@ -252,8 +261,8 @@ class DataServoBundle(DataBundle):
 	"""This class inherits DataBundle, and bolts on to it some functionality for applying servo numbers and angle limits to those servos
 
 	"""
-	def __init__(self):
-		DataBundle.__init__(self) 
+	def __init__(self, sceneAppData):
+		DataBundle.__init__(self, sceneAppData) 
 		self.attributeConnectorX = AttributeServoConnector()
 		self.attributeConnectorY = AttributeServoConnector()
 		self.attributeConnectors = [self.attributeConnectorX, self.attributeConnectorY]
@@ -281,6 +290,7 @@ class AttributeConnector(object):
 		self.standardScale = 50.0
 		self.sceneNode = None
 		self.sceneNodeAttr = None
+		self.sceneNodeActive = False #Activates when a valid Scene Node and Attribute are found
 
 	def getSceneControl(self):
 		return self.sceneControl
@@ -384,9 +394,17 @@ class AttributeConnector(object):
 
 	def setSceneNodeAttr(self, sceneNodeAttr):
 		"""Function to set the name of the 3D app scene Node attribute that the attributeConnector is looking to control"""
+		if sceneNodeAttr == None: 
+			self.sceneNodeActive = False
+		else:
+			self.sceneNodeActive = True
 		self.sceneNodeAttr = sceneNodeAttr
 
+	def isSceneNodeActive(self):
+		return self.sceneNodeActive
 
+	def setSceneNodeActive(self, active):
+		self.sceneNodeActive = active
 
 
 class AttributeServoConnector(AttributeConnector):
@@ -398,6 +416,7 @@ class AttributeServoConnector(AttributeConnector):
 		self.servoChannel = None
 		self.servoMinAngle = None
 		self.servoMaxAngle = None
+		self.servoActive = None
 
 	def getServoChannel(self):
 		return self.servoChannel

@@ -1324,8 +1324,10 @@ class Node(QtGui.QGraphicsItem):
 
     def goHome(self):
         """Function to centralise the node back to the pin and update any associated rigCurves and pinTies"""
+        print "Before Home Pos : " + str(self.pos().x()) + "," + str(self.pos().y()) 
         if self.pin:
             self.setPos(QtCore.QPointF(0,0))
+            print "After Home Pos : " + str(self.pos().x()) + "," + str(self.pos().y()) 
             if self.dataBundle:
                 self.dataBundle.setX(0.0)
                 self.dataBundle.setY(0.0)
@@ -1401,11 +1403,19 @@ class Node(QtGui.QGraphicsItem):
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
     def mousePressEvent(self, event):
-        self.setPos(self.mapToParent(event.pos())) #Trying to line centre of node to mouse move
-        if self.pinTie:
-            # print "There is a tie"
-            self.pinTie().drawTie()
-        self.update()
+        if event.button() == QtCore.Qt.LeftButton:
+            # print "Before Click Pos : " + str(self.pos().x()) + "," + str(self.pos().y()) 
+            self.setPos(self.mapToParent(event.pos())) #Trying to line centre of node to mouse move
+            if self.dataBundle:
+                newPos = self.pos()
+                # print "After Click Pos : " + str(self.pos().x()) + "," + str(self.pos().y()) 
+                self.dataBundle.setX(newPos.x())
+                self.dataBundle.setY(newPos.y())
+                # print "Mouse Click Float Data : " + str(self.dataBundle.getX()) + ", " + str(self.dataBundle.getY()) 
+            if self.pinTie:
+                # print "There is a tie"
+                self.pinTie().drawTie()
+            self.update()
         QtGui.QGraphicsItem.mousePressEvent(self, event)
 
     def mouseReleaseEvent(self, event):
@@ -1633,6 +1643,14 @@ class SuperNode(Node):
 
     def goHome(self):
         """Function to centralise the node back to the pin and update any associated rigCurves and pinTies"""
+        print "Before Home Pos : " + str(self.pos().x()) + "," + str(self.pos().y()) 
+        if self.pin:
+            self.setPos(QtCore.QPointF(0,0))
+            print "After Home Pos : " + str(self.pos().x()) + "," + str(self.pos().y()) 
+            if self.dataBundle:
+                self.dataBundle.setX(0.0)
+                self.dataBundle.setY(0.0) 
+
         if self.pin:
             self.setPos(QtCore.QPointF(0,0))
             if self.pinTie:

@@ -80,6 +80,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         super(RigFaceSetup, self).__init__(parent)
 
         self.setWindowTitle("Facial Rig Builder v1.0")
+        # self.setFocusPolicy(QtCore.Qt.StrongFocus) #Test what this does for bringing focus to the window to try and stop maya shortcuts! 
         # self.setGeometry(50,50, 600, 600)
         # self.ColourPickerCircle = {"center" : [245, 245], "centerOffset": [20,16] , "radius": 210 , "filename": "images/ColorWheelSat_500.png"}
         self.faceSaveFile = None

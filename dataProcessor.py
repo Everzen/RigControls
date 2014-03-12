@@ -219,15 +219,15 @@ class DataBundle(object):
 		attValue = self.attributeConnectorX.getValue()
 		if self.attributeConnectorX.isSceneNodeActive(): #If active, then we have a valid scene Node and attribute wired into the Node
 			self.sceneAppData.setAttr(self.attributeConnectorX.getSceneNode(), self.attributeConnectorX.getSceneNodeAttr(), attValue)
-			print "Moving x to : " + str(attValue)
+			# print "Moving x to : " + str(attValue)
 
 	def setY(self, y):
 		"""Function reaches down into the attributeConnectorY to set the Y value"""
 		self.attributeConnectorY.setValue(y)
 		attValue = self.attributeConnectorY.getValue()
 		if self.attributeConnectorY.isSceneNodeActive(): #If active, then we have a valid scene Node and attribute wired into the Node
-			self.sceneAppData.setAttr(self.attributeConnectorY.getSceneNode(), self.attributeConnectorY.getSceneNodeAttr(), attValue)
-			print "Moving y to : " + str(attValue)
+			self.sceneAppData.setAttr(self.attributeConnectorY.getSceneNode(), self.attributeConnectorY.getSceneNodeAttr(), -attValue)
+			# print "Moving y to : " + str(attValue)
 
 	def getMaxX(self):
 		return self.attributeConnectorX.getMaxValue()

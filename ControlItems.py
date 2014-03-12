@@ -1391,7 +1391,7 @@ class Node(QtGui.QGraphicsItem):
                 newPos = self.pos()
                 self.dataBundle.setX(newPos.x())
                 self.dataBundle.setY(newPos.y())
-                print "Float Data : " + str(self.dataBundle.getX()) + ", " + str(self.dataBundle.getY()) 
+                # print "Float Data : " + str(self.dataBundle.getX()) + ", " + str(self.dataBundle.getY()) 
             if self.pinTie:
                 # print "There is a tie"
                 self.pinTie().drawTie()
@@ -1416,11 +1416,11 @@ class Node(QtGui.QGraphicsItem):
                 # print "There is a tie"
                 self.pinTie().drawTie()
             self.update()
-        QtGui.QGraphicsItem.mousePressEvent(self, event)
+        return QtGui.QGraphicsItem.mousePressEvent(self, event)
 
     def mouseReleaseEvent(self, event):
         self.update()
-        QtGui.QGraphicsItem.mouseReleaseEvent(self, event)
+        return QtGui.QGraphicsItem.mouseReleaseEvent(self, event)
 
     def mouseMoveEvent(self, mouseEvent):
         # check of mouse moved within the restricted area for the item 

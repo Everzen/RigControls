@@ -330,7 +330,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,state)
                 if not state: item.setSelected(state)
 
-    def panSelectableItems(self):
+    def panFreezeSelectableItems(self):
         """A function to turn off moveabliliy and selectablility on all objects for a pan"""
         self.isSelectableList = []
         self.isMovableList = []
@@ -345,6 +345,23 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.isMovableList.append(isMovable)
             item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, False)  
             item.setFlag(QtGui.QGraphicsItem.ItemIsMovable, False) 
+
+    def panReleaseSelectableItems(self):
+        """A function to turn back on moveabliliy and selectablility of all objects after a pan
+
+        This function is also called when focus returns to the GV, to make sure all items are moveable.
+        """
+        scene = self.scene()
+        self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
+        for index, item in enumerate(scene.items()):
+            item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, self.isSelectableList[index])
+            item.setFlag(QtGui.QGraphicsItem.ItemIsMovable, self.isMovableList[index])
+            item.setSelected(self.isSelectedList[index])
+        #Now clean out the Lists
+        self.isSelectableList = []
+        self.isMovableList = []
+        self.isSelectedList = []
+
 
     def clear(self, isReflectionLine = True, query = False):
         """Method to clear out the entire RigGraphicsView. 
@@ -406,9 +423,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def keyPressEvent(self, event):
         scene = self.scene()
         key = event.key()
+        # if key == QtCore.Qt.Key_Alt: print "Alt is registered as pressed"
+        # else:  print "Alt is NOT registered as pressed"  
+        # print "Key Firing"     
         if key == QtCore.Qt.Key_Alt:
             self.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
-            self.panSelectableItems()
+            self.panFreezeSelectableItems()
         elif key == 16777249: # This is the integer representing Left Ctrl - must be a better way of doing this!
             self.isCtrlPressed = True
         elif key == QtCore.Qt.Key_Plus:
@@ -426,8 +446,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 elif type(item) == SuperNode and item.isSelected():
                     self.deleteSuperNodeGroup(item)
             self.processMarkerActiveIndex()
-        else:
-            QtGui.QGraphicsView.keyPressEvent(self, event)
+        QtGui.QGraphicsView.keyPressEvent(self, event)
 
 
     def deleteWireGroup(self,item):
@@ -458,12 +477,13 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def keyReleaseEvent(self, event):
         key = event.key()
         scene = self.scene()
+        # print "key released"
         if key == QtCore.Qt.Key_Alt:
-            self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
-            for index, item in enumerate(scene.items()):
-                item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, self.isSelectableList[index])
-                item.setFlag(QtGui.QGraphicsItem.ItemIsMovable, self.isMovableList[index])
-                item.setSelected(self.isSelectedList[index])
+            try: #Sometimes the Releasing of Selectable Items can be tripped up by the window changing focus, so try and except.
+                (self.panReleaseSelectableItems())
+            except IndexError:
+                # print "Release Error cunning avoided"
+                pass
         elif key == 16777249: # This is the integer representing Left Ctrl - must be a better way of doing this!
             self.isCtrlPressed = False
         QtGui.QGraphicsView.keyReleaseEvent(self, event)
@@ -915,3 +935,14 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.mainWindow.skinTableWidget.setSuperNode(superNode)
         self.mainWindow.skinTableWidget.populate()
 
+
+    def focusOutEvent (self, event):
+        if len(self.isSelectedList) !=0:
+            self.panReleaseSelectableItems()
+            # print "Stuff is stored so release it!"
+        # print "GV losing focus"
+        return QtGui.QGraphicsView.focusOutEvent(self, event)
+
+    def focusInEvent (self, event):
+        # print "GV gaining focus"
+        return QtGui.QGraphicsView.focusInEvent(self, event)

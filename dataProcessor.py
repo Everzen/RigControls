@@ -223,10 +223,10 @@ class DataBundle(object):
 
 	def setY(self, y):
 		"""Function reaches down into the attributeConnectorY to set the Y value"""
-		self.attributeConnectorY.setValue(y)
+		self.attributeConnectorY.setValue(-y)
 		attValue = self.attributeConnectorY.getValue()
 		if self.attributeConnectorY.isSceneNodeActive(): #If active, then we have a valid scene Node and attribute wired into the Node
-			self.sceneAppData.setAttr(self.attributeConnectorY.getSceneNode(), self.attributeConnectorY.getSceneNodeAttr(), -attValue)
+			self.sceneAppData.setAttr(self.attributeConnectorY.getSceneNode(), self.attributeConnectorY.getSceneNodeAttr(), attValue)
 			# print "Moving y to : " + str(attValue)
 
 	def getMaxX(self):
@@ -287,6 +287,8 @@ class AttributeConnector(object):
 		self.flipOutput = flipOutput
 		self.maxValue = None
 		self.minValue = None 
+		self.minScale = 1.0 #attribute to scale the final Min output that goes to the scene Node - Use to change the output range to be other than -1 to 1
+		self.maxScale = 1.0 #attribute to scale the final Max output that goes to the scene Node
 		self.standardScale = 50.0
 		self.sceneNode = None
 		self.sceneNodeAttr = None
@@ -318,14 +320,14 @@ class AttributeConnector(object):
 		#Now calculate the proportion from -1 -> 0 -> 1 that we should be returning
 		if pValue > 0:
 			if self.maxValue:
-				self.value = round(float(pValue)/float(self.maxValue),3)
+				self.value = self.maxScale * round(float(pValue)/float(self.maxValue),3)
 			else: 
-				self.value = round(float(pValue)/self.standardScale,3)
+				self.value = self.maxScale * round(float(pValue)/self.standardScale,3)
 		else:
 			if self.minValue:
-				self.value = -round(float(pValue)/float(self.minValue),3)
+				self.value = self.minScale * -round(float(pValue)/float(self.minValue),3)
 			else: 
-				self.value = round(float(pValue)/self.standardScale,3)
+				self.value = self.minScale * round(float(pValue)/self.standardScale,3)
 
 	def getMaxValue(self):
 		return self.maxValue
@@ -338,6 +340,18 @@ class AttributeConnector(object):
 
 	def setMinValue(self, minValue):
 		self.minValue = float(minValue)
+
+	def getMinScale(self):
+		return self.minScale
+
+	def setMinScale(self, minScale):
+		self.minScale = minScale
+
+	def getMaxScale(self):
+		return self.maxScale
+
+	def setMaxScale(self, maxScale):
+		self.maxScale = maxScale
 
 	def getControllerAttrName(self):
 		"""Function to get name of the attribute that will be setup on the Scene Controller to represent the movement in that attribute of the Node"""

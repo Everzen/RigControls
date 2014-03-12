@@ -327,8 +327,8 @@ class SceneLinkTabW(QtGui.QTableWidget):
         self.headers.append("  Node ID  ")
         # self.headers.append("  Direction  ")
         self.headers.append("  Group  ")
-        self.headers.append("  Min OutPut  ")
-        self.headers.append("  Max OutPut  ")
+        self.headers.append("  Scale Minimum  ")
+        self.headers.append("  Scale Maximum  ")
         self.headers.append("  Flip OutPut  ")
         self.headers.append("  Scene Link Node  ")
         self.headers.append("  Scene Link Attribute  ")
@@ -372,14 +372,10 @@ class SceneLinkTabW(QtGui.QTableWidget):
                 # directionData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 groupData = QtGui.QTableWidgetItem(str(att.getHostName()))
                 groupData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                minOutPutData = QtGui.QTableWidgetItem("unlimited")
-                if att.getMinValue() != None: 
-                    minOutPutData = QtGui.QTableWidgetItem(str(att.getMinValue()))
-                minOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                maxOutPutData = QtGui.QTableWidgetItem("unlimited")
-                if att.getMaxValue() != None: 
-                    maxOutPutData = QtGui.QTableWidgetItem(str(att.getMaxValue()))
-                maxOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                minScaleData = QtGui.QTableWidgetItem(str(att.getMinScale()))
+                minScaleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
+                maxScaleData = QtGui.QTableWidgetItem(str(att.getMaxScale()))
+                maxScaleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
                 flipOutPutData = QtGui.QTableWidgetItem(str(att.isFlipped()))
                 flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)        
                 sceneNodeLinkData = QtGui.QTableWidgetItem(str(att.getSceneNode()))
@@ -396,8 +392,8 @@ class SceneLinkTabW(QtGui.QTableWidget):
                 self.setItem(index,0,nodeIdData)
                 # self.setItem(index,1,directionData)
                 self.setItem(index,1,groupData)
-                self.setItem(index,2,minOutPutData)
-                self.setItem(index,3,maxOutPutData)
+                self.setItem(index,2,minScaleData)
+                self.setItem(index,3,maxScaleData)
                 self.setItem(index,4,flipOutPutData)
                 self.setItem(index,5,sceneNodeLinkData)
                 self.setItem(index,6,nodeAttrLinkData)
@@ -411,10 +407,11 @@ class SceneLinkTabW(QtGui.QTableWidget):
 
     def checkDigit(self, newValue):
         """Function to check that we are putting in valid numbers for our outputs in the SceneLinkTabW"""
-        if newValue.isdigit(): 
-            return newValue
-        else:
-            return "None"
+        try:
+            float(newValue)
+            return True
+        except ValueError:
+            return False
 
     def mousePressEvent(self, mouseEvent):
         # print "Node"
@@ -567,25 +564,33 @@ class SceneLinkTabW(QtGui.QTableWidget):
 
     def updateSceneLinkOutputData(self, item):
         """Function to see which tableWidgetItem has been changed and take the appropriate action to update the correct attribute Connector"""
+        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        currAttConnector = attConnectors[item.row()]
+        isNumber = self.checkDigit(item.text())
+        newValue = 1 #Arbitart initialisation
+        if isNumber: newValue = float(item.text())
         if item.column() == 8:
-            newValue = self.checkDigit(item.text())
-            if newValue != "None": 
-                item.setText(self.checkDigit(item.text()))
+            if isNumber: 
+                item.setText(newValue)
             else: 
-                item.setText(self.checkDigit("0"))
+                item.setText("0")
         elif item.column() == 9:
             newValue = self.checkDigit(item.text())
             if newValue != "None": 
                 item.setText(self.checkDigit(item.text()))
             else: 
                 item.setText(self.checkDigit("180"))
-
-
-
-
-
-
-
+        elif item.column() == 2:
+            if  isNumber: 
+                currAttConnector.setMinScale(newValue)  
+            else: 
+                currAttConnector.setMinScale(1.0)            
+        elif item.column() == 3:
+            if  isNumber: 
+                currAttConnector.setMaxScale(newValue)    
+            else: 
+                currAttConnector.setMaxScale(1.0) 
+        self.populate() #The AttributeConnectors have been updated throughout, but no text change. Calling Populate, will then update the entire Table so text is correct.
 
 
 class ControlScale():

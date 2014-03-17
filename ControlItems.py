@@ -1163,6 +1163,12 @@ class Node(QtGui.QGraphicsItem):
         if self.getBezierHandles(1) != None: xml.SubElement(attributes, 'attribute', name = 'bezierHandle1', value = (str(self.getBezierHandles(1)[0]) + "," + str(self.getBezierHandles(1)[1])))
         else: xml.SubElement(attributes, 'attribute', name = 'bezierHandle1', value = ("None"))
 
+        # Now record the xml for the DataBundle if there is one
+        dataBundlesXml = xml.SubElement(nodeRoot,'DataBundles')
+        if self.dataBundle:
+            dataBundleXml = self.dataBundle.store()
+            dataBundlesXml.append(dataBundleXml)
+
         return nodeRoot
 
     def read(self, nodeXml):
@@ -1193,6 +1199,11 @@ class Node(QtGui.QGraphicsItem):
             elif a.attrib['name'] == 'colour':
                 newColour = a.attrib['value'].split(",")
                 self.setColour(QtGui.QColor(float(newColour[0]), float(newColour[1]),float(newColour[2])))                
+
+        #Now we have to load in the dataBundle information. The dataBundle will have been created when the Node was created, so just read in the data
+        dataBundleXml = nodeXml.findall('DataBundle')[0]
+        self.dataBundle.read(dataBundleXml)       
+
 
     def setIndex(self,value):
         self.index = value
@@ -1316,7 +1327,9 @@ class Node(QtGui.QGraphicsItem):
         return self.dataBundle
 
     def setDataBundle(self, bundle):
+        """Function to set dataBundle to the Node, but also the pass the node down into the DataBundle, and the associated AttributeConnectors"""
         self.dataBundle = bundle
+        self.dataBundle.setNode(self)
 
     def resetWireGroup(self):
         if self.group:

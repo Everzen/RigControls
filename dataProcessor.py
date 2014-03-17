@@ -3,6 +3,8 @@
 ##			      and return their positions as useful float data that can be wired into 
 ##				  Maya scene Control Nodes (Control Curver or Locator) to drive rig movement.
 import copy
+import xml.etree.ElementTree as xml
+
 # from mayaData import MayaData as SceneData #Importing Maya Data information. This module can be changed if decelopment occurs for other 3D applications
 
 
@@ -171,52 +173,51 @@ class DataBundle(object):
 		self.attributeConnectors = [self.attributeConnectorX, self.attributeConnectorY]
 		self.sceneAppData = sceneAppData
 
-    def store(self,wireName):
-        """Function to write out a block of XML that records all the major attributes that will be needed for save/load
+	def store(self):
+		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load
 
-        Need to record key data, but some data will be supplied by position in the total save XML tree. For example self.node can be set when attribute Connector
-        loaded into the appropriate Node. 
-        """
-        dataBundleRoot = xml.Element('DataBundle')
-        attributes = xml.SubElement(dataBundleRoot,'attributes')
-        xml.SubElement(attributes, 'attribute', name = 'controllerAttrName', value = str(self.getControllerAttrName()))
-        xml.SubElement(attributes, 'attribute', name = 'hostName', value = str(self.getHostName()))
-        
-        #Now we need to store the AttributeConnectors associated with the DataBundle
-        attributeConnectorXXml = xml.SubElement(dataBundleRoot,'attributeConnectorX')
-        attrConnectXXml = self.attributeConnectorX.store()
-        attributeConnectorXXml.append(attrConnectXXml) 
+		Need to record key data, but some data will be supplied by position in the total save XML tree. For example self.node can be set when attribute Connector
+		loaded into the appropriate Node. 
+		"""
+		dataBundleRoot = xml.Element('DataBundle')
+		attributes = xml.SubElement(dataBundleRoot,'attributes')
+		xml.SubElement(attributes, 'attribute', name = 'controllerAttrName', value = str(self.getControllerAttrName()))
+		xml.SubElement(attributes, 'attribute', name = 'hostName', value = str(self.getHostName()))
 
-        attributeConnectorYXml = xml.SubElement(dataBundleRoot,'attributeConnectorY')
-        attrConnectYXml = self.attributeConnectorY.store()
-        attributeConnectorYXml.append(attrConnectYXml)
-        
-        return dataBundleRoot
+		#Now we need to store the AttributeConnectors associated with the DataBundle
+		attributeConnectorXXml = xml.SubElement(dataBundleRoot,'attributeConnectorX')
+		attrConnectXXml = self.attributeConnectorX.store()
+		attributeConnectorXXml.append(attrConnectXXml) 
 
-    def read(self, dataBundleXml):
-        """A function to read in a block of XML and set all major attributes accordingly
+		attributeConnectorYXml = xml.SubElement(dataBundleRoot,'attributeConnectorY')
+		attrConnectYXml = self.attributeConnectorY.store()
+		attributeConnectorYXml.append(attrConnectYXml)
 
-        node is not supplied here, but it should be set for the DataBundle in the node.read() and should also be passed down to the appropirate AttributeConnectors 
-        """
-        for a in dataBundleXml.findall( 'attributes/attribute'):
-        	if a.attrib['name'] == 'controllerAttrName': self.setControllerAttrName(str(a.attrib['value']))
-        	elif a.attrib['name'] == 'hostName': self.setHostName(str(a.attrib['value']))
+		return dataBundleRoot
 
-        #Implement the reading and attachment of the attritbute connectors
-        attributeConnectorXXml = dataBundleXml.findall('attributeConnectorX')
-        attConX = None
-        for atConXXML in attributeConnectorXXml[0]:
-        	attConX = AttributeServoConnector() #Create new X attributeConnector 
-        	attConX.read(atConXXML) #read in the data
-        	self.setAttributeConnectorX(attConX)
+	def read(self, dataBundleXml):
+		"""A function to read in a block of XML and set all major attributes accordingly
 
-        attributeConnectorYXml = dataBundleXml.findall('attributeConnectorY')
-        attConY = None
-        for atConYXml in attributeConnectorYXml[0]:
-        	attConY = AttributeServoConnector() #Create new X attributeConnector 
-        	attConY.read(atConYXml) #read in the data
-        	self.setAttributeConnectorY(attConY)
+		node is not supplied here, but it should be set for the DataBundle in the node.read() and should also be passed down to the appropirate AttributeConnectors 
+		"""
+		for a in dataBundleXml.findall( 'attributes/attribute'):
+			if a.attrib['name'] == 'controllerAttrName': self.setControllerAttrName(str(a.attrib['value']))
+			elif a.attrib['name'] == 'hostName': self.setHostName(str(a.attrib['value']))
 
+		#Implement the reading and attachment of the attritbute connectors
+		attributeConnectorXXml = dataBundleXml.findall('attributeConnectorX')
+		attConX = None
+		for atConXXML in attributeConnectorXXml[0]:
+			attConX = AttributeServoConnector() #Create new X attributeConnector 
+			attConX.read(atConXXML) #read in the data
+			self.setAttributeConnectorX(attConX)
+
+		attributeConnectorYXml = dataBundleXml.findall('attributeConnectorY')
+		attConY = None
+		for atConYXml in attributeConnectorYXml[0]:
+			attConY = AttributeServoConnector() #Create new X attributeConnector 
+			attConY.read(atConYXml) #read in the data
+			self.setAttributeConnectorY(attConY)
 
 	def getSceneControl(self):
 		return self.sceneControl
@@ -353,53 +354,50 @@ class AttributeConnector(object):
 		self.sceneNodeAttr = None #string
 		self.sceneNodeActive = False #Activates when a valid Scene Node and Attribute are found
 
-    def store(self):
-        """Function to write out a block of XML that records all the major attributes that will be needed for save/load
+	def store(self):
+		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load
 
-        Need to record key data, but some data will be supplied by position in the total save XML tree. For example self.node can be set when attribute Connector
-        loaded into the appropriate Node. 
-        """
-        attributeConnectorRoot = xml.Element('AttributeConnector')
-        attributes = xml.SubElement(attributeConnectorRoot,'attributes')
-        xml.SubElement(attributes, 'attribute', name = 'nodeIndex', value = str(self.getNodeIndex()))
-        xml.SubElement(attributes, 'attribute', name = 'controllerAttrName', value = str(self.getControllerAttrName()))
-        xml.SubElement(attributes, 'attribute', name = 'hostName', value = str(self.getHostName()))
-        xml.SubElement(attributes, 'attribute', name = 'active', value = str(self.isActive()))
-        xml.SubElement(attributes, 'attribute', name = 'flipOutput', value = str(self.isFlipped()))
-        xml.SubElement(attributes, 'attribute', name = 'minValue', value = (str(self.getMinValue())))
-        xml.SubElement(attributes, 'attribute', name = 'maxValue', value = (str(self.getMaxValue())))
-        xml.SubElement(attributes, 'attribute', name = 'minScale', value = (str(self.getMinScale())))
-        xml.SubElement(attributes, 'attribute', name = 'maxScale', value = (str(self.getMaxScale())))        
-        xml.SubElement(attributes, 'attribute', name = 'sceneNode', value = str(self.getSceneNode()))
-        xml.SubElement(attributes, 'attribute', name = 'sceneNodeAttr', value = str(self.getSceneNodeAttr()))
-        xml.SubElement(attributes, 'attribute', name = 'sceneNodeActive', value = str(self.isSceneNodeActive()))
-        xml.SubElement(attributes, 'attribute', name = 'value', value = str(self.getValue()))
+		Need to record key data, but some data will be supplied by position in the total save XML tree. For example self.node can be set when attribute Connector
+		loaded into the appropriate Node. 
+		"""
+		attributeConnectorRoot = xml.Element('AttributeConnector')
+		attributes = xml.SubElement(attributeConnectorRoot,'attributes')
+		xml.SubElement(attributes, 'attribute', name = 'nodeIndex', value = str(self.getNodeIndex()))
+		xml.SubElement(attributes, 'attribute', name = 'controllerAttrName', value = str(self.getControllerAttrName()))
+		xml.SubElement(attributes, 'attribute', name = 'hostName', value = str(self.getHostName()))
+		xml.SubElement(attributes, 'attribute', name = 'active', value = str(self.isActive()))
+		xml.SubElement(attributes, 'attribute', name = 'flipOutput', value = str(self.isFlipped()))
+		xml.SubElement(attributes, 'attribute', name = 'minValue', value = (str(self.getMinValue())))
+		xml.SubElement(attributes, 'attribute', name = 'maxValue', value = (str(self.getMaxValue())))
+		xml.SubElement(attributes, 'attribute', name = 'minScale', value = (str(self.getMinScale())))
+		xml.SubElement(attributes, 'attribute', name = 'maxScale', value = (str(self.getMaxScale())))        
+		xml.SubElement(attributes, 'attribute', name = 'sceneNode', value = str(self.getSceneNode()))
+		xml.SubElement(attributes, 'attribute', name = 'sceneNodeAttr', value = str(self.getSceneNodeAttr()))
+		xml.SubElement(attributes, 'attribute', name = 'sceneNodeActive', value = str(self.isSceneNodeActive()))
+		xml.SubElement(attributes, 'attribute', name = 'value', value = str(self.getValue()))
 
-        return attributeConnectorRoot
+		return attributeConnectorRoot
 
-    def read(self, attributeConnectorXml):
-        """A function to read in a block of XML and set all major attributes accordingly
-        
-        For this read, should we be setting things like self.node, and self.sceneController, or should we do that as an
-        additional methods call after read?
-        """
-        for a in attributeConnectorXml.findall( 'attributes/attribute'):
-            if a.attrib['name'] == 'nodeIndex': self.setNodeIndex(int(a.attrib['value']))
-            elif a.attrib['name'] == 'controllerAttrName': self.setControllerAttrName(str(a.attrib['value']))
-            elif a.attrib['name'] == 'hostName': self.setHostName(str(a.attrib['value']))
-            elif a.attrib['name'] == 'active': self.setActive(str(a.attrib['value']) == 'True')
-            elif a.attrib['name'] == 'flipOutput': self.setFlipped(str(a.attrib['value']) == 'True')
-            elif a.attrib['name'] == 'minValue': self.setMinValue(float(a.attrib['value']))
-            elif a.attrib['name'] == 'maxValue': self.setMaxValue(float(a.attrib['value']))
-            elif a.attrib['name'] == 'minScale': self.setMinScale(float(a.attrib['value']))
-            elif a.attrib['name'] == 'maxScale': self.setMaxScale(float(a.attrib['value']))
-            elif a.attrib['name'] == 'sceneNode': self.setSceneNode(str(a.attrib['value']))
-            elif a.attrib['name'] == 'sceneNodeAttr': self.setSceneNodeAttr(str(a.attrib['value']))
-            elif a.attrib['name'] == 'sceneNodeActive': self.setSceneNodeActive(str(a.attrib['value']) == 'True')
-            elif a.attrib['name'] == 'value': self.setValue(float(a.attrib['value']))               
+	def read(self, attributeConnectorXml):
+		"""A function to read in a block of XML and set all major attributes accordingly
 
-
-
+		For this read, should we be setting things like self.node, and self.sceneController, or should we do that as an
+		additional methods call after read?
+		"""
+		for a in attributeConnectorXml.findall( 'attributes/attribute'):
+			if a.attrib['name'] == 'nodeIndex': self.setNodeIndex(int(a.attrib['value']))
+			elif a.attrib['name'] == 'controllerAttrName': self.setControllerAttrName(str(a.attrib['value']))
+			elif a.attrib['name'] == 'hostName': self.setHostName(str(a.attrib['value']))
+			elif a.attrib['name'] == 'active': self.setActive(str(a.attrib['value']) == 'True')
+			elif a.attrib['name'] == 'flipOutput': self.setFlipped(str(a.attrib['value']) == 'True')
+			elif a.attrib['name'] == 'minValue': self.setMinValue(float(a.attrib['value']))
+			elif a.attrib['name'] == 'maxValue': self.setMaxValue(float(a.attrib['value']))
+			elif a.attrib['name'] == 'minScale': self.setMinScale(float(a.attrib['value']))
+			elif a.attrib['name'] == 'maxScale': self.setMaxScale(float(a.attrib['value']))
+			elif a.attrib['name'] == 'sceneNode': self.setSceneNode(str(a.attrib['value']))
+			elif a.attrib['name'] == 'sceneNodeAttr': self.setSceneNodeAttr(str(a.attrib['value']))
+			elif a.attrib['name'] == 'sceneNodeActive': self.setSceneNodeActive(str(a.attrib['value']) == 'True')
+			elif a.attrib['name'] == 'value': self.setValue(float(a.attrib['value']))               
 
 	def getSceneControl(self):
 		return self.sceneControl

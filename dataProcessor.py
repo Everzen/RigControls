@@ -201,11 +201,13 @@ class DataBundle(object):
 		node is not supplied here, but it should be set for the DataBundle in the node.read() and should also be passed down to the appropirate AttributeConnectors 
 		"""
 		for a in dataBundleXml.findall( 'attributes/attribute'):
+			print "We found a : " + str(a)
 			if a.attrib['name'] == 'controllerAttrName': self.setControllerAttrName(str(a.attrib['value']))
 			elif a.attrib['name'] == 'hostName': self.setHostName(str(a.attrib['value']))
 
 		#Implement the reading and attachment of the attritbute connectors
 		attributeConnectorXXml = dataBundleXml.findall('attributeConnectorX')
+		print "AttX Data " + str(dataBundleXml)
 		attConX = None
 		for atConXXML in attributeConnectorXXml[0]:
 			attConX = AttributeServoConnector() #Create new X attributeConnector 

@@ -213,7 +213,7 @@ class WireGroup(object):
         nodes = wireXml.findall('Nodes')
         for n in nodes[0].findall('Node'):
             if n.attrib['state'] == 'native': # We have a normal Native Pin so Build it
-                newNode = Node(QPVec([0,0])) # Create new Node with Arbitray pos
+                newNode = Node(QPVec([0,0]), self.dataProcessor) # Create new Node with Arbitray pos
                 self.nodes.append(newNode)
                 newNode.read(n)
                 newNode.setPin(self.findPin(newNode.getPinIndex())) # Set the pin for Node
@@ -1201,7 +1201,7 @@ class Node(QtGui.QGraphicsItem):
                 self.setColour(QtGui.QColor(float(newColour[0]), float(newColour[1]),float(newColour[2])))                
 
         #Now we have to load in the dataBundle information. The dataBundle will have been created when the Node was created, so just read in the data
-        dataBundleXml = nodeXml.findall('DataBundle')[0]
+        dataBundleXml = nodeXml.findall('DataBundles/DataBundle')[0]
         self.dataBundle.read(dataBundleXml)       
 
 

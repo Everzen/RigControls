@@ -384,7 +384,7 @@ class RigFaceSetup(QtGui.QMainWindow):
 
     def openFaceRig(self):
         """Function to load in a stored XML file of face Rig Data"""
-        xMLStructure = FaceGVCapture(self.view, self.messageLogger)
+        xMLStructure = FaceGVCapture(self.view, self.messageLogger, self.dataProcessor)
         faceFileName = QtGui.QFileDialog.getOpenFileName(self, 'Open Happy Face File', 'faceFiles', filter = "Face XML files (*.xml)")[0]
         if faceFileName != "": # A Valid File has been selected from the File Diaglogue
             self.faceSaveFile = faceFileName

@@ -21,9 +21,10 @@ class FaceGVCapture():
     This data is then saved to a specified XML file and can be loaded back in to rebuild the 
     graphics view by using the "read()" method
     """
-    def __init__(self, faceGView, messageLogger):
+    def __init__(self, faceGView, messageLogger, dataProcessor):
         """Class to capture all of the information out of the Graphics View"""
         self.view = faceGView
+        self.dataProcessor = dataProcessor
         self.scene = self.view.scene()
         self.viewXML = None
         self.xMLFile = None
@@ -155,7 +156,7 @@ class FaceGVCapture():
         scene = self.view.scene()
         wireGroups = self.viewXML.findBranch("WireGroup")
         for w in wireGroups:
-            newWireGroup = WireGroup(self.view)
+            newWireGroup = WireGroup(self.view, self.dataProcessor)
             newWireGroup.read(w)
             self.view.wireGroups.append(newWireGroup)
         # Now we have built all the nodes and pins we need to resolve references within the rigGView and build the curves

@@ -393,7 +393,7 @@ class RigFaceSetup(QtGui.QMainWindow):
 
     def saveFaceRig(self):
         """Function to save the entire Rig Graphics View scene out to an XML File"""
-        xMLStructure = FaceGVCapture(self.view, self.messageLogger)
+        xMLStructure = FaceGVCapture(self.view, self.messageLogger, self.dataProcessor)
         isValidSaveFile = False
         if self.faceSaveFile: # Check a Face File has been set and exists
             if os.path.isfile(self.faceSaveFile): isValidSaveFile = True
@@ -409,7 +409,7 @@ class RigFaceSetup(QtGui.QMainWindow):
 
     def saveFaceAsRig(self):
         """Function to save the entire Rig Graphics View scene out to an XML File"""
-        xMLStructure = FaceGVCapture(self.view, self.messageLogger)
+        xMLStructure = FaceGVCapture(self.view, self.messageLogger, self.dataProcessor)
         faceFileName = QtGui.QFileDialog.getSaveFileName(self, 'Save Happy Face File As...', 'faceFiles', filter = "Face XML files (*.xml)")[0]
         if faceFileName != "": 
             self.faceSaveFile = faceFileName

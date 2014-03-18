@@ -18,3 +18,11 @@ def npVec(vec):
 def QPVec(npVec):
     """Converts an np array into a QPointF"""
     return QtCore.QPointF(npVec[0], npVec[1])
+
+def readAttribute(attribute):
+	"""Function to read an attribute as a string and return a float or None as appropriate"""
+	try:
+		float(attribute)
+		return float(attribute)
+	except ValueError:
+		return None

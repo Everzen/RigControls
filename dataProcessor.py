@@ -5,6 +5,7 @@
 import copy
 import xml.etree.ElementTree as xml
 
+from Utilities import readAttribute
 # from mayaData import MayaData as SceneData #Importing Maya Data information. This module can be changed if decelopment occurs for other 3D applications
 
 
@@ -201,13 +202,11 @@ class DataBundle(object):
 		node is not supplied here, but it should be set for the DataBundle in the node.read() and should also be passed down to the appropirate AttributeConnectors 
 		"""
 		for a in dataBundleXml.findall( 'attributes/attribute'):
-			print "We found a : " + str(a)
 			if a.attrib['name'] == 'controllerAttrName': self.setControllerAttrName(str(a.attrib['value']))
 			elif a.attrib['name'] == 'hostName': self.setHostName(str(a.attrib['value']))
 
 		#Implement the reading and attachment of the attritbute connectors
 		attributeConnectorXXml = dataBundleXml.findall('attributeConnectorX')
-		print "AttX Data " + str(dataBundleXml)
 		attConX = None
 		for atConXXML in attributeConnectorXXml[0]:
 			attConX = AttributeServoConnector() #Create new X attributeConnector 
@@ -234,12 +233,14 @@ class DataBundle(object):
 
 	def setAttributeConnectorX(self, attributeConnectorX):
 		self.attributeConnectorX = attributeConnectorX
+		self.attributeConnectors[0] = self.attributeConnectorX
 
 	def getAttributeConnectorY(self):
 		return self.attributeConnectorY
 
 	def setAttributeConnectorY(self, attributeConnectorY):
 		self.attributeConnectorY = attributeConnectorY
+		self.attributeConnectors[1] = self.attributeConnectorY
 
 	def getAttributeConnectors(self):
 		return self.attributeConnectors
@@ -392,14 +393,16 @@ class AttributeConnector(object):
 			elif a.attrib['name'] == 'hostName': self.setHostName(str(a.attrib['value']))
 			elif a.attrib['name'] == 'active': self.setActive(str(a.attrib['value']) == 'True')
 			elif a.attrib['name'] == 'flipOutput': self.setFlipped(str(a.attrib['value']) == 'True')
-			elif a.attrib['name'] == 'minValue': self.setMinValue(float(a.attrib['value']))
-			elif a.attrib['name'] == 'maxValue': self.setMaxValue(float(a.attrib['value']))
-			elif a.attrib['name'] == 'minScale': self.setMinScale(float(a.attrib['value']))
-			elif a.attrib['name'] == 'maxScale': self.setMaxScale(float(a.attrib['value']))
+			elif a.attrib['name'] == 'minValue': self.setMinValue(readAttribute(a.attrib['value']))
+			elif a.attrib['name'] == 'maxValue': self.setMaxValue(readAttribute(a.attrib['value']))
+			elif a.attrib['name'] == 'minScale': self.setMinScale(readAttribute(a.attrib['value']))
+			elif a.attrib['name'] == 'maxScale': self.setMaxScale(readAttribute(a.attrib['value']))
 			elif a.attrib['name'] == 'sceneNode': self.setSceneNode(str(a.attrib['value']))
 			elif a.attrib['name'] == 'sceneNodeAttr': self.setSceneNodeAttr(str(a.attrib['value']))
 			elif a.attrib['name'] == 'sceneNodeActive': self.setSceneNodeActive(str(a.attrib['value']) == 'True')
-			elif a.attrib['name'] == 'value': self.setValue(float(a.attrib['value']))               
+			elif a.attrib['name'] == 'value': self.setValue(readAttribute(a.attrib['value']))
+		print "wscene Node : " + str(self.getSceneNode())
+		print "scene Attr : " + str(self.getSceneNodeAttr())            
 
 	def getSceneControl(self):
 		return self.sceneControl
@@ -443,22 +446,22 @@ class AttributeConnector(object):
 		return self.minValue
 
 	def setMaxValue(self, maxValue):
-		self.maxValue = float(maxValue)
+		if maxValue: self.maxValue = float(maxValue)
 
 	def setMinValue(self, minValue):
-		self.minValue = float(minValue)
+		if minValue: self.minValue = float(minValue)
 
 	def getMinScale(self):
 		return self.minScale
 
 	def setMinScale(self, minScale):
-		self.minScale = minScale
+		if minScale: self.minScale = minScale
 
 	def getMaxScale(self):
 		return self.maxScale
 
 	def setMaxScale(self, maxScale):
-		self.maxScale = maxScale
+		if maxScale: self.maxScale = maxScale
 
 	def getControllerAttrName(self):
 		"""Function to get name of the attribute that will be setup on the Scene Controller to represent the movement in that attribute of the Node"""

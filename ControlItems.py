@@ -220,7 +220,7 @@ class WireGroup(object):
                 self.findPin(newNode.getPinIndex()).setNode(newNode) # Set the Node for the Pin
                 # newNode.setWireGroup(self)
                 newNode.setGroup(self)
-                node.setDataBundleInfo() #This methods sets up details such as the attribute name within the Node DataBundle, which is determined by the WireGroup Name and Index
+                newNode.setDataBundleInfo() #This methods sets up details such as the attribute name within the Node DataBundle, which is determined by the WireGroup Name and Index
                 if newNode.getPin().getConstraintItem(): # We have a constraint Item so make sure we set the node for it
                     newNode.getPin().getConstraintItem().setNode(newNode)
             
@@ -519,7 +519,7 @@ class SuperNodeGroup(object):
         self.scene.addItem(newPin)
 
         sNodeXml = superNodeGroupXml.findall('SuperNode')[0]
-        newSNode = SuperNode(QtCore.QPointF(0,0)) # Create new SuperNode with Arbitrary pos
+        newSNode = SuperNode(QtCore.QPointF(0,0), self.dataProcessor) # Create new SuperNode with Arbitrary pos
         newSNode.setForm(self.form)
         self.scene.addItem(newSNode)
         # We need to add the SuperNode to the Scene before we read it, so that it has
@@ -543,7 +543,7 @@ class SuperNodeGroup(object):
         self.pinTie = pT
         self.scene.addItem(pT)
 
-        if self.superNode.getPin().getConstraintItem(): # If We have a constraint Item so make sure we set the node for it
+        if self.superNode.getPin().getConstraintItem(): # If We have a constraint Item make sure we set the node for it
             self.superNode.getPin().getConstraintItem().setNode(self.superNode)
 
     def getName(self):
@@ -720,8 +720,8 @@ class ControlPin(QtGui.QGraphicsItem):
             
             if cItem:
                 cItem.setPin(self)
-                cItem.read(cItemXml)
                 self.setConstraintItem(cItem)
+                cItem.read(cItemXml)
 
     def setIndex(self,value):
         self.index = value
@@ -764,8 +764,10 @@ class ControlPin(QtGui.QGraphicsItem):
         return self.constraintItem
 
     def setConstraintItem(self, item):
+        """Function to set the Constraint Item, and make sure that the constraintItem recognises the pin and the node"""
         if type(item) == ConstraintLine or type(item) == ConstraintRect or type(item) == ConstraintEllipse:
             self.constraintItem = item
+            if self.node: item.setNode(self.getNode())
             self.constraintItem.calibrateDataBundle() #This will line up the dataBundle output with the limits of the constraintItem
 
     def isActive(self):
@@ -1536,7 +1538,14 @@ class SuperNode(Node):
         skinPinsXml = xml.SubElement(superNodeRoot,'SkinningPinInfos')
         for skinPin in self.skinnedPins:
             skinPinXml = skinPin.store()
-            skinPinsXml.append(skinPinXml)        
+            skinPinsXml.append(skinPinXml)
+
+        # Now record the xml for the DataBundle if there is one
+        dataBundlesXml = xml.SubElement(superNodeRoot,'DataBundles')
+        if self.dataBundle:
+            dataBundleXml = self.dataBundle.store()
+            dataBundlesXml.append(dataBundleXml)
+
         return superNodeRoot
 
     def read(self, superNodeXml):
@@ -1591,6 +1600,10 @@ class SuperNode(Node):
             if newSkinInfo.getPin() == None:
                 print "WARNING: SkinningInfo has failed to fine correct Pin"
             self.skinnedPins.append(newSkinInfo)
+
+        #Now we have to load in the dataBundle information. The dataBundle will have been created when the Node was created, so just read in the data
+        dataBundleXml = superNodeXml.findall('DataBundles/DataBundle')[0]
+        self.dataBundle.read(dataBundleXml) 
 
     def getName(self):
         return self.name
@@ -2233,12 +2246,13 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.opX.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
 
     def calibrateDataBundle(self):
-        if self.node.dataBundle:
-            dBundle = self.node.dataBundle
-            dBundle.setMaxX(self.width)
-            dBundle.setMinX(-self.width)
-            dBundle.setMaxY(self.height)
-            dBundle.setMinY(-self.height)
+        if self.node:
+            if self.node.dataBundle:
+                dBundle = self.node.dataBundle
+                dBundle.setMaxX(self.width)
+                dBundle.setMinX(-self.width)
+                dBundle.setMaxY(self.height)
+                dBundle.setMinY(-self.height)
 
     def boundingRect(self):
         adjust = 2

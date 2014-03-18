@@ -176,6 +176,6 @@ class FaceGVCapture():
         scene = self.view.scene()
         superNodeGroups = self.viewXML.findBranch("SuperNodeGroup")
         for s in superNodeGroups:
-            newSuperNodeGroup = SuperNodeGroup(QtCore.QPointF(0,0), "Arrow_4Point", self.view) # Create SuperGroup with Arbitrary starting values
+            newSuperNodeGroup = SuperNodeGroup(QtCore.QPointF(0,0), "Arrow_4Point", self.view, self.dataProcessor) # Create SuperGroup with Arbitrary starting values
             newSuperNodeGroup.read(s)
             self.view.superNodeGroups.append(newSuperNodeGroup)

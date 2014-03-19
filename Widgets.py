@@ -379,10 +379,8 @@ class SceneLinkTabW(QtGui.QTableWidget):
                 flipOutPutData = QtGui.QTableWidgetItem(str(att.isFlipped()))
                 flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)        
                 sceneNodeLinkData = QtGui.QTableWidgetItem(str(att.getSceneNode()))
-                print "what is my scene Node : " + str(att.getSceneNode())
                 sceneNodeLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 nodeAttrLinkData = QtGui.QTableWidgetItem(str(att.getSceneNodeAttr()))
-                print "what is my scene Attr : " + str(att.getSceneNodeAttr())
                 nodeAttrLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 servoChannelData = QtGui.QTableWidgetItem(str(att.getServoChannel()))
                 servoChannelData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
@@ -422,6 +420,7 @@ class SceneLinkTabW(QtGui.QTableWidget):
         if nodeItem.row() == -1:
             self.clearSelection()
         else:  
+            for att in attConnectors: print "MY Node for att is : " + str(att.getNode())
             for att in attConnectors: att.getNode().setHighlighted(False) #Turn off all highlighting when the mouse is clicked
             currAttConnector = attConnectors[nodeItem.row()]
             currAttConnector.getNode().setHighlighted(True) #Highlight just the relevant Node

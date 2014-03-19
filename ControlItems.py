@@ -220,6 +220,7 @@ class WireGroup(object):
                 self.findPin(newNode.getPinIndex()).setNode(newNode) # Set the Node for the Pin
                 # newNode.setWireGroup(self)
                 newNode.setGroup(self)
+                print "New node being set to DataBundle is : " + str(newNode)
                 newNode.setDataBundleInfo() #This methods sets up details such as the attribute name within the Node DataBundle, which is determined by the WireGroup Name and Index
                 if newNode.getPin().getConstraintItem(): # We have a constraint Item so make sure we set the node for it
                     newNode.getPin().getConstraintItem().setNode(newNode)
@@ -2519,12 +2520,13 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
 
 
     def calibrateDataBundle(self):
-        if self.node.dataBundle:
-            dBundle = self.node.dataBundle
-            dBundle.setMaxX(self.width)
-            dBundle.setMinX(-self.width)
-            dBundle.setMaxY(self.height)
-            dBundle.setMinY(-self.height)
+        if self.node:
+            if self.node.dataBundle:
+                dBundle = self.node.dataBundle
+                dBundle.setMaxX(self.width)
+                dBundle.setMinX(-self.width)
+                dBundle.setMaxY(self.height)
+                dBundle.setMinY(-self.height)
 
     def boundingRect(self):
         adjust = 2
@@ -2801,12 +2803,13 @@ class ConstraintLine(QtGui.QGraphicsItem):
         self.opXTail.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
 
     def calibrateDataBundle(self):
-        if self.node.dataBundle:
-            dBundle = self.node.dataBundle
-            dBundle.setMaxX(0)
-            dBundle.setMinX(0)
-            dBundle.setMaxY(self.tailLength)
-            dBundle.setMinY(-self.headLength)
+        if self.node:
+            if self.node.dataBundle:
+                dBundle = self.node.dataBundle
+                dBundle.setMaxX(0)
+                dBundle.setMinX(0)
+                dBundle.setMaxY(self.tailLength)
+                dBundle.setMinY(-self.headLength)
 
     def boundingRect(self):
         adjust = 2

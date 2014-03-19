@@ -42,6 +42,7 @@ class DataProcessor(object):
 		# for n in activeNodes : print str(n.getDataBundle().getHostName())
 		#Now use this list to define the relevant dataBundles
 		self.dataBundles = []
+		print "My newly collected active Nodes are " + str(len(activeNodes)) + " " + str(activeNodes)
 		for n in activeNodes: self.dataBundles.append(n.getDataBundle())
 		return activeNodes
 
@@ -56,6 +57,7 @@ class DataProcessor(object):
 					activeAttributeConnectors.append(att)
 		self.activeAttributeConnectors = list(set(activeAttributeConnectors)) #By converting to a set and the back to a list, we remove duplicates caused by merged Nodes
 		self.activeAttributeConnectors.sort(key=lambda att: att.getControllerAttrName()) #Sort the list by the controller attribute Names
+		print "My newly collected attCons are " + str(len(self.activeAttributeConnectors)) + " " + str(self.activeAttributeConnectors)
 		return self.activeAttributeConnectors
 
 	def getActiveAttributeConnectors(self):
@@ -400,9 +402,7 @@ class AttributeConnector(object):
 			elif a.attrib['name'] == 'sceneNode': self.setSceneNode(str(a.attrib['value']))
 			elif a.attrib['name'] == 'sceneNodeAttr': self.setSceneNodeAttr(str(a.attrib['value']))
 			elif a.attrib['name'] == 'sceneNodeActive': self.setSceneNodeActive(str(a.attrib['value']) == 'True')
-			elif a.attrib['name'] == 'value': self.setValue(readAttribute(a.attrib['value']))
-		print "wscene Node : " + str(self.getSceneNode())
-		print "scene Attr : " + str(self.getSceneNodeAttr())            
+			elif a.attrib['name'] == 'value': self.setValue(readAttribute(a.attrib['value']))         
 
 	def getSceneControl(self):
 		return self.sceneControl

@@ -446,7 +446,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 elif type(item) == SuperNode and item.isSelected():
                     self.deleteSuperNodeGroup(item)
             self.processMarkerActiveIndex()
-        QtGui.QGraphicsView.keyPressEvent(self, event)
+        return 0 #Not returning the key event stops the shortcut being propagated to the parent (Maya), tidy this up by returning appropriately for each condition
+        # return QtGui.QGraphicsView.keyPressEvent(self, event)
 
 
     def deleteWireGroup(self,item):

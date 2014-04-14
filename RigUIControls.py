@@ -443,8 +443,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     del item
                 elif type(item) == Node and item.isSelected(): #This Delete functionality could be done with polymorphism on a clear() method..
                     self.deleteWireGroup(item)
+                    self.mainWindow.nodeLinksTableWidget.populate() #Redraw the nodelink data Table, so that all the data cleared out
                 elif type(item) == SuperNode and item.isSelected():
                     self.deleteSuperNodeGroup(item)
+                    self.mainWindow.skinTableWidget.setSuperNode(None) ##Redraw the skin data Table, so that all the data is cleared out
+                    self.mainWindow.skinTableWidget.populate()
+                    self.mainWindow.nodeLinksTableWidget.populate() #Redraw the nodelink data Table, so that all the data cleared out
             self.processMarkerActiveIndex()
         return 0 #Not returning the key event stops the shortcut being propagated to the parent (Maya), tidy this up by returning appropriately for each condition
         # return QtGui.QGraphicsView.keyPressEvent(self, event)

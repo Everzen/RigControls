@@ -11,7 +11,7 @@ import Icons
 import os
 
 from RigStore import FaceGVCapture
-from Widgets import ControlScale, DragItemButton, SkinTabW, SceneLinkTabW
+from Widgets import ControlScale, DragItemButton, SkinTabW, SceneLinkServoTabW
 from dataProcessor import DataProcessor, DataServoProcessor, DataBundle, DataServoBundle
 
 import RigUIControls as rig
@@ -336,7 +336,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         layoutNodeLinks = QtGui.QVBoxLayout(tabNodeLinks)
         self.dataTabsWidget.addTab(tabNodeLinks, "Node and Servo Links")
         #Build the Skinning Table
-        self.nodeLinksTableWidget = SceneLinkTabW(self.styleData) #Replace this when the correct data table is actually written! 
+        self.nodeLinksTableWidget = SceneLinkServoTabW(self.styleData) #Replace this when the correct data table is actually written! 
         self.nodeLinksTableWidget.itemChanged.connect(self.updateSceneLinkOutputData) #Function called to see which Table item has been changed, and adjust the appropriate output
         self.nodeLinksTableWidget.setDataProcessor(self.dataProcessor)
         self.nodeLinksTableWidget.populate()

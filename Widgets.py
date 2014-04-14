@@ -310,7 +310,7 @@ class SkinTabW(QtGui.QTableWidget):
 
 
 
-class SceneLinkTabW(QtGui.QTableWidget):
+class SceneLinkServoTabW(QtGui.QTableWidget):
     """Class to subclass QTableWidget to give us control over how we handle
     the links from the Happy face nodes to the 3d scene Nodes
 
@@ -318,7 +318,7 @@ class SceneLinkTabW(QtGui.QTableWidget):
 
     """
     def __init__(self, styleData, parent = None):
-        super(SceneLinkTabW, self).__init__(parent)
+        super(SceneLinkServoTabW, self).__init__(parent)
         self.dataProcessor = None
         self.styleData = styleData
         self.setStyleSheet(self.styleData)
@@ -362,31 +362,47 @@ class SceneLinkTabW(QtGui.QTableWidget):
             print "ERROR: No data processor was found, so links cannot be forged to scene nodes"
             return 0
         else:
-            count = len(self.dataProcessor.collectActiveAttributeConnectors())
+            count = len(self.dataProcessor.collectActiveServoDataConnectors())
             self.setRowCount(count)
             self.blockSignals(True) #Disable updating while populating, to stop signals being emitted.
-            for index, att in enumerate(self.dataProcessor.collectActiveAttributeConnectors()):
-                nodeIdData = QtGui.QTableWidgetItem(str(att.getControllerAttrName()))
-                nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                # directionData = QtGui.QTableWidgetItem("x")
-                # directionData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                groupData = QtGui.QTableWidgetItem(str(att.getHostName()))
-                groupData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                minScaleData = QtGui.QTableWidgetItem(str(att.getMinScale()))
-                minScaleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
-                maxScaleData = QtGui.QTableWidgetItem(str(att.getMaxScale()))
-                maxScaleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
-                flipOutPutData = QtGui.QTableWidgetItem(str(att.isFlipped()))
-                flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)        
-                sceneNodeLinkData = QtGui.QTableWidgetItem(str(att.getSceneNode()))
-                sceneNodeLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                nodeAttrLinkData = QtGui.QTableWidgetItem(str(att.getSceneNodeAttr()))
-                nodeAttrLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                servoChannelData = QtGui.QTableWidgetItem(str(att.getServoChannel()))
+            for index, servoData in enumerate(self.dataProcessor.collectActiveServoDataConnectors()):
+                #Initialising everything as empty strings. If we are an additional Servo Channel, then we do not need to fill out any of the initial info!  
+                nodeIdData = QtGui.QTableWidgetItem("")
+                nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable)               
+                groupData = QtGui.QTableWidgetItem("")
+                groupData.setFlags(QtCore.Qt.ItemIsSelectable)
+                minScaleData = QtGui.QTableWidgetItem("")
+                minScaleData.setFlags(QtCore.Qt.ItemIsSelectable)
+                maxScaleData = QtGui.QTableWidgetItem("")
+                maxScaleData.setFlags(QtCore.Qt.ItemIsSelectable)
+                flipOutPutData = QtGui.QTableWidgetItem("")
+                flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable)        
+                sceneNodeLinkData = QtGui.QTableWidgetItem("")
+                sceneNodeLinkData.setFlags(QtCore.Qt.ItemIsSelectable)        
+                nodeAttrLinkData = QtGui.QTableWidgetItem("")
+                nodeAttrLinkData.setFlags(QtCore.Qt.ItemIsSelectable)        
+
+                if servoData.getID() == 0: #We have the first main servoDataChannel, so populate then entire row of information
+                    nodeIdData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getControllerAttrName()))
+                    nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled) 
+                    groupData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getHostName()))
+                    groupData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                    minScaleData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getMinScale()))
+                    minScaleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
+                    maxScaleData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getMaxScale()))
+                    maxScaleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
+                    flipOutPutData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().isFlipped()))
+                    flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)        
+                    sceneNodeLinkData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getSceneNode()))
+                    sceneNodeLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                    nodeAttrLinkData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getSceneNodeAttr()))
+                    nodeAttrLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+
+                servoChannelData = QtGui.QTableWidgetItem(str(servoData.getServoChannel()))
                 servoChannelData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                servoMinAngleData = QtGui.QTableWidgetItem(str(att.getServoMinAngle()))
+                servoMinAngleData = QtGui.QTableWidgetItem(str(servoData.getServoMinAngle()))
                 servoMinAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
-                servoMaxAngleData = QtGui.QTableWidgetItem(str(att.getServoMaxAngle()))
+                servoMaxAngleData = QtGui.QTableWidgetItem(str(servoData.getServoMaxAngle()))
                 servoMaxAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
 
                 self.setItem(index,0,nodeIdData)
@@ -414,15 +430,15 @@ class SceneLinkTabW(QtGui.QTableWidget):
             return False
 
     def mousePressEvent(self, mouseEvent):
-        # print "Node"
+        """Event to highlight the correct Node that is being interacted with in the graphics"""
         nodeItem = self.indexAt(mouseEvent.pos())
-        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        servoDataConnectors = self.dataProcessor.getActiveServoDataConnectors()
         if nodeItem.row() == -1:
             self.clearSelection()
         else:  
-            for att in attConnectors: print "MY Node for att is : " + str(att.getNode())
-            for att in attConnectors: att.getNode().setHighlighted(False) #Turn off all highlighting when the mouse is clicked
-            currAttConnector = attConnectors[nodeItem.row()]
+            # for sDC in servoDataConnectors: print "MY Node for att is : " + str(sDC.getAttributeServoConnector().getNode())
+            for sDC in servoDataConnectors: sDC.getAttributeServoConnector().getNode().setHighlighted(False) #Turn off all highlighting when the mouse is clicked
+            currAttConnector = servoDataConnectors[nodeItem.row()].getAttributeServoConnector()
             currAttConnector.getNode().setHighlighted(True) #Highlight just the relevant Node
                 # self.selectRow(mItem.row())
         return QtGui.QAbstractItemView.mousePressEvent(self, mouseEvent)
@@ -473,24 +489,39 @@ class SceneLinkTabW(QtGui.QTableWidget):
     def servoChannelContextMenu(self,event):
         """Function for Context menu to directly choose a servo channel"""
         menu = QtGui.QMenu()
-        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        servoDataConnectors = self.dataProcessor.getActiveServoDataConnectors()
         index = self.indexAt(event.pos())
         for i in xrange(0,25):
             menu.addAction(str(i))
         menu.addAction("None")
+        menu.addSeparator()
+        menu.addAction("Add Servo Channel")
+
+        #Now check if there are multiple servoDataChannels, by checking the ID of the servo. If there are, then we can give the option to remove it
+        currServoDataConnector = servoDataConnectors[self.itemFromIndex(index).row()]
+        if currServoDataConnector.getID() > 0: #We have an additional servoDataChannel, so give the option to remove it! 
+            menu.addAction("Remove Servo Channel")
 
         action = menu.exec_(event.globalPos())
         if action: #Check that the menu has been hit at all
             for i in xrange(0,25):
                 if action.text() == str(i): 
                     self.itemFromIndex(index).setText(str(i))
-                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
-                    currAttConnector.setServoChannel(i)
-                    self.dataProcessor.checkUniqueServoChannels(currAttConnector, i)
+                    currServoDataConnector = servoDataConnectors[self.itemFromIndex(index).row()]
+                    currServoDataConnector.setServoChannel(i)
+                    self.dataProcessor.checkUniqueServoChannels(currServoDataConnector, i)
 
             if action.text() == "None": 
                 self.itemFromIndex(index).setText("None")
-                attConnectors[self.itemFromIndex(index).row()].setServoChannel(None)
+                servoDataConnectors[self.itemFromIndex(index).row()].setServoChannel(None)
+            elif action.text() == "Add Servo Channel":
+                currServoDataConnector = servoDataConnectors[self.itemFromIndex(index).row()]
+                currAttConnector = currServoDataConnector.getAttributeServoConnector()
+                currAttConnector.addServoDataConnector()
+            elif action.text() =="Remove Servo Channel": #Find the attributeServoConnector, then remove the dataServoConnector of the appropriate ID
+                currID = currServoDataConnector.getID()
+                currServoDataConnector.getAttributeServoConnector().removeServoDataConnector(currID)
+
             self.dataProcessor.setupServoMinMaxAngles() #If an action then run through servo min and Max angles
             self.populate() #If an action was taken then repopulate the DataTable, because servoChannels may well have been adjusted
 

@@ -21,6 +21,7 @@ class DataProcessor(object):
 		self.sampleBundle = DataBundle(self.sceneAppData)
 		self.dataBundles = []
 		self.activeAttributeConnectors = []
+		self.activeServoDataConnectors = []
 		self.rigGraphicsView = None
 
 	def createSceneControl(self, name):
@@ -36,13 +37,15 @@ class DataProcessor(object):
 		superNodegroups = self.rigGraphicsView.getSuperNodeGroups()
 
 		activeNodes = []
-		for wG in wireGroups: activeNodes += wG.getNodes() #loop through the wiregroups adding the nodes to the activeNodes list
+		for wG in wireGroups: #loop through the wiregroups adding the nodes to the activeNodes list
+			for pin in wG.getPins():
+				if pin.isActive(): #If the pin is active then the node is visible and we need to add the node
+					activeNodes.append(pin.getNode())
 		for sG in superNodegroups: activeNodes.append(sG.getSuperNode()) #loop through all the superNodeGroups adding the nodes to the activeNodes list
-		# print "My active Node Count : " + str(len(activeNodes)) + " " + str(activeNodes)
-		# for n in activeNodes : print str(n.getDataBundle().getHostName())
+
 		#Now use this list to define the relevant dataBundles
 		self.dataBundles = []
-		print "My newly collected active Nodes are " + str(len(activeNodes)) + " " + str(activeNodes)
+		# print "My newly collected active Nodes are " + str(len(activeNodes)) + " " + str(activeNodes)
 		for n in activeNodes: self.dataBundles.append(n.getDataBundle())
 		return activeNodes
 
@@ -60,9 +63,22 @@ class DataProcessor(object):
 		print "My newly collected attCons are " + str(len(self.activeAttributeConnectors)) + " " + str(self.activeAttributeConnectors)
 		return self.activeAttributeConnectors
 
+	def collectActiveServoDataConnectors(self):
+		"""Function that simply takes all the activeAttributeConnectors and loops through them to find all the associated active ServoDataConnectors"""
+		self.activeServoDataConnectors = [] # clear out activeServoDataConnectors
+		self.collectActiveAttributeConnectors() #Make sure the ActiveAttributeConnectors are uptodate
+		for attCon in self.getActiveAttributeConnectors():
+			for servoDataCon in attCon.getServoDataConnectors():
+				self.activeServoDataConnectors.append(servoDataCon)
+		return self.activeServoDataConnectors
+
 	def getActiveAttributeConnectors(self):
 		"""Function to return the current list of attributeConnectors as processed by collectActiveAttributeConnectors"""
 		return self.activeAttributeConnectors
+
+	def getActiveServoDataConnectors(self):
+		"""Function to return the current list of ServoDataConnectors as processed by collectActiveServoDataConnectors"""
+		return self.activeServoDataConnectors
 
 	def getSceneControl(self):
 		return self.sceneControl
@@ -146,15 +162,15 @@ class DataServoProcessor(DataProcessor):
 		DataProcessor.__init__(self, sceneAppData) 
 		self.sampleBundle = DataServoBundle(sceneAppData) #Load in  the new DataServoBundle to access extra Servo functionality
 
-	def checkUniqueServoChannels(self, attributeConnector, channel):
-		"""A function to cycle through all the attributeConnectors and check that no other attributeConnector has the same servoChannel as the input attributeConnector"""
-		for att in self.activeAttributeConnectors:
-			if att != attributeConnector:
-				if att.getServoChannel() == channel: att.setServoChannel(None)
+	def checkUniqueServoChannels(self, dataServoConnector, channel):
+		"""A function to cycle through all the dataServoConnectors and check that no other dataServoConnector has the same servoChannel as the input dataServoConnector"""
+		for sDC in self.activeServoDataConnectors:
+			if sDC != dataServoConnector:
+				if sDC.getServoChannel() == channel: sDC.setServoChannel(None)
 
 	def setupServoMinMaxAngles(self):
 		"""Function to run through all active attributeConnectors and make sure their servo min and max angles are initiated correctly"""
-		for att in self.activeAttributeConnectors: att.setupServoMinMaxAngles()
+		for sDC in self.activeServoDataConnectors: sDC.setupServoMinMaxAngles()
 
 
 class DataBundle(object):
@@ -534,14 +550,65 @@ class AttributeConnector(object):
 
 class AttributeServoConnector(AttributeConnector):
 	"""This class inherits AttributeConnector, and bolts on to it some functionality for applying servo numbers and angle limits to those servos
+	Servos are bolted on by adding ServoDataConnector objects, each of which describe a relationship out to a different servo
 
 	"""
 	def __init__(self):
-		AttributeConnector.__init__(self) 
+		AttributeConnector.__init__(self)
+		self.servoDataConnectors = [ServoDataConnector(0,self)] #intialise the list of servoDataConnectors with a single connector with ID 0
+
+	def getServoDataConnectors(self):
+		return self.servoDataConnectors
+
+	def addServoDataConnector(self):
+		"""Function to add a new ServoDataConnector to the end of the ServoDataConnectors list. Adds the appropirate ID from the ServoDataConnectors list length"""
+		self.sortServoDataConnectors() #Sort all the current ServoDataConnectors
+		newID = len(self.servoDataConnectors)
+		newServoDataConnector = ServoDataConnector(newID,self)
+		self.servoDataConnectors.append(newServoDataConnector)
+
+	def removeServoDataConnector(self, ID):
+		"""Function to add a new ServoDataConnector to the end of the ServoDataConnectors list. Adds the appropirate ID from the ServoDataConnectors list length"""
+		IDServoConnector = None
+		servoNewList = []
+		# print "My remove ID is " + str(ID)
+		for sC in self.servoDataConnectors:
+			if sC.getID() != ID:
+				servoNewList.append(sC) #If it is not equally to the ID number then we add it to the new servoList
+		self.servoDataConnectors = servoNewList #This should remove the IDServoConnector from the main list
+		self.sortServoDataConnectors() #Now neatly sort the remaining IDs
+
+	def sortServoDataConnectors(self):
+		"""Function update the IDs of the ServoDataConnector to fall in line with their positions in the servoDataConnectors list"""
+		for index, connector in enumerate(self.servoDataConnectors):
+			connector.setID(index)
+
+
+
+class ServoDataConnector(object):
+	"""
+	Class to describe the basic connection between the AttributeServoConnector data and how that maps out from the position of the Node/SuperNode to the correct servoChannel and servo angle etc.
+	"""
+	def __init__(self, ID, attributeServoConnector):
+# 		#LIST OF ATTRIBUTES
+		self.ID = ID
+		self.attributeServoConnector = attributeServoConnector #Passing the paretn ServoDataConnector down, so it can be identified
 		self.servoChannel = None
 		self.servoMinAngle = None
 		self.servoMaxAngle = None
 		self.servoActive = None
+
+	def getID(self):
+		return self.ID
+
+	def setID(self, IDNum):
+		self.ID = IDNum
+
+	def getAttributeServoConnector(self):
+		return self.attributeServoConnector
+
+	def setAttributeServoConnector(self, attributeServoConnector):
+		self.attributeServoConnector = attributeServoConnector
 
 	def getServoChannel(self):
 		return self.servoChannel
@@ -554,7 +621,6 @@ class AttributeServoConnector(AttributeConnector):
 				self.servoChannel = None
 			else:
 				self.servoChannel = int(channel)
-
 
 	def getServoMinAngle(self):
 		return self.servoMinAngle
@@ -577,4 +643,3 @@ class AttributeServoConnector(AttributeConnector):
 		else: #ServoChannel has been initialised with an channel number
 			if self.servoMinAngle == None: self.servoMinAngle = 0
 			if self.servoMaxAngle == None: self.servoMaxAngle = 180
-

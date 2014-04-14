@@ -179,7 +179,11 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.reflectGuideMarkers = QtGui.QAction("Reflect Markers",self)
         self.reflectGuideMarkers.triggered.connect(self.view.reflectGuides)
         self.reflectGuideMarkers.setStatusTip('Reflect Guide Markers about the Reflection Line')
-        
+
+        self.reflectControlItems = QtGui.QAction("Reflect Control Items",self)
+        self.reflectControlItems.triggered.connect(self.view.reflectControlItems)
+        self.reflectControlItems.setStatusTip('Reflect Control Items about the Reflection Line')
+
         self.clearFace = QtGui.QAction("Clear All",self)
         self.clearFace.triggered.connect(lambda:  self.clearHappyFace())  
         self.clearFace.setStatusTip('Clears all Items from the Face Rig')
@@ -201,6 +205,7 @@ class RigFaceSetup(QtGui.QMainWindow):
 
         actionMenu = menubar.addMenu('&Action')
         actionMenu.addAction(self.reflectGuideMarkers)
+        actionMenu.addAction(self.reflectControlItems)
         actionMenu.addSeparator()
         actionMenu.addAction(self.clearFace)
 

@@ -208,13 +208,17 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # print "Back image is: " + str(self.backgroundImage)
 
     def reflectPos(self, pos):
-        """Function to find the reflected position of a guide"""
+        """Function to find the reflected position of an item"""
         refLine = self.reflectionLine.pos().x()
         return QtCore.QPointF(refLine - (pos.x() - refLine), pos.y())
 
+    def reflectRot(self,rot):
+        """Function to find the reflected position of am item"""
+        pass
+
     def reflectGuides(self):
-        scene = self.scene()
         """Function to find the list of selected Guide Markers and reflect them around the Reflection Line"""
+        scene = self.scene()
         for item in scene.items():
             if type(item) == GuideMarker and item.isSelected() == True: #Find our selected GuideMarkers
                 itemPos = item.pos() #Now build a marker at the reflected position
@@ -225,6 +229,54 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 newMarker.setPos(newGuidePos.x(),newGuidePos.y())
                 self.markerList.append(newMarker)
                 scene.addItem(newMarker)
+
+    def reflectControlItems(self):
+        """Function to find what control Items are selected and mirror copies over to the other side of the reflection line"""
+        scene = self.scene()
+        controlItems = []
+        for item in scene.items(): #collect all the wiregroups and SuperNodeGroups that are selected
+            if type(item) == Node or type(item) == SuperNode and item.isSelected() == True:
+                controlItems.append(item.getGroup())
+        controlItems = list(set(controlItems)) #Make the list unique
+        print "My Selected control Items are : " + str(len(controlItems)) + " " + str(controlItems)
+        for controlItem in controlItems:
+            if type(controlItem) == WireGroup:
+                print "Mirroring WireGroup"
+                self.reflectWireGroup(controlItem)
+
+
+    def reflectWireGroup(self,wireGroup):
+        """Function to reflect the given Wiregroup so that a new copy is mirrored to the other side of the reflectionLine"""
+        pinsRefPos = []
+        pinsRefScale = []
+        wireGroup.resetNodes() #Reset current wiregroup to rest positions
+        for p in wireGroup.getPins(): #grab all the reflected positions from the current Pins
+            pinsRefPos.append(self.reflectPos(p.pos()))
+            pinsRefScale.append(p.getNode().getScale()) #record the scale of that Node
+        # pinsRefPos.reverse() #reverse both list so the build mirror matchs
+        # pinsRefScale.reverse()
+
+        unique = True
+        wireName, ok = QtGui.QInputDialog.getText(self, 'Wire Group Name', 'Enter a unique mirror Wire Group Name:',QtGui.QLineEdit.Normal,str(wireGroup.getName()))
+        while not self.checkUniqueWireGroup(wireName):
+            wireName, ok = QtGui.QInputDialog.getText(
+                    self,
+                    'Wire Group Name',
+                    'The name was not unique. Please Enter a unique mirror Wire Group Name:',
+                    str(wireGroup.getName())
+                    )
+        if ok:
+            newWireGroup = WireGroup(self, self.dataProcessor)
+            newWireGroup.buildFromPositions(pinsRefPos)
+            newWireGroup.setName(str(wireName))
+            self.wireGroups.append(newWireGroup)
+            for index, node in enumerate(newWireGroup.getNodes()): #now cycle through and set the scale of the nodes
+                node.setScale(pinsRefScale[index])
+
+
+    def reflectSuperNodeGroup(self, superNodeGroup):
+        """Function to reflect the given SuperNodeGroup so that a new copy is mirrored to the other side of the reflectionLine"""
+        pass
 
     def processMarkerActiveIndex(self):
         itemPresent = False
@@ -286,7 +338,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             newWireGroup = WireGroup(self, self.dataProcessor)
             newWireGroup.buildFromPositions(posList)
             newWireGroup.setScale(self.markerScale)
-            print "wirename : " + str(wireName) + " This ran"
+            # print "wirename : " + str(wireName) + " This ran"
             newWireGroup.setName(str(wireName))
             self.wireGroups.append(newWireGroup)
             for m in self.markerActiveList:

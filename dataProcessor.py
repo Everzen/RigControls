@@ -60,7 +60,7 @@ class DataProcessor(object):
 					activeAttributeConnectors.append(att)
 		self.activeAttributeConnectors = list(set(activeAttributeConnectors)) #By converting to a set and the back to a list, we remove duplicates caused by merged Nodes
 		self.activeAttributeConnectors.sort(key=lambda att: att.getControllerAttrName()) #Sort the list by the controller attribute Names
-		print "My newly collected attCons are " + str(len(self.activeAttributeConnectors)) + " " + str(self.activeAttributeConnectors)
+		# print "My newly collected attCons are " + str(len(self.activeAttributeConnectors)) + " " + str(self.activeAttributeConnectors)
 		return self.activeAttributeConnectors
 
 	def collectActiveServoDataConnectors(self):
@@ -557,23 +557,76 @@ class AttributeServoConnector(AttributeConnector):
 		AttributeConnector.__init__(self)
 		self.servoDataConnectors = [ServoDataConnector(0,self)] #intialise the list of servoDataConnectors with a single connector with ID 0
 
+	def store(self):
+		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load. 
+		"""
+		attributeServoConnectorRoot = xml.Element('AttributeServoConnector')
+		attributes = xml.SubElement(attributeServoConnectorRoot,'attributes')
+		xml.SubElement(attributes, 'attribute', name = 'nodeIndex', value = str(self.getNodeIndex()))
+		xml.SubElement(attributes, 'attribute', name = 'controllerAttrName', value = str(self.getControllerAttrName()))
+		xml.SubElement(attributes, 'attribute', name = 'hostName', value = str(self.getHostName()))
+		xml.SubElement(attributes, 'attribute', name = 'active', value = str(self.isActive()))
+		xml.SubElement(attributes, 'attribute', name = 'flipOutput', value = str(self.isFlipped()))
+		xml.SubElement(attributes, 'attribute', name = 'minValue', value = (str(self.getMinValue())))
+		xml.SubElement(attributes, 'attribute', name = 'maxValue', value = (str(self.getMaxValue())))
+		xml.SubElement(attributes, 'attribute', name = 'minScale', value = (str(self.getMinScale())))
+		xml.SubElement(attributes, 'attribute', name = 'maxScale', value = (str(self.getMaxScale())))        
+		xml.SubElement(attributes, 'attribute', name = 'sceneNode', value = str(self.getSceneNode()))
+		xml.SubElement(attributes, 'attribute', name = 'sceneNodeAttr', value = str(self.getSceneNodeAttr()))
+		xml.SubElement(attributes, 'attribute', name = 'sceneNodeActive', value = str(self.isSceneNodeActive()))
+		xml.SubElement(attributes, 'attribute', name = 'value', value = str(self.getValue()))
+
+		# Now record the xml for the servoDataConnectors - there are possibly more than one
+		servoDataConnectorsXml = xml.SubElement(attributeServoConnectorRoot,'ServoDataConnectors')
+		for sDC in self.servoDataConnectors:
+		    sDCXml = sDC.store()
+		    servoDataConnectorsXml.append(sDCXml)
+
+		return attributeServoConnectorRoot
+
+	def read(self, attributeServoConnectorXml):
+		"""A function to read in a block of XML and set all major attributes accordingly
+		"""
+		for a in attributeServoConnectorXml.findall( 'attributes/attribute'):
+			if a.attrib['name'] == 'nodeIndex': self.setNodeIndex(int(a.attrib['value']))
+			elif a.attrib['name'] == 'controllerAttrName': self.setControllerAttrName(str(a.attrib['value']))
+			elif a.attrib['name'] == 'hostName': self.setHostName(str(a.attrib['value']))
+			elif a.attrib['name'] == 'active': self.setActive(str(a.attrib['value']) == 'True')
+			elif a.attrib['name'] == 'flipOutput': self.setFlipped(str(a.attrib['value']) == 'True')
+			elif a.attrib['name'] == 'minValue': self.setMinValue(readAttribute(a.attrib['value']))
+			elif a.attrib['name'] == 'maxValue': self.setMaxValue(readAttribute(a.attrib['value']))
+			elif a.attrib['name'] == 'minScale': self.setMinScale(readAttribute(a.attrib['value']))
+			elif a.attrib['name'] == 'maxScale': self.setMaxScale(readAttribute(a.attrib['value']))
+			elif a.attrib['name'] == 'sceneNode': self.setSceneNode(str(a.attrib['value']))
+			elif a.attrib['name'] == 'sceneNodeAttr': self.setSceneNodeAttr(str(a.attrib['value']))
+			elif a.attrib['name'] == 'sceneNodeActive': self.setSceneNodeActive(str(a.attrib['value']) == 'True')
+			elif a.attrib['name'] == 'value': self.setValue(readAttribute(a.attrib['value']))
+
+		#Now we have to load in the servoDataConnector information.
+		servoDataConnectors = attributeServoConnectorXml.findall('ServoDataConnectors/ServoDataConnector')
+		self.clearServoDataConnectors() #clear out all the base initialsed servodataconnectors in order to read the new ones in.
+		for index, sDCXml in enumerate(servoDataConnectors):
+			newServoDataConnector = self.addServoDataConnector() #add a new servoDataConnector, and store to a variable so we can read in data
+			newServoDataConnector.read(sDCXml)
+
 	def getServoDataConnectors(self):
 		return self.servoDataConnectors
 
 	def addServoDataConnector(self):
 		"""Function to add a new ServoDataConnector to the end of the ServoDataConnectors list. Adds the appropirate ID from the ServoDataConnectors list length"""
 		self.sortServoDataConnectors() #Sort all the current ServoDataConnectors
-		newID = len(self.servoDataConnectors)
-		newServoDataConnector = ServoDataConnector(newID,self)
+		newIndex = len(self.servoDataConnectors)
+		newServoDataConnector = ServoDataConnector(newIndex,self)
 		self.servoDataConnectors.append(newServoDataConnector)
+		return newServoDataConnector
 
-	def removeServoDataConnector(self, ID):
+	def removeServoDataConnector(self, index):
 		"""Function to add a new ServoDataConnector to the end of the ServoDataConnectors list. Adds the appropirate ID from the ServoDataConnectors list length"""
 		IDServoConnector = None
 		servoNewList = []
 		# print "My remove ID is " + str(ID)
 		for sC in self.servoDataConnectors:
-			if sC.getID() != ID:
+			if sC.getIndex() != index:
 				servoNewList.append(sC) #If it is not equally to the ID number then we add it to the new servoList
 		self.servoDataConnectors = servoNewList #This should remove the IDServoConnector from the main list
 		self.sortServoDataConnectors() #Now neatly sort the remaining IDs
@@ -581,7 +634,10 @@ class AttributeServoConnector(AttributeConnector):
 	def sortServoDataConnectors(self):
 		"""Function update the IDs of the ServoDataConnector to fall in line with their positions in the servoDataConnectors list"""
 		for index, connector in enumerate(self.servoDataConnectors):
-			connector.setID(index)
+			connector.setIndex(index)
+
+	def clearServoDataConnectors(self):
+		self.servoDataConnectors = []
 
 
 
@@ -589,20 +645,40 @@ class ServoDataConnector(object):
 	"""
 	Class to describe the basic connection between the AttributeServoConnector data and how that maps out from the position of the Node/SuperNode to the correct servoChannel and servo angle etc.
 	"""
-	def __init__(self, ID, attributeServoConnector):
+	def __init__(self, index, attributeServoConnector):
 # 		#LIST OF ATTRIBUTES
-		self.ID = ID
+		self.index = index
 		self.attributeServoConnector = attributeServoConnector #Passing the paretn ServoDataConnector down, so it can be identified
 		self.servoChannel = None
 		self.servoMinAngle = None
 		self.servoMaxAngle = None
-		self.servoActive = None
 
-	def getID(self):
-		return self.ID
+	def store(self):
+		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load 
+		"""
+		servoDataConnectorRoot = xml.Element('ServoDataConnector')
+		attributes = xml.SubElement(servoDataConnectorRoot,'attributes')
+		xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
+		xml.SubElement(attributes, 'attribute', name = 'servoChannel', value = str(self.getServoChannel()))
+		xml.SubElement(attributes, 'attribute', name = 'servoMinAngle', value = str(self.getServoMinAngle()))
+		xml.SubElement(attributes, 'attribute', name = 'servoMaxAngle', value = str(self.getServoMaxAngle()))
 
-	def setID(self, IDNum):
-		self.ID = IDNum
+		return servoDataConnectorRoot
+
+	def read(self, servoDataConnectorXml):
+		"""A function to read in a block of XML and set all major attributes accordingly
+		"""
+		for a in servoDataConnectorXml.findall( 'attributes/attribute'):
+			if a.attrib['name'] == 'index': self.setIndex(int(a.attrib['value']))
+			elif a.attrib['name'] == 'servoChannel': self.setServoChannel(readAttribute(a.attrib['value']))
+			elif a.attrib['name'] == 'servoMinAngle': self.setServoMinAngle(readAttribute(a.attrib['value']))
+			elif a.attrib['name'] == 'servoMaxAngle': self.setServoMaxAngle(readAttribute(a.attrib['value']))
+
+	def getIndex(self):
+		return self.index
+
+	def setIndex(self, index):
+		self.index = index
 
 	def getAttributeServoConnector(self):
 		return self.attributeServoConnector
@@ -641,5 +717,5 @@ class ServoDataConnector(object):
 			self.servoMinAngle = None
 			self.servoMaxAngle = None
 		else: #ServoChannel has been initialised with an channel number
-			if self.servoMinAngle == None: self.servoMinAngle = 0
-			if self.servoMaxAngle == None: self.servoMaxAngle = 180
+			if self.servoMinAngle == None: self.servoMinAngle = 0.0
+			if self.servoMaxAngle == None: self.servoMaxAngle = 180.0

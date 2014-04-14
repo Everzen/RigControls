@@ -325,7 +325,6 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
 
         self.headers = []
         self.headers.append("  Node ID  ")
-        # self.headers.append("  Direction  ")
         self.headers.append("  Group  ")
         self.headers.append("  Scale Minimum  ")
         self.headers.append("  Scale Maximum  ")
@@ -382,7 +381,7 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
                 nodeAttrLinkData = QtGui.QTableWidgetItem("")
                 nodeAttrLinkData.setFlags(QtCore.Qt.ItemIsSelectable)        
 
-                if servoData.getID() == 0: #We have the first main servoDataChannel, so populate then entire row of information
+                if servoData.getIndex() == 0: #We have the first main servoDataChannel, so populate then entire row of information
                     nodeIdData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getControllerAttrName()))
                     nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled) 
                     groupData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getHostName()))
@@ -499,7 +498,7 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
 
         #Now check if there are multiple servoDataChannels, by checking the ID of the servo. If there are, then we can give the option to remove it
         currServoDataConnector = servoDataConnectors[self.itemFromIndex(index).row()]
-        if currServoDataConnector.getID() > 0: #We have an additional servoDataChannel, so give the option to remove it! 
+        if currServoDataConnector.getIndex() > 0: #We have an additional servoDataChannel, so give the option to remove it! 
             menu.addAction("Remove Servo Channel")
 
         action = menu.exec_(event.globalPos())
@@ -518,9 +517,9 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
                 currServoDataConnector = servoDataConnectors[self.itemFromIndex(index).row()]
                 currAttConnector = currServoDataConnector.getAttributeServoConnector()
                 currAttConnector.addServoDataConnector()
-            elif action.text() =="Remove Servo Channel": #Find the attributeServoConnector, then remove the dataServoConnector of the appropriate ID
-                currID = currServoDataConnector.getID()
-                currServoDataConnector.getAttributeServoConnector().removeServoDataConnector(currID)
+            elif action.text() =="Remove Servo Channel": #Find the attributeServoConnector, then remove the dataServoConnector of the appropriate Index
+                currIndex = currServoDataConnector.getIndex()
+                currServoDataConnector.getAttributeServoConnector().removeServoDataConnector(currIndex)
 
             self.dataProcessor.setupServoMinMaxAngles() #If an action then run through servo min and Max angles
             self.populate() #If an action was taken then repopulate the DataTable, because servoChannels may well have been adjusted

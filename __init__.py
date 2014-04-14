@@ -181,7 +181,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.reflectGuideMarkers.setStatusTip('Reflect Guide Markers about the Reflection Line')
         
         self.clearFace = QtGui.QAction("Clear All",self)
-        self.clearFace.triggered.connect(lambda:  self.view.clear(query = True))  
+        self.clearFace.triggered.connect(lambda:  self.clearHappyFace())  
         self.clearFace.setStatusTip('Clears all Items from the Face Rig')
 
         menubar = self.menuBar()
@@ -390,6 +390,8 @@ class RigFaceSetup(QtGui.QMainWindow):
             self.faceSaveFile = faceFileName
             xMLStructure.setXMLFile(faceFileName)
             xMLStructure.read()
+        self.nodeLinksTableWidget.populate() #Redraw the nodelink data Table, so that all the data is updated to the new loaded faceRig
+        self.skinTableWidget.populate() ##Redraw the skin data Table, so that all the data is updated to the new loaded faceRig
 
     def saveFaceRig(self):
         """Function to save the entire Rig Graphics View scene out to an XML File"""
@@ -450,6 +452,13 @@ class RigFaceSetup(QtGui.QMainWindow):
             else:
                 self.dataProcessor.createSceneControl(sceneControllerName)
                 self.dataProcessor.setSceneControl(sceneControllerName)
+
+    def clearHappyFace(self):
+        """A Function to clear the face from the RigGraphicsView, but also reset the dataTables"""
+        self.view.clear(query = True)
+        self.nodeLinksTableWidget.populate() #Redraw the nodelink data Table, so that all the data cleared out
+        self.skinTableWidget.setSuperNode(None) ##Redraw the skin data Table, so that all the data is cleared out
+        self.skinTableWidget.populate()
 
 
 # def main():

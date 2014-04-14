@@ -445,6 +445,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     self.deleteWireGroup(item)
                 elif type(item) == SuperNode and item.isSelected():
                     self.deleteSuperNodeGroup(item)
+                    self.mainWindow.skinTableWidget.setSuperNode(None) ##Redraw the skin data Table, so that all the data is cleared out
+                    self.mainWindow.skinTableWidget.populate()
             self.processMarkerActiveIndex()
         return 0 #Not returning the key event stops the shortcut being propagated to the parent (Maya), tidy this up by returning appropriately for each condition
         # return QtGui.QGraphicsView.keyPressEvent(self, event)

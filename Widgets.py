@@ -255,10 +255,12 @@ class SkinTabW(QtGui.QTableWidget):
         self.populate()
 
     def populate(self):
+        self.clear()
+        self.setColumnCount(4)
+        self.setHorizontalHeaderLabels(self.headers)
+        self.setRowCount(0)
+        self.resizeColumnsToContents()
         if self.superNode:
-            self.clear()
-            self.setColumnCount(4)
-            self.setHorizontalHeaderLabels(self.headers)
             self.setRowCount(len(self.superNode.getSkinnedPins()))
             self.blockSignals(True) #Disable updating while populating, to stop signals being emitted.
             for index, skinPin in enumerate(self.superNode.getSkinnedPins()):

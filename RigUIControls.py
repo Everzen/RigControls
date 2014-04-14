@@ -235,7 +235,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         scene = self.scene()
         controlItems = []
         for item in scene.items(): #collect all the wiregroups and SuperNodeGroups that are selected
-            if type(item) == Node or type(item) == SuperNode and item.isSelected() == True:
+            if (type(item) == Node or type(item) == SuperNode) and item.isSelected() == True:
                 controlItems.append(item.getGroup())
         controlItems = list(set(controlItems)) #Make the list unique
         print "My Selected control Items are : " + str(len(controlItems)) + " " + str(controlItems)

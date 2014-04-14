@@ -617,6 +617,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.scene().addItem(item)
             self.dragItem = item #set set the gv DragItem
             self.markerCount += 1
+            self.processMarkerSelection(item) #Active the marker so it is live as soon as it enters the rigGraphicsView
 
     def dragConstraintItem(self, event, data):
             event.acceptProposedAction()

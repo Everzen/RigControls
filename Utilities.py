@@ -1,5 +1,5 @@
 import sys
-from PyQt4 import QtCore, QtGui
+from PySide import QtCore, QtGui
 import numpy as np
 
 #######STANDARD LIBRARY FUNCTIONS THAT SHOULD PROBABLY BE IN A CENTRALISED LIBRARY SOMEWHERE##############################
@@ -18,3 +18,11 @@ def npVec(vec):
 def QPVec(npVec):
     """Converts an np array into a QPointF"""
     return QtCore.QPointF(npVec[0], npVec[1])
+
+def readAttribute(attribute):
+	"""Function to read an attribute as a string and return a float or None as appropriate"""
+	try:
+		float(attribute)
+		return float(attribute)
+	except ValueError:
+		return None

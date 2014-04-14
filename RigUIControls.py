@@ -2,7 +2,7 @@
 import sys
 import weakref
 import math
-from PyQt4 import QtCore, QtGui
+from PySide import QtCore, QtGui
 import numpy as np
 import socket #for sending out UPD signals
 import os
@@ -20,7 +20,7 @@ from RigStore import *
 
 class RigGraphicsView(QtGui.QGraphicsView):
 
-    def __init__(self, mainWindow, messageLogger, styleData, itemFactory, controlScaler):
+    def __init__(self, mainWindow, messageLogger, styleData, dataProcessor, itemFactory, controlScaler):
 
         QtGui.QGraphicsView.__init__(self) 
         self.width = 600
@@ -30,6 +30,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
         self.messageLogger = messageLogger
         self.styleData = styleData
+        
+        self.dataProcessor = dataProcessor #This passes the movement data of the rigGV nodes and controls out to teh 3D app
+        self.dataProcessor.setRigGraphicsView(self) #This ensures the dataProcessor continually can reference which controls are currently active and in use on the HappyFace
+
         self.itemFactory = itemFactory
 
         policy = QtCore.Qt.ScrollBarAlwaysOff
@@ -146,9 +150,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
         return self.superNodeGroups
 
     def loadBackgroundImage(self):
-        imagePath = QtGui.QFileDialog.getOpenFileName(caption = "Please choose front character face image ~ 500px x 500px", directory="./images" , filter = "*.png")
+        imagePath = QtGui.QFileDialog.getOpenFileName(caption = "Please choose front character face image ~ 500px x 500px", directory="./images" , filter = "*.png")[0]
         if os.path.exists(imagePath):
-            self.backgroundImage = imagePath 
+            self.backgroundImage = imagePath
             self.setupBackground() 
 
 
@@ -279,10 +283,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if ok:
             posList = []
             for m in self.markerActiveList: posList.append(m.pos())
-            newWireGroup = WireGroup(self)
+            newWireGroup = WireGroup(self, self.dataProcessor)
             newWireGroup.buildFromPositions(posList)
             newWireGroup.setScale(self.markerScale)
-            print "wirename : " + str(wireName)
+            print "wirename : " + str(wireName) + " This ran"
             newWireGroup.setName(str(wireName))
             self.wireGroups.append(newWireGroup)
             for m in self.markerActiveList:
@@ -326,7 +330,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,state)
                 if not state: item.setSelected(state)
 
-    def panSelectableItems(self):
+    def panFreezeSelectableItems(self):
         """A function to turn off moveabliliy and selectablility on all objects for a pan"""
         self.isSelectableList = []
         self.isMovableList = []
@@ -341,6 +345,23 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.isMovableList.append(isMovable)
             item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, False)  
             item.setFlag(QtGui.QGraphicsItem.ItemIsMovable, False) 
+
+    def panReleaseSelectableItems(self):
+        """A function to turn back on moveabliliy and selectablility of all objects after a pan
+
+        This function is also called when focus returns to the GV, to make sure all items are moveable.
+        """
+        scene = self.scene()
+        self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
+        for index, item in enumerate(scene.items()):
+            item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, self.isSelectableList[index])
+            item.setFlag(QtGui.QGraphicsItem.ItemIsMovable, self.isMovableList[index])
+            item.setSelected(self.isSelectedList[index])
+        #Now clean out the Lists
+        self.isSelectableList = []
+        self.isMovableList = []
+        self.isSelectedList = []
+
 
     def clear(self, isReflectionLine = True, query = False):
         """Method to clear out the entire RigGraphicsView. 
@@ -402,9 +423,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def keyPressEvent(self, event):
         scene = self.scene()
         key = event.key()
+        # if key == QtCore.Qt.Key_Alt: print "Alt is registered as pressed"
+        # else:  print "Alt is NOT registered as pressed"  
+        # print "Key Firing"     
         if key == QtCore.Qt.Key_Alt:
             self.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
-            self.panSelectableItems()
+            self.panFreezeSelectableItems()
         elif key == 16777249: # This is the integer representing Left Ctrl - must be a better way of doing this!
             self.isCtrlPressed = True
         elif key == QtCore.Qt.Key_Plus:
@@ -422,44 +446,45 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 elif type(item) == SuperNode and item.isSelected():
                     self.deleteSuperNodeGroup(item)
             self.processMarkerActiveIndex()
-        else:
-            QtGui.QGraphicsView.keyPressEvent(self, event)
+        return 0 #Not returning the key event stops the shortcut being propagated to the parent (Maya), tidy this up by returning appropriately for each condition
+        # return QtGui.QGraphicsView.keyPressEvent(self, event)
 
 
     def deleteWireGroup(self,item):
         delItem = QtGui.QMessageBox()
         delItem.setStyleSheet(self.styleData)
         delItem.setWindowTitle("WireGroup Deletion")
-        delItem.setText("Are you sure you want to delete the entire WireGroup: ' " + str(item.getWireName()) + "'?")
+        delItem.setText("Are you sure you want to delete the entire WireGroup: ' " + str(item.getGroupName()) + "'?")
         delItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
         delItem.setDefaultButton(QtGui.QMessageBox.No)
         response = delItem.exec_()
         if response == QtGui.QMessageBox.Yes:
-            item.getWireGroup().clear()
-            self.wireGroups.remove(item.getWireGroup())
+            item.getGroup().clear()
+            self.wireGroups.remove(item.getGroup())
 
     def deleteSuperNodeGroup(self, item):
         delItem = QtGui.QMessageBox()
         delItem.setStyleSheet(self.styleData)
         delItem.setWindowTitle("SuperNode Deletion")
-        delItem.setText("Are you sure you want to delete the SuperNode:' " + str(item.getSuperNodeGroup().getName()) + "'?")
+        delItem.setText("Are you sure you want to delete the SuperNode:' " + str(item.getGroup().getName()) + "'?")
         delItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
         delItem.setDefaultButton(QtGui.QMessageBox.No)
         response = delItem.exec_()
         if response == QtGui.QMessageBox.Yes:
             item.goHome()
-            item.getSuperNodeGroup().clear()
-            self.superNodeGroups.remove(item.getSuperNodeGroup())
+            item.getGroup().clear()
+            self.superNodeGroups.remove(item.getGroup())
 
     def keyReleaseEvent(self, event):
         key = event.key()
         scene = self.scene()
+        # print "key released"
         if key == QtCore.Qt.Key_Alt:
-            self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
-            for index, item in enumerate(scene.items()):
-                item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, self.isSelectableList[index])
-                item.setFlag(QtGui.QGraphicsItem.ItemIsMovable, self.isMovableList[index])
-                item.setSelected(self.isSelectedList[index])
+            try: #Sometimes the Releasing of Selectable Items can be tripped up by the window changing focus, so try and except.
+                (self.panReleaseSelectableItems())
+            except IndexError:
+                # print "Release Error cunning avoided"
+                pass
         elif key == 16777249: # This is the integer representing Left Ctrl - must be a better way of doing this!
             self.isCtrlPressed = False
         QtGui.QGraphicsView.keyReleaseEvent(self, event)
@@ -476,7 +501,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def dragEnterEvent(self, event):
         """Function to overider dragEnterEvent to check that text is being used"""
         if (event.mimeData().hasFormat('text/plain')):
-            data = QtCore.QString(event.mimeData().data('text/plain'))
+            data = event.mimeData().data('text/plain')
             event.accept()
             print data
             if data == "GuideMarker":
@@ -582,7 +607,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def dragGuideMarker(self, event, data):
             event.acceptProposedAction()
             #Create a new QGraphicsItem and transfer the text across so we have the correct name
-            data = QtCore.QString(event.mimeData().data("text/plain"))
+            data = event.mimeData().data("text/plain")
             item = self.itemFactory.create(data)
             item.setIndex(self.markerCount)
             item.setPos(self.mapToScene(event.pos()))
@@ -592,11 +617,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.scene().addItem(item)
             self.dragItem = item #set set the gv DragItem
             self.markerCount += 1
+            self.processMarkerSelection(item) #Active the marker so it is live as soon as it enters the rigGraphicsView
 
     def dragConstraintItem(self, event, data):
             event.acceptProposedAction()
             #Create a new QGraphicsItem and transfer the text across so we have the correct name
-            data = QtCore.QString(event.mimeData().data("text/plain"))
+            data = event.mimeData().data("text/plain")
             item = self.itemFactory.create(data)
             item.setPos(self.mapToScene(event.pos()))
             item.setAlpha(0.5)
@@ -606,7 +632,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
     def dragSuperNode(self, event, form):
             event.acceptProposedAction()
             #Create a new QGraphicsItem and transfer the text across so we have the correct name
-            item = SuperNodeGroup(self.mapToScene(event.pos()), form, self)
+            item = SuperNodeGroup(self.mapToScene(event.pos()), form, self, self.dataProcessor)
             self.superNodeGroups.append(item)
             # item.setPos(self.mapToScene(event.pos()))
             # item.setAlpha(0.5)
@@ -681,7 +707,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
                                 self.targetNode = node
                             return QtGui.QGraphicsView.mouseMoveEvent(self, mouseEvent)
 
-        self.deactivateNodes() # If we get here then we have not found a target node, so make sure all nodes are deactivated
+        for item in self.items():
+            if type(item) == Node or type(item) == SuperNode:
+                if item.isHighlighted(): item.setHighlighted(False) # If we get here then we have not found a target node, so make sure all nodes are deactivated
+            # self.deactivateNodes() 
 
         return QtGui.QGraphicsView.mouseMoveEvent(self, mouseEvent)
 
@@ -707,7 +736,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
     def isMergeNode(self, mergeNode, targetNode):
         canMerge = True
-        if mergeNode.getWireName() == targetNode.getWireName(): # The node is from the same WireGroup do not merge!
+        # if mergeNode.getWireName() == targetNode.getWireName(): # The node is from the same WireGroup do not merge!
+        if mergeNode.getGroupName() == targetNode.getGroupName(): # The node is from the same WireGroup do not merge!
             # print "No Merge : Node is the same Wiregroup"
             canMerge = False
         return canMerge
@@ -725,7 +755,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if type(self.mergeNode) == Node and type(self.targetNode) == Node:
             # print "Boom: We have a node Merge Match"
             # We need to delete the merge Node along with its Pin Etc, and then replace it with the targetNode
-            wireGroup = self.mergeNode.getWireGroup()
+            # wireGroup = self.mergeNode.getWireGroup()
+            wireGroup = self.mergeNode.getGroup()
 
             for index, node in enumerate(wireGroup.getNodes()):
                 if node == self.mergeNode:
@@ -906,3 +937,14 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.mainWindow.skinTableWidget.setSuperNode(superNode)
         self.mainWindow.skinTableWidget.populate()
 
+
+    def focusOutEvent (self, event):
+        if len(self.isSelectedList) !=0:
+            self.panReleaseSelectableItems()
+            # print "Stuff is stored so release it!"
+        # print "GV losing focus"
+        return QtGui.QGraphicsView.focusOutEvent(self, event)
+
+    def focusInEvent (self, event):
+        # print "GV gaining focus"
+        return QtGui.QGraphicsView.focusInEvent(self, event)

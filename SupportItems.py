@@ -1,6 +1,6 @@
 
 import sys
-from PyQt4 import QtCore, QtGui
+from PySide import QtCore, QtGui
 import os
 import weakref
 import xml.etree.ElementTree as xml

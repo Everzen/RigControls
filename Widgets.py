@@ -1,7 +1,8 @@
 
-from PyQt4 import QtCore, QtGui
+from PySide import QtCore, QtGui
 import sys
 import os
+import posixpath #This is imported for forcing paths to include "/" on windows - for passing paths to css
 
 from ControlItems import *
 
@@ -77,19 +78,19 @@ class WireGroupButton(QtGui.QPushButton):
             self.setStyleSheet(self.validImageFile())
 
     def validImageFile(self,state=""):
+        imageDir = os.path.dirname(os.path.realpath(__file__))
+        CSSimageDir = imageDir.replace("\\", "/") #Convert everything across to / for css files. Apparently this is ugly, but cannot get os.path and posixpath to work
         imageFile = ""
         imageFileCss = ""
         if state == "hover":
-            imageFile = 'images/' + self.itemName + '_Hover.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.itemName + '_Hover.png'
         elif state == "pressed":
-            imageFile = 'images/' + self.itemName + '_Pressed.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.itemName + '_Pressed.png'
         else:
-            imageFile = 'images/' + self.itemName + '.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.itemName + '.png'
 
-        if os.path.exists(imageFile): #create icon and add to button
+        imageFileCss = 'image: url(' + imageFile + ');'
+        if os.path.exists(os.path.normpath(imageFile)): #create icon and add to button
             self.imageFile = imageFile
             return imageFileCss
         else:
@@ -140,19 +141,19 @@ class DragItemButton(QtGui.QPushButton):
         self.setStyleSheet(self.validImageFile())
 
     def validImageFile(self,state=""):
+        imageDir = os.path.dirname(os.path.realpath(__file__))
+        CSSimageDir = imageDir.replace("\\", "/") #Convert everything across to / for css files. Apparently this is ugly, but cannot get os.path and posixpath to work
         imageFile = ""
         imageFileCss = ""
         if state == "hover":
-            imageFile = 'images/' + self.itemName + '_Hover.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.itemName + '_Hover.png'
         elif state == "pressed":
-            imageFile = 'images/' + self.itemName + '_Pressed.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.itemName + '_Pressed.png'
         else:
-            imageFile = 'images/' + self.itemName + '.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.itemName + '.png'
 
-        if os.path.exists(imageFile): #create icon and add to button
+        imageFileCss = 'image: url(' + imageFile + ');'
+        if os.path.exists(os.path.normpath(imageFile)): #create icon and add to button
             self.imageFile = imageFile
             return imageFileCss
         else:
@@ -194,19 +195,19 @@ class DragSuperNodeButton(DragItemButton):
         
 
     def validImageFile(self,state=""):
+        imageDir = os.path.dirname(os.path.realpath(__file__))
+        CSSimageDir = imageDir.replace("\\", "/") #Convert everything across to / for css files. Apparently this is ugly, but cannot get os.path and posixpath to work
         imageFile = ""
         imageFileCss = ""
         if state == "hover":
-            imageFile = 'images/' + self.form + '_Hover.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.form + '_Hover.png'
         elif state == "pressed":
-            imageFile = 'images/' + self.form + '_Pressed.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.form + '_Pressed.png'
         else:
-            imageFile = 'images/' + self.form + '.png'
-            imageFileCss = 'image: url(:/' + imageFile + ');'
+            imageFile = CSSimageDir + '/images/' + self.form + '.png'
 
-        if os.path.exists(imageFile): #create icon and add to button
+        imageFileCss = 'image: url(' + imageFile + ');'
+        if os.path.exists(os.path.normpath(imageFile)): #create icon and add to button
             self.imageFile = imageFile
             return imageFileCss
         else:
@@ -238,11 +239,12 @@ class SkinTabW(QtGui.QTableWidget):
     def __init__(self, parent = None):
         super(SkinTabW, self).__init__(parent)
         self.superNode = None
-        self.headers = QtCore.QStringList()
-        self.headers.append(QtCore.QString("  Super Node Controller  "))
-        self.headers.append(QtCore.QString("  Node Wire Group  "))
-        self.headers.append(QtCore.QString("  Node Index  "))
-        self.headers.append(QtCore.QString("  Skin Value  "))
+
+        self.headers = []
+        self.headers.append("  Super Node Controller  ")
+        self.headers.append("  Node Wire Group  ")
+        self.headers.append("  Node Index  ")
+        self.headers.append("  Skin Value  ")
         self.populate()
 
     def getSuperNode(self):
@@ -257,6 +259,8 @@ class SkinTabW(QtGui.QTableWidget):
             self.clear()
             self.setColumnCount(4)
             self.setHorizontalHeaderLabels(self.headers)
+            self.setRowCount(len(self.superNode.getSkinnedPins()))
+            self.blockSignals(True) #Disable updating while populating, to stop signals being emitted.
             for index, skinPin in enumerate(self.superNode.getSkinnedPins()):
                 superNodeNameitem = QtGui.QTableWidgetItem(self.superNode.getName())
                 superNodeNameitem.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
@@ -270,7 +274,7 @@ class SkinTabW(QtGui.QTableWidget):
                 self.setItem(index,1,wireGroupNameitem)
                 self.setItem(index,2,pinIndexItem)
                 self.setItem(index,3,skinValueItem)
-            self.setRowCount(len(self.superNode.getSkinnedPins()))
+            self.blockSignals(False) #Disable updating while populating, to stop signals being emitted.
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
 
@@ -303,6 +307,321 @@ class SkinTabW(QtGui.QTableWidget):
             homeNode = self.superNode.getSkinnedPins()[item.row()].getPin().getNode()
             if homeNode:  #Hacky way of updating the curves when the pin is sent home! Maybe wrap into a neat function
                 homeNode.dirtyCurve()
+
+
+
+class SceneLinkServoTabW(QtGui.QTableWidget):
+    """Class to subclass QTableWidget to give us control over how we handle
+    the links from the Happy face nodes to the 3d scene Nodes
+
+    Consider how the table data should be updated. Possible only when SuperNodes Or WireGroups are created/deleted
+
+    """
+    def __init__(self, styleData, parent = None):
+        super(SceneLinkServoTabW, self).__init__(parent)
+        self.dataProcessor = None
+        self.styleData = styleData
+        self.setStyleSheet(self.styleData)
+
+        self.headers = []
+        self.headers.append("  Node ID  ")
+        self.headers.append("  Group  ")
+        self.headers.append("  Scale Minimum  ")
+        self.headers.append("  Scale Maximum  ")
+        self.headers.append("  Flip OutPut  ")
+        self.headers.append("  Scene Link Node  ")
+        self.headers.append("  Scene Link Attribute  ")
+        self.headers.append("  Servo Channel ")
+        self.headers.append("  Servo Min Angle ")
+        self.headers.append("  Servo Max Angle ")
+
+        self.nodeSubString = "hFCtrl" #Initialise the string filter as hFCtrl
+
+        # self.populate()
+
+    def getDataProcessor(self):
+        return self.dataProcessor
+
+    def setDataProcessor(self, dataProcessor):
+        self.dataProcessor = dataProcessor
+
+    def getNodeSubString(self):
+        return self.nodeSubString
+
+    def setNodeSubString(self, nodeSubString):
+        self.nodeSubString = str(nodeSubString)
+
+    def populate(self):
+        """Function to take all the dataProcessor info and write it out in table form"""
+        self.clear()
+        self.setColumnCount(10)
+        self.setHorizontalHeaderLabels(self.headers)
+
+        if not self.dataProcessor:
+            print "ERROR: No data processor was found, so links cannot be forged to scene nodes"
+            return 0
+        else:
+            count = len(self.dataProcessor.collectActiveServoDataConnectors())
+            self.setRowCount(count)
+            self.blockSignals(True) #Disable updating while populating, to stop signals being emitted.
+            for index, servoData in enumerate(self.dataProcessor.collectActiveServoDataConnectors()):
+                #Initialising everything as empty strings. If we are an additional Servo Channel, then we do not need to fill out any of the initial info!  
+                nodeIdData = QtGui.QTableWidgetItem("")
+                nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable)               
+                groupData = QtGui.QTableWidgetItem("")
+                groupData.setFlags(QtCore.Qt.ItemIsSelectable)
+                minScaleData = QtGui.QTableWidgetItem("")
+                minScaleData.setFlags(QtCore.Qt.ItemIsSelectable)
+                maxScaleData = QtGui.QTableWidgetItem("")
+                maxScaleData.setFlags(QtCore.Qt.ItemIsSelectable)
+                flipOutPutData = QtGui.QTableWidgetItem("")
+                flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable)        
+                sceneNodeLinkData = QtGui.QTableWidgetItem("")
+                sceneNodeLinkData.setFlags(QtCore.Qt.ItemIsSelectable)        
+                nodeAttrLinkData = QtGui.QTableWidgetItem("")
+                nodeAttrLinkData.setFlags(QtCore.Qt.ItemIsSelectable)        
+
+                if servoData.getIndex() == 0: #We have the first main servoDataChannel, so populate then entire row of information
+                    nodeIdData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getControllerAttrName()))
+                    nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled) 
+                    groupData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getHostName()))
+                    groupData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                    minScaleData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getMinScale()))
+                    minScaleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
+                    maxScaleData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getMaxScale()))
+                    maxScaleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
+                    flipOutPutData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().isFlipped()))
+                    flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)        
+                    sceneNodeLinkData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getSceneNode()))
+                    sceneNodeLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                    nodeAttrLinkData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getSceneNodeAttr()))
+                    nodeAttrLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+
+                servoChannelData = QtGui.QTableWidgetItem(str(servoData.getServoChannel()))
+                servoChannelData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                servoMinAngleData = QtGui.QTableWidgetItem(str(servoData.getServoMinAngle()))
+                servoMinAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
+                servoMaxAngleData = QtGui.QTableWidgetItem(str(servoData.getServoMaxAngle()))
+                servoMaxAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
+
+                self.setItem(index,0,nodeIdData)
+                # self.setItem(index,1,directionData)
+                self.setItem(index,1,groupData)
+                self.setItem(index,2,minScaleData)
+                self.setItem(index,3,maxScaleData)
+                self.setItem(index,4,flipOutPutData)
+                self.setItem(index,5,sceneNodeLinkData)
+                self.setItem(index,6,nodeAttrLinkData)
+                self.setItem(index,7,servoChannelData)
+                self.setItem(index,8,servoMinAngleData)
+                self.setItem(index,9,servoMaxAngleData)
+
+            self.blockSignals(False) #Enable updating while populating, to allow signals to be emitted.
+            self.resizeColumnsToContents()
+            self.resizeRowsToContents()
+
+    def checkDigit(self, newValue):
+        """Function to check that we are putting in valid numbers for our outputs in the SceneLinkTabW"""
+        try:
+            float(newValue)
+            return True
+        except ValueError:
+            return False
+
+    def mousePressEvent(self, mouseEvent):
+        """Event to highlight the correct Node that is being interacted with in the graphics"""
+        nodeItem = self.indexAt(mouseEvent.pos())
+        servoDataConnectors = self.dataProcessor.getActiveServoDataConnectors()
+        if nodeItem.row() == -1:
+            self.clearSelection()
+        else:  
+            # for sDC in servoDataConnectors: print "MY Node for att is : " + str(sDC.getAttributeServoConnector().getNode())
+            for sDC in servoDataConnectors: sDC.getAttributeServoConnector().getNode().setHighlighted(False) #Turn off all highlighting when the mouse is clicked
+            currAttConnector = servoDataConnectors[nodeItem.row()].getAttributeServoConnector()
+            currAttConnector.getNode().setHighlighted(True) #Highlight just the relevant Node
+                # self.selectRow(mItem.row())
+        return QtGui.QAbstractItemView.mousePressEvent(self, mouseEvent)
+
+    # def mouseReleaseEvent(self, mouseEvent):
+    #     # print "Release"
+    #     # print "Sel No " + str(self.selectionModel().selection().indexes())
+    #     if self.superNode:
+    #         for skinPin in self.superNode.getSkinnedPins() : skinPin.getPin().getNode().setHighlighted(False) #Turn off all Highlighting
+    #         for mItem in self.selectionModel().selection().indexes():
+    #             if mItem.row() >= 0 :
+    #                 self.superNode.getSkinnedPins()[mItem.row()].getPin().getNode().setHighlighted(True)
+    #     mItem = self.indexAt(mouseEvent.pos())
+    #     # if mItem.row() == -1 : print "missed"
+    #     return QtGui.QAbstractItemView.mouseReleaseEvent(self, mouseEvent)
+
+    def contextMenuEvent(self, event):
+        """Function to setup the main RC context menus for the SceneLinkTabW"""
+        menu = QtGui.QMenu()
+        menu.setStyleSheet(self.styleData)
+        index = self.indexAt(event.pos())
+        if index.column() == 4:
+            self.flipContextMenu(event)
+        elif index.column() == 5:
+            self.sceneNodeContextMenu(event)  
+        elif index.column() == 6:
+            self.sceneNodeAttrContextMenu(event)        
+        elif index.column() == 7:
+            self.servoChannelContextMenu(event)
+
+    def flipContextMenu(self,event):
+        menu = QtGui.QMenu()
+        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        index = self.indexAt(event.pos())
+        if self.itemFromIndex(index).text() == "True":
+            menu.addAction('False')
+        elif self.itemFromIndex(index).text() == "False":
+            menu.addAction('True')
+        action = menu.exec_(event.globalPos())
+        if action: #Check that the menu has been hit at all
+            if action.text() == 'False': 
+                self.itemFromIndex(index).setText('False')
+                attConnectors[self.itemFromIndex(index).row()].setFlipped(False)
+            elif action.text() == 'True': 
+                self.itemFromIndex(index).setText('True')
+                attConnectors[self.itemFromIndex(index).row()].setFlipped(True)
+
+    def servoChannelContextMenu(self,event):
+        """Function for Context menu to directly choose a servo channel"""
+        menu = QtGui.QMenu()
+        servoDataConnectors = self.dataProcessor.getActiveServoDataConnectors()
+        index = self.indexAt(event.pos())
+        for i in xrange(0,25):
+            menu.addAction(str(i))
+        menu.addAction("None")
+        menu.addSeparator()
+        menu.addAction("Add Servo Channel")
+
+        #Now check if there are multiple servoDataChannels, by checking the ID of the servo. If there are, then we can give the option to remove it
+        currServoDataConnector = servoDataConnectors[self.itemFromIndex(index).row()]
+        if currServoDataConnector.getIndex() > 0: #We have an additional servoDataChannel, so give the option to remove it! 
+            menu.addAction("Remove Servo Channel")
+
+        action = menu.exec_(event.globalPos())
+        if action: #Check that the menu has been hit at all
+            for i in xrange(0,25):
+                if action.text() == str(i): 
+                    self.itemFromIndex(index).setText(str(i))
+                    currServoDataConnector = servoDataConnectors[self.itemFromIndex(index).row()]
+                    currServoDataConnector.setServoChannel(i)
+                    self.dataProcessor.checkUniqueServoChannels(currServoDataConnector, i)
+
+            if action.text() == "None": 
+                self.itemFromIndex(index).setText("None")
+                servoDataConnectors[self.itemFromIndex(index).row()].setServoChannel(None)
+            elif action.text() == "Add Servo Channel":
+                currServoDataConnector = servoDataConnectors[self.itemFromIndex(index).row()]
+                currAttConnector = currServoDataConnector.getAttributeServoConnector()
+                currAttConnector.addServoDataConnector()
+            elif action.text() =="Remove Servo Channel": #Find the attributeServoConnector, then remove the dataServoConnector of the appropriate Index
+                currIndex = currServoDataConnector.getIndex()
+                currServoDataConnector.getAttributeServoConnector().removeServoDataConnector(currIndex)
+
+            self.dataProcessor.setupServoMinMaxAngles() #If an action then run through servo min and Max angles
+            self.populate() #If an action was taken then repopulate the DataTable, because servoChannels may well have been adjusted
+
+    def sceneNodeContextMenu(self,event):
+        """Function to setup a RC menu for a list of specified filtered nodes"""
+        menu = QtGui.QMenu()
+        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        index = self.indexAt(event.pos())
+        filteredSceneNodes = self.dataProcessor.returnFilteredObjects(self.nodeSubString) #Return all selected Nodes with specified substring
+        
+        menu.addAction("Wire to selected scene Node")
+        menu.addAction("Detach Connection")
+        menu.addSeparator()
+
+        for node in filteredSceneNodes:
+            menu.addAction(node)
+        action = menu.exec_(event.globalPos())
+        if action: #Check that the menu has been hit at all
+            for node in filteredSceneNodes:
+                if action.text() == str(node): 
+                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                    currAttConnector.setSceneNode(str(node))
+                    currAttConnector.setSceneNodeAttr(None) 
+
+            if action.text() == "Wire to selected scene Node":
+                selObject = self.dataProcessor.returnSelectedObject()
+                if selObject: #Set the scene Node to the Object, and reset the attribute to None, so it can be chosen manually
+                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                    currAttConnector.setSceneNode(selObject)
+                    currAttConnector.setSceneNodeAttr(None) 
+                else: #Object does not exist, so reset to None
+                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                    currAttConnector.setSceneNode(None)
+                    currAttConnector.setSceneNodeAttr(None) 
+            elif action.text() == "Detach Connection": #reset Node and Node Attribute
+                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                    currAttConnector.setSceneNode(None)
+                    currAttConnector.setSceneNodeAttr(None) 
+        self.populate() #The AttributeConnectors have been updated throughout, but no text change. Calling Populate, will then update the entire Table so text is correct.
+
+    def sceneNodeAttrContextMenu(self,event):
+        """Function to setup a RC menu for a list of specified filtered nodes"""
+        menu = QtGui.QMenu()
+        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        index = self.indexAt(event.pos())
+        currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+
+        if not self.dataProcessor.objExists(currAttConnector.getSceneNode()): #The registered scene Node Does not exist so reset it to None, set Attribute to None too. 
+            currAttConnector.setSceneNode(None)
+            currAttConnector.setSceneNodeAttr(None)
+        else:
+            menu.addAction("Detach Node and Attribute") 
+            menu.addSeparator()
+            # print "This item is : " + str(self.item(self.itemFromIndex(index).row(),5).text())
+            linkAttrs = self.dataProcessor.listLinkAttrs(self.item(self.itemFromIndex(index).row(),5).text()) #List all linkable attributes
+            for att in linkAttrs: #Loop through list and add approriate actions
+                menu.addAction(att)    
+            
+            action = menu.exec_(event.globalPos())
+            if action: #Check that the menu has been hit at all
+                for att in linkAttrs:
+                    if action.text() == str(att): 
+                        currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                        currAttConnector.setSceneNodeAttr(str(att))
+                        self.dataProcessor.checkSceneNodeLinks(currAttConnector) #Check all the other attributeConnectors to see if they have teh same node & attribute setup.
+                if action.text() == "Detach Node and Attribute":
+                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+                    currAttConnector.setSceneNode(None)                
+                    currAttConnector.setSceneNodeAttr(None) 
+        self.populate() #The AttributeConnectors have been updated throughout, but no text change. Calling Populate, will then update the entire Table so text is correct.
+
+
+    def updateSceneLinkOutputData(self, item):
+        """Function to see which tableWidgetItem has been changed and take the appropriate action to update the correct attribute Connector"""
+        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        currAttConnector = attConnectors[item.row()]
+        isNumber = self.checkDigit(item.text())
+        newValue = 1 #Arbitart initialisation
+        if isNumber: newValue = float(item.text())
+        if item.column() == 8:
+            if isNumber: 
+                item.setText(newValue)
+            else: 
+                item.setText("0")
+        elif item.column() == 9:
+            newValue = self.checkDigit(item.text())
+            if newValue != "None": 
+                item.setText(self.checkDigit(item.text()))
+            else: 
+                item.setText(self.checkDigit("180"))
+        elif item.column() == 2:
+            if  isNumber: 
+                currAttConnector.setMinScale(newValue)  
+            else: 
+                currAttConnector.setMinScale(1.0)            
+        elif item.column() == 3:
+            if  isNumber: 
+                currAttConnector.setMaxScale(newValue)    
+            else: 
+                currAttConnector.setMaxScale(1.0) 
+        self.populate() #The AttributeConnectors have been updated throughout, but no text change. Calling Populate, will then update the entire Table so text is correct.
 
 
 class ControlScale():

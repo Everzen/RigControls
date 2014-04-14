@@ -1,6 +1,9 @@
 #HAPPY FACE RIG
 
-from PyQt4 import QtGui, QtCore
+#Import what is needed for launching within the Maya Window
+import maya.OpenMayaUI as omui
+from PySide import QtGui, QtCore
+from shiboken import wrapInstance #Converts pointers to Python Objects
 
 import math
 import sys
@@ -8,9 +11,22 @@ import Icons
 import os
 
 from RigStore import FaceGVCapture
-from Widgets import ControlScale
+from Widgets import ControlScale, DragItemButton, SkinTabW, SceneLinkServoTabW
+from dataProcessor import DataProcessor, DataServoProcessor, DataBundle, DataServoBundle
 
 import RigUIControls as rig
+
+from mayaData import MayaData
+
+#################################################################################################
+#Function to return Mayas main Window QtWidget so we can parent our UI to it.
+
+def maya_main_window():
+    main_window_ptr = omui.MQtUtil.mainWindow()
+    return wrapInstance(long(main_window_ptr), QtGui.QWidget)
+
+#################################################################################################
+
 
 class StatusBarMessageLogger(object):
     """
@@ -43,6 +59,7 @@ class StatusBarMessageLogger(object):
         self.errorWidget.hide()
 
 
+
 class RigFaceSetup(QtGui.QMainWindow):
     """The main Window for the Entire UI.
 
@@ -59,15 +76,19 @@ class RigFaceSetup(QtGui.QMainWindow):
     Tabs on the areas that they are allowed to dock.
 
     """
-    def __init__(self, styleData):
-        super(RigFaceSetup, self).__init__()
+    def __init__(self, styleData, dataProcessor, parent = None):
+        super(RigFaceSetup, self).__init__(parent)
 
         self.setWindowTitle("Facial Rig Builder v1.0")
+        # self.setFocusPolicy(QtCore.Qt.StrongFocus) #Test what this does for bringing focus to the window to try and stop maya shortcuts! 
         # self.setGeometry(50,50, 600, 600)
         # self.ColourPickerCircle = {"center" : [245, 245], "centerOffset": [20,16] , "radius": 210 , "filename": "images/ColorWheelSat_500.png"}
         self.faceSaveFile = None
         self.skinTableWidget = None
         self.styleData = styleData
+        self.dataProcessor = dataProcessor
+        imagePath = os.path.dirname(os.path.realpath(__file__))
+        self.imagePath = imagePath.replace("\\", "/") #Convert everything across to / for css files. Apparently this is ugly, but cannot get os.path and posixpath to work
         self.initUI()
 
     def initUI(self):   
@@ -94,30 +115,11 @@ class RigFaceSetup(QtGui.QMainWindow):
                 self,
                 self.messageLogger,
                 self.styleData,
+                self.dataProcessor,
                 itemFactory,
                 self.controlScale
                 )
         self.view.setStyleSheet('background-color: #888888') #Adding adjustments to the background of the Graphics View
-
-        self.markerSpawn = rig.DragItemButton("GuideMarker")
-        # self.showReflectionLineButton = QtGui.QCheckButton("Toggle Reflection Line")
-        self.markerScale = QtGui.QSlider(QtCore.Qt.Horizontal)
-        # self.markerScale.setTickPosition(1.0)
-        self.markerScale.setRange(80, 200)
-        self.markerScale.setValue(100)
-        self.markerScale.valueChanged.connect(lambda: self.view.setMarkerScaleSlider(self.markerScale.value()))
-
-        # self.connect(self.markerScale , QtCore.SIGNAL( ' valueChanged ( int ) ' ), self.changeValue)
-        
-        self.reflectGuides = QtGui.QPushButton("Reflect Markers")
-        self.reflectGuides.clicked.connect(self.view.reflectGuides)
-        # self.testCheckBox = QtGui.QCheckBox("Check me Out")
-        self.selectionButton = QtGui.QPushButton("Test Selection")
-        self.addWireGroupButton = QtGui.QPushButton("Add Wire Group")
-        self.addWireGroupButton.clicked.connect(lambda:  self.view.addWireGroup())
-        self.clearGV = QtGui.QPushButton("CLEAR")
-        self.clearGV.clicked.connect(lambda:  self.view.clear())
-        # self.selectionButton.pressed.connect(lambda: self.view.printSelection()) #Adjust this to add hide Reflection Line Functionality
 
         hBox = QtGui.QHBoxLayout()
         hBox.addWidget(self.view)
@@ -202,12 +204,22 @@ class RigFaceSetup(QtGui.QMainWindow):
         actionMenu.addSeparator()
         actionMenu.addAction(self.clearFace)
 
-        self.filtersToolbar = self.addToolBar('Quick Tools')
+
+        self.createDataSceneControl = QtGui.QAction("Create " + self.dataProcessor.getAppName() +" Control",self)
+        self.createDataSceneControl.triggered.connect(self.createSceneControl)
+        self.createDataSceneControl.setStatusTip('Create a Locator with attributes representing all the control movements on the face setup')
+
+        dataMenu = menubar.addMenu('&Data')
+        dataMenu.addAction(self.createDataSceneControl)
+        # dataMenu.addSeparator()
+        # dataMenu.addAction(self.clearFace)
+
+        self.quickToolbar = self.addToolBar('Quick Tools')
         space  = QtGui.QLabel("                          ")
         self.selectionFilters = QtGui.QLabel("   Selection Filters   ")
 
         self.selMarkers = QtGui.QAction(
-                QtGui.QIcon('images/GuideMarker_toolbar_active.png'),
+                QtGui.QIcon(self.imagePath + '/images/GuideMarker_toolbar_active.png'),
                 'Select Guide Markers',
                 self
                 ) 
@@ -216,7 +228,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.selMarkers.setStatusTip("Toggle guide marker selection")
         self.selMarkers.toggled.connect(lambda: self.selectMarkers(self.selMarkers.isChecked()))
 
-        self.selNodes = QtGui.QAction(QtGui.QIcon('images/Node_toolbar_active.png'), 'Select Nodes', self)
+        self.selNodes = QtGui.QAction(QtGui.QIcon(self.imagePath + '/images/Node_toolbar_active.png'), 'Select Nodes', self)
         self.selNodes.setCheckable(True)
         self.selNodes.setChecked(True)
         self.selNodes.setStatusTip("Toggle node selection")
@@ -242,17 +254,17 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.imgFileSetButton = QtGui.QPushButton("Set Background Image")
         self.imgFileSetButton.pressed.connect(lambda: self.view.loadBackgroundImage())
 
-        self.filtersToolbar.addWidget(space)
-        self.filtersToolbar.addWidget(self.selectionFilters)
-        self.filtersToolbar.addAction(self.selMarkers)
-        self.filtersToolbar.addAction(self.selNodes)
-        self.filtersToolbar.addWidget(self.controlScaleLbl)
-        self.filtersToolbar.addWidget(self.controlScaleSlider)
-        self.filtersToolbar.addWidget(self.scaleSameItems)
-        self.filtersToolbar.addWidget(self.imgFileLineEdit)
-        self.filtersToolbar.addWidget(self.imgFileSetButton)
+        self.quickToolbar.addWidget(space)
+        self.quickToolbar.addWidget(self.selectionFilters)
+        self.quickToolbar.addAction(self.selMarkers)
+        self.quickToolbar.addAction(self.selNodes)
+        self.quickToolbar.addWidget(self.controlScaleLbl)
+        self.quickToolbar.addWidget(self.controlScaleSlider)
+        self.quickToolbar.addWidget(self.scaleSameItems)
+        self.quickToolbar.addWidget(self.imgFileLineEdit)
+        self.quickToolbar.addWidget(self.imgFileSetButton)
 
-        self.filtersToolbar.addSeparator()
+        self.quickToolbar.addSeparator()
 
         #Creation DockWidget
         self.dockCreationWidget = QtGui.QDockWidget(self)
@@ -268,7 +280,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.addDockWidget(QtCore.Qt.DockWidgetArea(1), self.dockCreationWidget)
 
 
-        self.markerCreate = rig.DragItemButton(rig.GuideMarker.name)
+        self.markerCreate = DragItemButton(rig.GuideMarker.name)
         self.wireGroupCreate = rig.WireGroupButton()
         self.wireGroupCreate.clicked.connect(lambda:  self.view.addWireGroup())
 
@@ -301,22 +313,41 @@ class RigFaceSetup(QtGui.QMainWindow):
         creationBox.addStretch(1)
 
         #Skinning DockWidget
-        skinBox = QtGui.QHBoxLayout()
-        skinBox.addStretch(1)
+        # skinBox = QtGui.QHBoxLayout()
+        # skinBox.addStretch(1)
 
-        #Build the Skinning Table
-        self.skinTableWidget = rig.SkinTabW()
-        self.skinTableWidget.itemChanged.connect(self.updateSkinData)
 
-        self.dockSkinningWidget = QtGui.QDockWidget(self)
-        self.dockSkinningWidget.setWindowTitle("Skinning Values")
+
+        self.dockDataTablesWidget = QtGui.QDockWidget(self)
+        self.dockDataTablesWidget.setWindowTitle("Data Tables")
         # self.skinningWidget = QtGui.QWidget()
-        self.dockSkinningWidget.setWidget(self.skinTableWidget)
-        # self.dockSkinningWidget.setWidget(self.skinTableWidget)
+        self.dataTabsWidget = QtGui.QTabWidget()
+        
+        tabSkinning = QtGui.QWidget()
+        layoutSkinning = QtGui.QVBoxLayout(tabSkinning)
+        self.dataTabsWidget.addTab(tabSkinning, "Skinning Values")
+        #Build the Skinning Table
+        self.skinTableWidget = SkinTabW()
+        self.skinTableWidget.itemChanged.connect(self.updateSkinData)
+        layoutSkinning.addWidget(self.skinTableWidget)
 
-        # self.skinningWidget .setLayout(skinBox)
-        # self.skinningWidget.setWidget(self.skinTableWidget)
-        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dockSkinningWidget) 
+
+        tabNodeLinks = QtGui.QWidget()
+        layoutNodeLinks = QtGui.QVBoxLayout(tabNodeLinks)
+        self.dataTabsWidget.addTab(tabNodeLinks, "Node and Servo Links")
+        #Build the Skinning Table
+        self.nodeLinksTableWidget = SceneLinkServoTabW(self.styleData) #Replace this when the correct data table is actually written! 
+        self.nodeLinksTableWidget.itemChanged.connect(self.updateSceneLinkOutputData) #Function called to see which Table item has been changed, and adjust the appropriate output
+        self.nodeLinksTableWidget.setDataProcessor(self.dataProcessor)
+        self.nodeLinksTableWidget.populate()
+        self.updateNodeLinksButton = QtGui.QPushButton("Update")
+        self.updateNodeLinksButton.pressed.connect(lambda: self.nodeLinksTableWidget.populate()) 
+
+        layoutNodeLinks.addWidget(self.nodeLinksTableWidget)
+        layoutNodeLinks.addWidget(self.updateNodeLinksButton)
+
+        self.dockDataTablesWidget.setWidget(self.dataTabsWidget) #Now set the Tab Widget to be the main Widget for this bottom Dock
+        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dockDataTablesWidget) 
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dockCreationWidget)
 
     def selectMarkers(self,state):
@@ -330,9 +361,9 @@ class RigFaceSetup(QtGui.QMainWindow):
         contradict the icon state.
         """ 
         if state:
-            self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_active.png'))
+            self.selMarkers.setIcon(QtGui.QIcon(self.imagePath + '/images/GuideMarker_toolbar_active.png'))
         else:
-            self.selMarkers.setIcon(QtGui.QIcon('images/GuideMarker_toolbar_deactive.png'))
+            self.selMarkers.setIcon(QtGui.QIcon(self.imagePath + '/images/GuideMarker_toolbar_deactive.png'))
         self.view.selectFilter(state, rig.GuideMarker)
 
     def selectNodes(self,state):
@@ -346,15 +377,15 @@ class RigFaceSetup(QtGui.QMainWindow):
         contradict the icon state.
         """
         if state:
-            self.selNodes.setIcon(QtGui.QIcon('images/Node_toolbar_active.png'))
+            self.selNodes.setIcon(QtGui.QIcon(self.imagePath + '/images/Node_toolbar_active.png'))
         else:
-            self.selNodes.setIcon(QtGui.QIcon('images/Node_toolbar_deactive.png'))
+            self.selNodes.setIcon(QtGui.QIcon(self.imagePath + '/images/Node_toolbar_deactive.png'))
         self.view.selectFilter(state, rig.Node)
 
     def openFaceRig(self):
         """Function to load in a stored XML file of face Rig Data"""
-        xMLStructure = FaceGVCapture(self.view, self.messageLogger)
-        faceFileName = QtGui.QFileDialog.getOpenFileName(self, 'Open Happy Face File', 'faceFiles', filter = "Face XML files (*.xml)")
+        xMLStructure = FaceGVCapture(self.view, self.messageLogger, self.dataProcessor)
+        faceFileName = QtGui.QFileDialog.getOpenFileName(self, 'Open Happy Face File', 'faceFiles', filter = "Face XML files (*.xml)")[0]
         if faceFileName != "": # A Valid File has been selected from the File Diaglogue
             self.faceSaveFile = faceFileName
             xMLStructure.setXMLFile(faceFileName)
@@ -362,7 +393,7 @@ class RigFaceSetup(QtGui.QMainWindow):
 
     def saveFaceRig(self):
         """Function to save the entire Rig Graphics View scene out to an XML File"""
-        xMLStructure = FaceGVCapture(self.view, self.messageLogger)
+        xMLStructure = FaceGVCapture(self.view, self.messageLogger, self.dataProcessor)
         isValidSaveFile = False
         if self.faceSaveFile: # Check a Face File has been set and exists
             if os.path.isfile(self.faceSaveFile): isValidSaveFile = True
@@ -371,15 +402,15 @@ class RigFaceSetup(QtGui.QMainWindow):
             xMLStructure.setXMLFile(self.faceSaveFile)
             xMLStructure.store()
         else:
-            self.faceSaveFile = QtGui.QFileDialog.getSaveFileName(self, 'Save Happy Face File', 'faceFiles', filter = "Face XML files (*.xml)")
+            self.faceSaveFile = QtGui.QFileDialog.getSaveFileName(self, 'Save Happy Face File', 'faceFiles', filter = "Face XML files (*.xml)")[0]
             if self.faceSaveFile != "": 
                 xMLStructure.setXMLFile(self.faceSaveFile)
                 xMLStructure.store()
 
     def saveFaceAsRig(self):
         """Function to save the entire Rig Graphics View scene out to an XML File"""
-        xMLStructure = FaceGVCapture(self.view, self.messageLogger)
-        faceFileName = QtGui.QFileDialog.getSaveFileName(self, 'Save Happy Face File As...', 'faceFiles', filter = "Face XML files (*.xml)")
+        xMLStructure = FaceGVCapture(self.view, self.messageLogger, self.dataProcessor)
+        faceFileName = QtGui.QFileDialog.getSaveFileName(self, 'Save Happy Face File As...', 'faceFiles', filter = "Face XML files (*.xml)")[0]
         if faceFileName != "": 
             self.faceSaveFile = faceFileName
             xMLStructure.setXMLFile(self.faceSaveFile)
@@ -389,14 +420,64 @@ class RigFaceSetup(QtGui.QMainWindow):
         """Function that simply calls the skinning table to update"""
         self.skinTableWidget.updateSkinning(item)
 
+    def updateSceneLinkOutputData(self, item):
+        """Function that simply calls the skinning table to update"""
+        self.nodeLinksTableWidget.updateSceneLinkOutputData(item)
+
     def itemTest(self):
         """Random Test funciton to see if things get called"""
         print "moo"
 
+    def createSceneControl(self):
+        """Check to see if there is a scene Controller, and if there is not, then build one"""
+        #Check to see if there is an established controller already setup
+        sceneControllerName, ok = QtGui.QInputDialog.getText(
+                self, self.dataProcessor.getAppName() + ' Scene Controller Name',
+                'Please Enter a unique Scene Contoller Name:'
+                )
+        while not self.dataProcessor.isSceneControllerNameUnique(sceneControllerName):
+            sceneControllerName, ok = QtGui.QInputDialog.getText(
+                    self, self.dataProcessor.getAppName() + ' Scene Controller Name',
+                    'Sadly that name already exists in the current Scene. Please Enter a unique Scene Contoller Name:'
+                    )
+        if ok:
+            print "Name is : " + str(sceneControllerName) + " " + str(self.dataProcessor.getSceneControl())
+            if self.dataProcessor.getSceneControl() != None and self.dataProcessor.sceneControllerExists() :
+                reply = QtGui.QMessageBox.question(self, "Scene Controller Conflict", 'There already seems to be a controller in place called : ' + self.dataProcessor.getSceneControl() + '. Do you want to override it with a new controller?', QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+                if reply == QtGui.QMessageBox.Yes:
+                    self.dataProcessor.createSceneControl(sceneControllerName)
+                    self.dataProcessor.setSceneControl(sceneControllerName)
+            else:
+                self.dataProcessor.createSceneControl(sceneControllerName)
+                self.dataProcessor.setSceneControl(sceneControllerName)
+
+
+# def main():
+
+#     stylesheet = 'darkorange.stylesheet'
+#     try:
+#         # Read style sheet information
+#         with open(stylesheet, 'r') as handle:
+#             styleData = handle.read()
+#     except IOError:
+#         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
+#         return 1
+
+#     app = QtGui.QApplication([])
+#     app.setStyle('Plastique')
+#     ex = RigFaceSetup(styleData)
+#     ex.show()
+#     app.exec_()
+
+#     return 0
+
+# if __name__ == "__main__":
+#     sys.exit(main())
+
 
 def main():
-
-    stylesheet = 'darkorange.stylesheet'
+    # stylesheet = 'darkorange.stylesheet'
+    stylesheet = (os.path.dirname(os.path.realpath(__file__))) + '/darkorange.stylesheet'
     try:
         # Read style sheet information
         with open(stylesheet, 'r') as handle:
@@ -405,14 +486,28 @@ def main():
         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
         return 1
 
-    app = QtGui.QApplication([])
-    app.setStyle('Plastique')
-    ex = RigFaceSetup(styleData)
-    ex.show()
-    app.exec_()
-
+    #Create DataProcessor for the rig and use the DataBundle Class to determine how it will behave.
+    # rigProcessor = DataProcessor(MayaData()) 
+    rigProcessor = DataServoProcessor(MayaData()) 
+    happyFaceUI = RigFaceSetup(styleData, rigProcessor, parent = maya_main_window())
+    # happyFaceUI = RigFaceSetup(styleData)
+    # happyFaceUI.setWindowFlags(QtCore.Qt.Tool)
+    happyFaceUI.show()
     return 0
 
-if __name__ == "__main__":
-    sys.exit(main())
+# if __name__ == "__main__":
+#     print "launching......"
+#     launch()
 
+
+#     stylesheet = 'darkorange.stylesheet'
+#     try:
+#         # Read style sheet information
+#         with open(stylesheet, 'r') as handle:
+#             styleData = handle.read()
+#     except IOError:
+#         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
+#         return 1
+
+print "launching Happy Face......"
+main()

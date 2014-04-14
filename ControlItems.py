@@ -1,7 +1,7 @@
 
 import sys
 import weakref
-from PyQt4 import QtCore, QtGui
+from PySide import QtCore, QtGui
 import os
 import math
 import xml.etree.ElementTree as xml
@@ -134,7 +134,7 @@ class WireGroup(object):
     Finally a curve (Rigcurve) is the drawn between all the nodes of the WireGroup
 
     """
-    def __init__(self, rigGView):
+    def __init__(self, rigGView, dataProcessor):
         #LIST OF ATTRIBUTES
         self.name = ""
         self.colour = QtGui.QColor(0,0,0)
@@ -147,6 +147,8 @@ class WireGroup(object):
         self.curve = None
         self.scene = rigGView.scene()
         self.rigGView = rigGView
+
+        self.dataProcessor = dataProcessor
         # self.initBuild()
 
     def store(self):
@@ -211,12 +213,15 @@ class WireGroup(object):
         nodes = wireXml.findall('Nodes')
         for n in nodes[0].findall('Node'):
             if n.attrib['state'] == 'native': # We have a normal Native Pin so Build it
-                newNode = Node(QPVec([0,0])) # Create new Node with Arbitray pos
+                newNode = Node(QPVec([0,0]), self.dataProcessor) # Create new Node with Arbitray pos
                 self.nodes.append(newNode)
                 newNode.read(n)
                 newNode.setPin(self.findPin(newNode.getPinIndex())) # Set the pin for Node
                 self.findPin(newNode.getPinIndex()).setNode(newNode) # Set the Node for the Pin
-                newNode.setWireGroup(self)
+                # newNode.setWireGroup(self)
+                newNode.setGroup(self)
+                print "New node being set to DataBundle is : " + str(newNode)
+                newNode.setDataBundleInfo() #This methods sets up details such as the attribute name within the Node DataBundle, which is determined by the WireGroup Name and Index
                 if newNode.getPin().getConstraintItem(): # We have a constraint Item so make sure we set the node for it
                     newNode.getPin().getConstraintItem().setNode(newNode)
             
@@ -245,8 +250,10 @@ class WireGroup(object):
 
     def setName(self, newName):
         self.name = str(newName)
-        for node in self.nodes: node.setWireName(newName)
-        for pin in self.pins: pin.setGroupName(newName)
+        for node in self.nodes: 
+            node.setGroup(self) #Setting The Group again, will update the link to the Group, and set the right names in the DataBundles too.
+            node.setDataBundleInfo() #With the name updated, then pass this information through to the DataBundles
+        for pin in self.pins: pin.setGroup(self) 
 
     def getColour(self):
         return self.colour
@@ -289,12 +296,14 @@ class WireGroup(object):
         self.nodes = []
         for index, p in enumerate(self.pins):
             # node = Node(p.pos())
-            node = Node(QtCore.QPointF(0,0))
+            node = Node(QtCore.QPointF(0,0), self.dataProcessor)
             node.setIndex(p.getIndex())
             node.setPin(p)
             p.setNode(node)
-            node.setWireGroup(self)
-            node.setWireName(self.name)
+            # node.setWireGroup(self)
+            # node.setWireName(self.name)
+            node.setGroup(self)
+            node.setDataBundleInfo() #This methods sets up details such as the attribute name within the Node DataBundle, which is determined by the WireGroup Name and Index
             self.nodes.append(node)
             # self.scene.addItem(node)
 
@@ -365,7 +374,7 @@ class WireGroup(object):
 
         if index < len(self.nodes):
             # Proceed with Replacement if we have a valid native Node or a NodePinReference Object
-            if self.nodes[index].getWireName() == self.name or self.nodes[index].name == "NodePinReference": 
+            if self.nodes[index].getGroupName() == self.name or self.nodes[index].name == "NodePinReference": 
                 oldNode = self.nodes[index]
                 # Directly set the mergeNode Node into the WireGroup
                 self.pins[index] = mergeNode.getPin()
@@ -392,7 +401,8 @@ class WireGroup(object):
         for index, refNode in enumerate(self.nodes):
             if refNode.name == "NodePinReference": # We have found a reference so find and sub in the Node
                 for wireGroup in self.rigGView.wireGroups:
-                    if wireGroup.getName() == refNode.getWireName():
+                    # if wireGroup.getName() == refNode.getWireName():
+                    if wireGroup.getName() == refNode.getGroupName():
                         targetNode = wireGroup.findNode(refNode.getIndex())
                         self.mergeNode(index, targetNode, goHome = False)
 
@@ -430,7 +440,7 @@ class SuperNodeGroup(object):
     """
     name = "SuperNodeGroup"
 
-    def __init__(self, nPos, form, rigGView):
+    def __init__(self, nPos, form, rigGView, dataProcessor):
         #LIST OF ATTRIBUTES
         self.name = "holdingName" #Put in a holding name, so the name is not reported as None
         self.locked = True
@@ -442,6 +452,9 @@ class SuperNodeGroup(object):
         self.pin = None
         self.pinTie = None
         self.scene = rigGView.scene()
+
+        self.dataProcessor = dataProcessor
+
         self.initBuild(nPos)
 
     def initBuild(self, nPos):
@@ -450,13 +463,13 @@ class SuperNodeGroup(object):
         cP.setGroup(self)
         self.pin = cP
 
-        sNode = SuperNode(QtCore.QPointF(0,0)) #Build SuperNode
+        sNode = SuperNode(QtCore.QPointF(0,0), self.dataProcessor) #Build SuperNode
         sNode.setForm(self.form)
         sNode.setPin(cP)
         cP.setNode(sNode)
         self.superNode = sNode
-        self.superNode.setSuperNodeGroup(self)
-        # sNode.setWireGroup(self)
+        # self.superNode.setSuperNodeGroup(self)
+        self.superNode.setGroup(self)
         
         pT = PinTie(sNode, cP)
         sNode.setPinTie(pT)
@@ -507,7 +520,7 @@ class SuperNodeGroup(object):
         self.scene.addItem(newPin)
 
         sNodeXml = superNodeGroupXml.findall('SuperNode')[0]
-        newSNode = SuperNode(QtCore.QPointF(0,0)) # Create new SuperNode with Arbitrary pos
+        newSNode = SuperNode(QtCore.QPointF(0,0), self.dataProcessor) # Create new SuperNode with Arbitrary pos
         newSNode.setForm(self.form)
         self.scene.addItem(newSNode)
         # We need to add the SuperNode to the Scene before we read it, so that it has
@@ -519,7 +532,9 @@ class SuperNodeGroup(object):
 
         self.pin = newPin
         self.superNode = newSNode
-        self.superNode.setSuperNodeGroup(self)
+        # self.superNode.setSuperNodeGroup(self)
+        self.superNode.setGroup(self)
+
 
         self.setScale(self.scale) # The scale now needs to be read into the items
 
@@ -529,7 +544,7 @@ class SuperNodeGroup(object):
         self.pinTie = pT
         self.scene.addItem(pT)
 
-        if self.superNode.getPin().getConstraintItem(): # If We have a constraint Item so make sure we set the node for it
+        if self.superNode.getPin().getConstraintItem(): # If We have a constraint Item make sure we set the node for it
             self.superNode.getPin().getConstraintItem().setNode(self.superNode)
 
     def getName(self):
@@ -537,7 +552,10 @@ class SuperNodeGroup(object):
 
     def setName(self, name):
         self.name = str(name)
-        if self.superNode: self.superNode.setName(name)
+        if self.superNode: 
+            self.superNode.setGroup(self) #Setting The Group again, will update the link to the Group, and set the right names in the DataBundles too.
+            self.superNode.setDataBundleInfo()#With the name updated, then pass this information through to the DataBundles
+        self.pin.setGroup(self)
 
     def isLocked(self):
         return self.locked
@@ -640,9 +658,6 @@ class ControlPin(QtGui.QGraphicsItem):
         self.setPos(cPos)
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
-        f=open('darkorange.stylesheet', 'r')  #Set up Style Sheet for customising anything within the Graphics View
-        self.styleData = f.read()
-        f.close()
 
     def store(self, groupName):
         """Method to write out a block of XML that records all the major attributes that will be needed for save/load
@@ -706,8 +721,8 @@ class ControlPin(QtGui.QGraphicsItem):
             
             if cItem:
                 cItem.setPin(self)
-                cItem.read(cItemXml)
                 self.setConstraintItem(cItem)
+                cItem.read(cItemXml)
 
     def setIndex(self,value):
         self.index = value
@@ -750,8 +765,11 @@ class ControlPin(QtGui.QGraphicsItem):
         return self.constraintItem
 
     def setConstraintItem(self, item):
+        """Function to set the Constraint Item, and make sure that the constraintItem recognises the pin and the node"""
         if type(item) == ConstraintLine or type(item) == ConstraintRect or type(item) == ConstraintEllipse:
             self.constraintItem = item
+            if self.node: item.setNode(self.getNode())
+            self.constraintItem.calibrateDataBundle() #This will line up the dataBundle output with the limits of the constraintItem
 
     def isActive(self):
         return self.active
@@ -761,14 +779,16 @@ class ControlPin(QtGui.QGraphicsItem):
 
     def activate(self):
         if not self.active: 
-            delConstraintItem = QtGui.QMessageBox()
-            delConstraintItem.setStyleSheet(self.styleData)
-            delConstraintItem.setWindowTitle("Pin Deactivation")
-            delConstraintItem.setText("Are you sure you want to deactivate the pin? There is a constraint Item present, and this item will be removed if you continue.")
-            delConstraintItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
-            delConstraintItem.setDefaultButton(QtGui.QMessageBox.No)
             response = QtGui.QMessageBox.Yes
-            if self.constraintItem: response = delConstraintItem.exec_()
+            if self.constraintItem: 
+                delConstraintItem = QtGui.QMessageBox()
+                self.styleData = self.scene().views[0].styleData
+                delConstraintItem.setStyleSheet(self.styleData)
+                delConstraintItem.setWindowTitle("Pin Deactivation")
+                delConstraintItem.setText("Are you sure you want to deactivate the pin? There is a constraint Item present, and this item will be removed if you continue.")
+                delConstraintItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+                delConstraintItem.setDefaultButton(QtGui.QMessageBox.No)
+                response = delConstraintItem.exec_()
             if response == QtGui.QMessageBox.Yes:
                 self.scaleOffset = 1.0
                 self.getNode().goHome()
@@ -986,9 +1006,8 @@ class GuideMarker(QtGui.QGraphicsItem):
 
     def boundingRect(self):
         adjust = 5
-        numberstretch = 5
-        return QtCore.QRectF(self.scale*(-18 - adjust), self.scale*(-18 - adjust),
-                             self.scale*(36 + adjust), self.scale*(36 + adjust + numberstretch))
+        return QtCore.QRectF(self.scale*(-15 - adjust), self.scale*(-15 - adjust),
+                             self.scale*2*(15 + adjust), self.scale*2*(15 + adjust))
 
     def drawActive(self, painter):
         """A function to draw an active glow around the marker when activated"""
@@ -1024,7 +1043,7 @@ class GuideMarker(QtGui.QGraphicsItem):
             if self.scale < 1.0:
                 fontsize = int(9*self.scale)
             painter.setFont(QtGui.QFont('Arial', fontsize))
-            painter.drawText(self.scale*12,self.scale*21,str(self.activeIndex))
+            painter.drawText(self.scale*9,self.scale*5,str(self.activeIndex))
 
     def paint(self, painter, option, widget):
         # painter.drawLine(QtCore.QLineF(6,-40,6,-2))
@@ -1049,6 +1068,8 @@ class GuideMarker(QtGui.QGraphicsItem):
         painter.drawLine(self.scale*-12,self.scale*12,self.scale*12,self.scale*-12)
         # self.drawID(painter) #Now add in the Marker ID if relevant
         self.drawActiveIndex(painter)
+        # painter.drawRect(self.boundingRect())
+
 
 
     def itemChange(self, change, value):
@@ -1057,8 +1078,9 @@ class GuideMarker(QtGui.QGraphicsItem):
             # print "Marker Move pos : " + str(self.scenePos())  
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
-    # def mouseMoveEvent(self, event):
-    #     QtGui.QGraphicsItem.mouseMoveEvent(self, event)
+    def mousePressEvent(self, event):
+        self.setPos(self.mapToScene(event.pos())) #Trying to line centre of node to mouse move
+        QtGui.QGraphicsItem.mousePressEvent(self, event)
 
 
 ###Nodes for selection in the Graphics View
@@ -1076,7 +1098,7 @@ class Node(QtGui.QGraphicsItem):
     """
     name = "Node"
 
-    def __init__(self, nPos):
+    def __init__(self, nPos, dataProcessor):
         QtGui.QGraphicsItem.__init__(self)
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
@@ -1090,7 +1112,6 @@ class Node(QtGui.QGraphicsItem):
         self.scaleOffset = 7
         self.minimumScale = 0.8
         self.scale = 1.0
-        self.wireName = ""
         self.colour = QtGui.QColor(25,25,255,150)
         # self.pin.append(weakref.ref(pin))
         self.pin = None
@@ -1099,16 +1120,25 @@ class Node(QtGui.QGraphicsItem):
         self.pinTie = None
         self.pinTieIndex = None
 
-        self.wireGroup = None
+        self.group = None #group is now used whether it is WireGroup or SuperNodeGroup. Testing Implentation
+        self.groupName = None
+
+        # self.wireGroup = None
+        # self.wireName = ""
+
         self.hightlighted = False
         self.setPos(nPos)
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
+
+        self.dataProcessor = dataProcessor
+        self.dataBundle = None
+        self.dataProcessor.attachBundle(self) #This method will create a new DataBundle and attach it to both this Node and the central DataProcessor
 
     def store(self,wireName):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load
 
         The first thing to do is check to see if the node is natively from this Wiregroup, or to see if it has been 
-        Merged in from another wiregroup. This can be done by checking the wirenames. If it is from this wire group then
+        Merged in from another wiregroup. This can be done by checking the groupNames. If it is from this wire group then
         its state is recorded as "native". It it isnt from this wiregroup then its state is recorded as "reference" 
 
         The data then stored for each state is identical, but is treated differently when the data is read back in,
@@ -1116,7 +1146,7 @@ class Node(QtGui.QGraphicsItem):
         """
         # We need to identify if the Node is referenced for is native to this WireGroup
         state = "native"
-        if self.wireName != wireName: state = "reference" 
+        if self.groupName != wireName: state = "reference" 
         # print "Input wireName : " + str(wireName) + " Node WireName : " + str(self.wireName)
         nodeRoot = xml.Element('Node', state = str(state))
         attributes = xml.SubElement(nodeRoot,'attributes')
@@ -1125,7 +1155,8 @@ class Node(QtGui.QGraphicsItem):
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
         xml.SubElement(attributes, 'attribute', name = 'pinIndex', value = str(self.getPinIndex()))
         xml.SubElement(attributes, 'attribute', name = 'pinTieIndex', value = str(self.getPinTieIndex()))
-        xml.SubElement(attributes, 'attribute', name = 'wireName', value = str(self.getWireName()))
+        # xml.SubElement(attributes, 'attribute', name = 'wireName', value = str(self.getWireName()))
+        xml.SubElement(attributes, 'attribute', name = 'groupName', value = str(self.getGroupName()))
         xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.getColour().red()) + "," + str(self.getColour().green()) + "," + str(self.getColour().blue())))
         xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
@@ -1134,6 +1165,12 @@ class Node(QtGui.QGraphicsItem):
         else: xml.SubElement(attributes, 'attribute', name = 'bezierHandle0', value = ("None"))
         if self.getBezierHandles(1) != None: xml.SubElement(attributes, 'attribute', name = 'bezierHandle1', value = (str(self.getBezierHandles(1)[0]) + "," + str(self.getBezierHandles(1)[1])))
         else: xml.SubElement(attributes, 'attribute', name = 'bezierHandle1', value = ("None"))
+
+        # Now record the xml for the DataBundle if there is one
+        dataBundlesXml = xml.SubElement(nodeRoot,'DataBundles')
+        if self.dataBundle:
+            dataBundleXml = self.dataBundle.store()
+            dataBundlesXml.append(dataBundleXml)
 
         return nodeRoot
 
@@ -1145,7 +1182,8 @@ class Node(QtGui.QGraphicsItem):
             elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
             elif a.attrib['name'] == 'pinIndex': self.setPinIndex(int(a.attrib['value']))
             elif a.attrib['name'] == 'pinTieIndex': self.setPinTieIndex(int(a.attrib['value']))
-            elif a.attrib['name'] == 'wireName': self.setWireName(str(a.attrib['value']))
+            # elif a.attrib['name'] == 'wireName': self.setWireName(str(a.attrib['value']))
+            elif a.attrib['name'] == 'groupName': self.setGroupName(str(a.attrib['value']))
             elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
             elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
             elif a.attrib['name'] == 'pos': 
@@ -1164,6 +1202,11 @@ class Node(QtGui.QGraphicsItem):
             elif a.attrib['name'] == 'colour':
                 newColour = a.attrib['value'].split(",")
                 self.setColour(QtGui.QColor(float(newColour[0]), float(newColour[1]),float(newColour[2])))                
+
+        #Now we have to load in the dataBundle information. The dataBundle will have been created when the Node was created, so just read in the data
+        dataBundleXml = nodeXml.findall('DataBundles/DataBundle')[0]
+        self.dataBundle.read(dataBundleXml)       
+
 
     def setIndex(self,value):
         self.index = value
@@ -1198,11 +1241,35 @@ class Node(QtGui.QGraphicsItem):
     def setPinTieIndex(self, index):
         self.pinTieIndex = index
 
-    def getWireName(self):
-        return self.wireName
+    # def getWireName(self):
+    #     return self.wireName
 
-    def setWireName(self,name):
-        self.wireName = str(name)
+    # def setWireName(self,name):
+    #     self.wireName = str(name)
+
+    # def getWireGroup(self):
+    #     if not self.wireGroup: print "WARNING : NO REGISTERED WIRE GROUP ON THE NODE, SO NO GROUP TO RETURN"
+    #     return self.wireGroup
+
+    # def setWireGroup(self, wireGroup):
+    #     self.wireGroup = wireGroup
+    #     self.wireName = wireGroup.getName()
+    #     self.dataBundle.setHostName(self.wireName) #Passes the name of the wireGroup through to the DataBundle so attrbute names can be checked
+
+    def getGroup(self):
+        if not self.group: print "WARNING : NO REGISTERED GROUP ON THE NODE, SO NO GROUP TO RETURN"
+        return self.group
+
+    def setGroup(self, group):
+        self.group = group
+        self.groupName = group.getName()
+        self.dataBundle.setHostName(self.groupName) #Passes the name of the wireGroup through to the DataBundle so attrbute names can be checked
+
+    def getGroupName(self):
+        return self.groupName
+
+    def setGroupName(self, groupName):
+        self.groupName = str(groupName) 
 
     def getColour(self):
         return self.colour
@@ -1215,7 +1282,8 @@ class Node(QtGui.QGraphicsItem):
 
     def setHighlighted(self, highlighted):
         self.hightlighted = bool(highlighted)
-        # self.update()
+        self.update()
+        # print "Highlighted Called: " + str(highlighted)
 
     def addRigCurve(self, rigCurve):
         self.rigCurveList.append(weakref.ref(rigCurve))
@@ -1258,27 +1326,39 @@ class Node(QtGui.QGraphicsItem):
         else: 
             print "WARNING : INVALID OBJECT WAS PASSED TO NODE FOR PINTIE ALLOCATION"
 
-    def getWireGroup(self):
-        if not self.wireGroup: print "WARNING : NO REGISTERED WIRE GROUP ON THE NODE, SO NO GROUP TO RETURN"
-        return self.wireGroup
+    def getDataBundle(self):
+        return self.dataBundle
 
-    def setWireGroup(self, wireGroup):
-        self.wireGroup = wireGroup
-        self.wireName = wireGroup.getName()
+    def setDataBundle(self, bundle):
+        """Function to set dataBundle to the Node, but also the pass the node down into the DataBundle, and the associated AttributeConnectors"""
+        self.dataBundle = bundle
+        self.dataBundle.setNode(self)
 
     def resetWireGroup(self):
-        if self.wireGroup:
-            self.wireGroup.resetNodes()
+        if self.group:
+            self.group.resetNodes()
 
     def goHome(self):
         """Function to centralise the node back to the pin and update any associated rigCurves and pinTies"""
+        print "Before Home Pos : " + str(self.pos().x()) + "," + str(self.pos().y()) 
         if self.pin:
             self.setPos(QtCore.QPointF(0,0))
+            print "After Home Pos : " + str(self.pos().x()) + "," + str(self.pos().y()) 
+            if self.dataBundle:
+                self.dataBundle.setX(0.0)
+                self.dataBundle.setY(0.0)
             if self.pinTie:
                 self.pinTie().drawTie()
             self.dirtyCurve() # Redraw the curve that is going through the WireGroup
         else:
             print "WARNING : NODE HAS NO ASSOCIATED PIN AND AS SUCH HAS NO HOME TO GO TO :("
+
+    def setDataBundleInfo(self):
+        """Sets the Expected Attribute Name that will eventually be assigned to the Scene Controller as an extra attribute"""
+        # attrName = str(self.wireName) + str(self.index)
+        attrName = str(self.groupName) + str(self.index)
+        self.dataBundle.setControllerAttrName(attrName)
+        self.dataBundle.setNode(self)
 
     def dirtyCurve(self):
         "Marks any associated curves as dirty"
@@ -1322,6 +1402,12 @@ class Node(QtGui.QGraphicsItem):
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
+            #Item has been moved so report out the data using the dataBundle
+            if self.dataBundle:
+                newPos = self.pos()
+                self.dataBundle.setX(newPos.x())
+                self.dataBundle.setY(newPos.y())
+                # print "Float Data : " + str(self.dataBundle.getX()) + ", " + str(self.dataBundle.getY()) 
             if self.pinTie:
                 # print "There is a tie"
                 self.pinTie().drawTie()
@@ -1329,16 +1415,28 @@ class Node(QtGui.QGraphicsItem):
             if self.getPin(): #Check to see if there is a pin
                 if self.getPin().getConstraintItem(): #check to see if there is a constraint Item
                     if type(self.getPin().getConstraintItem()) == ConstraintLine: # We have the special case of the ConstraintLine in place
-                        return self.mapFromScene(self.getPin().getConstraintItem().constrainItemChangedMovement(self.mapToScene(value.toPointF()))) #get the constraint cordinates and map them back to our local space
+                        return self.mapFromScene(self.getPin().getConstraintItem().constrainItemChangedMovement(self.mapToScene(value))) #get the constraint cordinates and map them back to our local space
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
     def mousePressEvent(self, event):
-        self.update()
-        QtGui.QGraphicsItem.mousePressEvent(self, event)
+        if event.button() == QtCore.Qt.LeftButton:
+            # print "Before Click Pos : " + str(self.pos().x()) + "," + str(self.pos().y()) 
+            self.setPos(self.mapToParent(event.pos())) #Trying to line centre of node to mouse move
+            if self.dataBundle:
+                newPos = self.pos()
+                # print "After Click Pos : " + str(self.pos().x()) + "," + str(self.pos().y()) 
+                self.dataBundle.setX(newPos.x())
+                self.dataBundle.setY(newPos.y())
+                # print "Mouse Click Float Data : " + str(self.dataBundle.getX()) + ", " + str(self.dataBundle.getY()) 
+            if self.pinTie:
+                # print "There is a tie"
+                self.pinTie().drawTie()
+            self.update()
+        return QtGui.QGraphicsItem.mousePressEvent(self, event)
 
     def mouseReleaseEvent(self, event):
         self.update()
-        QtGui.QGraphicsItem.mouseReleaseEvent(self, event)
+        return QtGui.QGraphicsItem.mouseReleaseEvent(self, event)
 
     def mouseMoveEvent(self, mouseEvent):
         # check of mouse moved within the restricted area for the item 
@@ -1398,22 +1496,22 @@ class SuperNode(Node):
     upgraded to using polymorphism.
 
     """
-    def __init__(self, nPos):
-        Node.__init__(self,nPos)
+    def __init__(self, nPos, dataProcessor):
+        Node.__init__(self, nPos, dataProcessor)
         self.name = ""
         self.form = "Arrow_4Point" #Possibilities are arrow_4Point, arrow_sidePoint, arrow_upDownPoint  
         self.scale = 0.8
+        self.scaleOffset = 2
         self.alpha = 1.0
-        self.superNodeGroup = None
+        # self.superNodeGroup = None
         self.minimumScale = 0.2
         self.colour = QtGui.QColor(250,160,100,255*self.alpha)
         self.path = QtGui.QPainterPath()
         self.skinningItem = None
         self.skinnedPins = []
-        self.initBuild()
-
-    def initBuild(self):
-        self.scaleOffset = 2
+        
+        self.dataProcessor = dataProcessor
+        
 
     def store(self):
         """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
@@ -1426,7 +1524,8 @@ class SuperNode(Node):
         xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
         xml.SubElement(attributes, 'attribute', name = 'pinIndex', value = str(self.getPinIndex()))
         xml.SubElement(attributes, 'attribute', name = 'pinTieIndex', value = str(self.getPinTieIndex()))
-        xml.SubElement(attributes, 'attribute', name = 'wireName', value = str(self.getWireName()))
+        # xml.SubElement(attributes, 'attribute', name = 'wireName', value = str(self.getWireName()))
+        xml.SubElement(attributes, 'attribute', name = 'groupName', value = str(self.getGroupName()))
         xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.getColour().red()) + "," + str(self.getColour().green()) + "," + str(self.getColour().blue())))
         xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
         xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
@@ -1440,7 +1539,14 @@ class SuperNode(Node):
         skinPinsXml = xml.SubElement(superNodeRoot,'SkinningPinInfos')
         for skinPin in self.skinnedPins:
             skinPinXml = skinPin.store()
-            skinPinsXml.append(skinPinXml)        
+            skinPinsXml.append(skinPinXml)
+
+        # Now record the xml for the DataBundle if there is one
+        dataBundlesXml = xml.SubElement(superNodeRoot,'DataBundles')
+        if self.dataBundle:
+            dataBundleXml = self.dataBundle.store()
+            dataBundlesXml.append(dataBundleXml)
+
         return superNodeRoot
 
     def read(self, superNodeXml):
@@ -1453,7 +1559,8 @@ class SuperNode(Node):
             elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
             elif a.attrib['name'] == 'pinIndex': self.setPinIndex(int(a.attrib['value']))
             elif a.attrib['name'] == 'pinTieIndex': self.setPinTieIndex(int(a.attrib['value']))
-            elif a.attrib['name'] == 'wireName': self.setWireName(str(a.attrib['value']))
+            # elif a.attrib['name'] == 'wireName': self.setWireName(str(a.attrib['value']))
+            elif a.attrib['name'] == 'groupName': self.setGroupName(str(a.attrib['value']))
             elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
             elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
             elif a.attrib['name'] == 'pos': 
@@ -1495,17 +1602,22 @@ class SuperNode(Node):
                 print "WARNING: SkinningInfo has failed to fine correct Pin"
             self.skinnedPins.append(newSkinInfo)
 
+        #Now we have to load in the dataBundle information. The dataBundle will have been created when the Node was created, so just read in the data
+        dataBundleXml = superNodeXml.findall('DataBundles/DataBundle')[0]
+        self.dataBundle.read(dataBundleXml) 
+
     def getName(self):
         return self.name
 
     def setName(self, name):
         self.name = str(name)
 
-    def getSuperNodeGroup(self):
-        return self.superNodeGroup
+    # def getSuperNodeGroup(self):
+    #     return self.superNodeGroup
 
-    def setSuperNodeGroup(self, superNodeGroup):
-        self.superNodeGroup = superNodeGroup
+    # def setSuperNodeGroup(self, superNodeGroup):
+    #     self.superNodeGroup = superNodeGroup
+    #     self.dataBundle.setHostName(superNodeGroup.getName()) #Passes the name of the SuperNodeGroup through to the DataBundle so attribute names can be checked
 
     def getForm(self):
         return self.form
@@ -1544,7 +1656,7 @@ class SuperNode(Node):
                 skinInfo.setSuperNode(self)
                 skinInfo.setPin(node.getPin())
                 # print "Wire Name : " + str(node.getWireGroup().getName())
-                skinInfo.setWireGroup(node.getWireGroup())
+                skinInfo.setWireGroup(node.getGroup())
                 # print "get skin wire Name " + str(skinInfo.getWireGroupName())
                 skinInfo.setSkinValue(skinValue)
                 self.skinnedPins.append(skinInfo)
@@ -1558,6 +1670,14 @@ class SuperNode(Node):
 
     def goHome(self):
         """Function to centralise the node back to the pin and update any associated rigCurves and pinTies"""
+        print "Before Home Pos : " + str(self.pos().x()) + "," + str(self.pos().y()) 
+        if self.pin:
+            self.setPos(QtCore.QPointF(0,0))
+            print "After Home Pos : " + str(self.pos().x()) + "," + str(self.pos().y()) 
+            if self.dataBundle:
+                self.dataBundle.setX(0.0)
+                self.dataBundle.setY(0.0) 
+
         if self.pin:
             self.setPos(QtCore.QPointF(0,0))
             if self.pinTie:
@@ -1573,8 +1693,15 @@ class SuperNode(Node):
 
 
     def drawArrow_4Point(self, painter, option, widget):
-        pen = QtGui.QPen(self.colour, 1, QtCore.Qt.SolidLine)
+        penCol = self.colour
+        pen = QtGui.QPen(penCol, 1, QtCore.Qt.SolidLine)
+
+        if self.hightlighted: #If the node is highlighted for dataTable Identifying purposes
+            penCol = QtGui.QColor(240,240,255,200)
+            pen = QtGui.QPen(penCol, 3 , QtCore.Qt.SolidLine)
+
         painter.setPen(pen)
+
         self.path = QtGui.QPainterPath()
         self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
         self.path.lineTo(QtCore.QPointF(9*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
@@ -1603,8 +1730,15 @@ class SuperNode(Node):
         self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
 
     def drawArrow_sidePoint(self, painter, option, widget):
-        pen = QtGui.QPen(self.colour, 1, QtCore.Qt.SolidLine)
+        penCol = self.colour
+        pen = QtGui.QPen(penCol, 1, QtCore.Qt.SolidLine)
+
+        if self.hightlighted: #If the node is highlighted for dataTable Identifying purposes
+            penCol = QtGui.QColor(240,240,255,200)
+            pen = QtGui.QPen(penCol, 3 , QtCore.Qt.SolidLine)
+
         painter.setPen(pen)
+
         self.path = QtGui.QPainterPath()
         self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
         self.path.lineTo(QtCore.QPointF(9*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
@@ -1623,11 +1757,17 @@ class SuperNode(Node):
         self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
 
     def drawArrow_upDownPoint(self, painter, option, widget):
-        pen = QtGui.QPen(self.colour, 1, QtCore.Qt.SolidLine)
+        penCol = self.colour
+        pen = QtGui.QPen(penCol, 1, QtCore.Qt.SolidLine)
+
+        if self.hightlighted: #If the node is highlighted for dataTable Identifying purposes
+            penCol = QtGui.QColor(240,240,255,200)
+            pen = QtGui.QPen(penCol, 3 , QtCore.Qt.SolidLine)
+
         painter.setPen(pen)
+
         self.path = QtGui.QPainterPath()
         self.path.moveTo(QtCore.QPointF(3*self.scaleOffset*self.scale,3*self.scaleOffset*self.scale))
-
         self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,-3*self.scaleOffset*self.scale))
         self.path.lineTo(QtCore.QPointF(3*self.scaleOffset*self.scale,-9*self.scaleOffset*self.scale))
         self.path.lineTo(QtCore.QPointF(6*self.scaleOffset*self.scale,-9*self.scaleOffset*self.scale))
@@ -1660,7 +1800,8 @@ class SuperNode(Node):
                 skinPin.getPin().itemChange(change, value)
 
         elif change == QtGui.QGraphicsItem.ItemSelectedChange:
-            if value.toBool():
+            # if value.toBool():
+            if value:
                 self.scene().views()[0].populateSkinningTable(self)
                 # self.scene().views()[0].skinTableWidget.populate(self)
 
@@ -1914,14 +2055,16 @@ class OpsCross(QtGui.QGraphicsItem):
                 yPos = 0
                 if self.getIndex() == 0:
                     # print "Hit Head"
-                    yPos = value.toPointF().y()
+                    # yPos = value.toPointF().y()
+                    yPos = value.y()
                     if yPos >= 0 - self.getSliderLimit():
                         yPos = 0 - self.getSliderLimit()
                     self.parentItem().redraw(0)
                     # print "Head Pos : " + str(yPos)
                 elif self.getIndex() == 1:
                     # print "Hit Tail"
-                    yPos = value.toPointF().y()
+                    # yPos = value.toPointF().y()
+                    yPos = value.y()
                     if yPos <= 0 + self.getSliderLimit():
                         yPos = 0 + self.getSliderLimit()
                     self.parentItem().redraw(1)                   
@@ -2103,6 +2246,15 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False)  
         self.opX.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
 
+    def calibrateDataBundle(self):
+        if self.node:
+            if self.node.dataBundle:
+                dBundle = self.node.dataBundle
+                dBundle.setMaxX(self.width)
+                dBundle.setMinX(-self.width)
+                dBundle.setMaxY(self.height)
+                dBundle.setMinY(-self.height)
+
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust - self.extension-3),
@@ -2138,6 +2290,7 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
         self.setRect(self.scale*(-self.width), self.scale*(-self.height),
                              self.scale*(2*self.width), self.scale*(2*self.height)) 
         self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
+        self.calibrateDataBundle()
 
     def sceneCoordinates(self, sMousePt): #Code curtesy of ZetCode
         s_mouse_x = sMousePt.x()
@@ -2365,6 +2518,16 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False)  
         self.opX.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
 
+
+    def calibrateDataBundle(self):
+        if self.node:
+            if self.node.dataBundle:
+                dBundle = self.node.dataBundle
+                dBundle.setMaxX(self.width)
+                dBundle.setMinX(-self.width)
+                dBundle.setMaxY(self.height)
+                dBundle.setMinY(-self.height)
+
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-self.width - adjust), self.scale*(-self.height - adjust - self.extension),
@@ -2400,6 +2563,7 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
         self.setRect(self.scale*(-self.width), self.scale*(-self.height),
                              self.scale*(2*self.width), self.scale*(2*self.height))  
         self.opRot.setPos(QtCore.QPointF(0,-self.height-self.extension-5))
+        self.calibrateDataBundle()
 
     def sceneCoordinates(self, sMousePt): #Code curtesy of ZetCode
         s_mouse_x = sMousePt.x()
@@ -2638,6 +2802,15 @@ class ConstraintLine(QtGui.QGraphicsItem):
         self.opXHead.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
         self.opXTail.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,False) 
 
+    def calibrateDataBundle(self):
+        if self.node:
+            if self.node.dataBundle:
+                dBundle = self.node.dataBundle
+                dBundle.setMaxX(0)
+                dBundle.setMinX(0)
+                dBundle.setMaxY(self.tailLength)
+                dBundle.setMinY(-self.headLength)
+
     def boundingRect(self):
         adjust = 2
         return QtCore.QRectF(self.scale*(-5 - adjust), self.scale*(-self.headLength - adjust +1 ),
@@ -2662,6 +2835,7 @@ class ConstraintLine(QtGui.QGraphicsItem):
         elif index == 1:
             self.setTailLength(abs(self.opXTail.pos().y()) - self.crossOffset)
         self.update()
+        self.calibrateDataBundle()
 
 
     def sceneCoordinates(self, sMousePt): #Code curtesy of ZetCode

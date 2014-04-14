@@ -243,7 +243,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
             if type(controlItem) == WireGroup:
                 print "Mirroring WireGroup"
                 self.reflectWireGroup(controlItem)
-
+            elif type(controlItem) == SuperNodeGroup:
+                print "Mirroring SuperNodeGroup"
+                self.reflectSuperNodeGroup(controlItem)
 
     def reflectWireGroup(self,wireGroup):
         """Function to reflect the given Wiregroup so that a new copy is mirrored to the other side of the reflectionLine"""
@@ -276,7 +278,24 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
     def reflectSuperNodeGroup(self, superNodeGroup):
         """Function to reflect the given SuperNodeGroup so that a new copy is mirrored to the other side of the reflectionLine"""
-        pass
+        superNodeGroup.getSuperNode().goHome() #Reset current superNodeGroup to rest position
+        pinsRefPos = self.reflectPos(superNodeGroup.getPin().pos())
+        pinsRefScale = superNodeGroup.getSuperNode().getScale()#record the scale of that Node
+
+        unique = True
+        superGroupName, ok = QtGui.QInputDialog.getText(self, 'Super Node Name', 'Enter a unique mirror Super Node Name:',QtGui.QLineEdit.Normal,str(superNodeGroup.getName()))
+        while not self.checkUniqueSuperNodeGroup(superGroupName):
+            superGroupName, ok = QtGui.QInputDialog.getText(
+                    self,
+                    'Super Node Name',
+                    'The name was not unique. Please Enter a unique mirror Super Node Name:',
+                    QtGui.QLineEdit.Normal,
+                    str(superNodeGroup.getName())
+                    )
+        if ok:
+            mirrorSuperNodeGroup = SuperNodeGroup(pinsRefPos, superNodeGroup.getForm(), self, self.dataProcessor)
+            mirrorSuperNodeGroup.setName(superGroupName)
+            self.superNodeGroups.append(mirrorSuperNodeGroup)
 
     def processMarkerActiveIndex(self):
         itemPresent = False

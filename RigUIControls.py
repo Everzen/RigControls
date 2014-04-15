@@ -382,6 +382,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if ok:
             posList = []
             for m in self.markerActiveList: posList.append(m.pos())
+            self.dataProcessor.isSceneControllerActive() #on the building of a WireGroup we need to check that there is a properly functioning sceneControl. If not we make one.
             newWireGroup = WireGroup(self, self.dataProcessor)
             newWireGroup.buildFromPositions(posList)
             newWireGroup.setScale(self.markerScale)
@@ -695,6 +696,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         elif type(self.dragItem) == ControlPin: #Check to see if we are dealing with a SuperGroup
             # print str(type(self.dragItem.getGroup()))
             if type(self.dragItem.getGroup()) == SuperNodeGroup:
+                self.dataProcessor.isSceneControllerActive() #on the building of the node, we need to check that there is a properly functioning sceneControl. If not we make one.
                 superName = self.specifySuperNodeGroupName()
                 if superName: 
                     self.dragItem.getGroup().setName(superName) #We have a valid Name so set the name

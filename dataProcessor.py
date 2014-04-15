@@ -2,6 +2,7 @@
 ##dataProcessor - Module to grab positions of the RigGraphicsView Nodes and SuperNodes
 ##			      and return their positions as useful float data that can be wired into 
 ##				  Maya scene Control Nodes (Control Curver or Locator) to drive rig movement.
+from PySide import QtGui, QtCore
 import copy
 import xml.etree.ElementTree as xml
 
@@ -15,6 +16,7 @@ class DataProcessor(object):
 	"""
 	def __init__(self, sceneAppData):
 		#LIST OF ATTRIBUTES
+		self.mainWindow = None
 		self.appName = sceneAppData.getAppName()
 		self.sceneAppData = sceneAppData
 		self.sceneControl = None
@@ -23,6 +25,9 @@ class DataProcessor(object):
 		self.activeAttributeConnectors = []
 		self.activeServoDataConnectors = []
 		self.rigGraphicsView = None
+
+	def setWindow(self, window):
+		self.mainWindow = window
 
 	def createSceneControl(self, name):
 		"""Function to create the scene controller for the appropriate 3DApp. 
@@ -103,17 +108,36 @@ class DataProcessor(object):
 					return True
 		return False
 
-	def isControllerActive(self):
-		"""Function to check that the Controller is Active"""
+	def isSceneControllerActive(self):
+		"""Function to check that the SceneControl is Active, if it isnt, then it builds a new SceneControl.
+		A widget needs to be passed to the check for the pqSide dialogues... hacky
+		"""
 		#Basic Check - Expand to include checking whether the Node has been deleted from the scene
-		if self.sceneControl: return True
-		else: return false
+		if self.sceneControl:
+			if self.objExists(self.sceneControl):
+				return True
+			else: #The controller name does not exist in the scene, so set to None
+				self.sceneControl = None
+		#There is not scene Controller so we neen to create one.
+		sceneControllerName, ok = QtGui.QInputDialog.getText(
+		        self.mainWindow, self.getAppName() + ' Scene Controller Name',
+		        'Your ' + self.getAppName() + ' scene currently has now Scene Controller. To create one, please enter a unique Scene Controller Name:'
+		        )
+		while not self.isSceneControllerNameUnique(sceneControllerName):
+		    sceneControllerName, ok = QtGui.QInputDialog.getText(
+		            self.mainWindow, self.getAppName() + ' Scene Controller Name',
+		            'Sadly that name already exists in the current Scene. Please enter a unique Scene Controller Name:'
+		            )
+		if ok: #We have a Unique Name so continue to build the controller
+			self.createSceneControl(sceneControllerName)
+			self.setSceneControl(sceneControllerName)
 
 	def getAppName(self):
 		"""Returns the 3D application Name which is specified upon creation of the DataProcessor"""
 		return self.appName
 
 	def isSceneControllerNameUnique(self, name):
+		"""Function to test whether the suggested SceneControl name is unique in the 3D app scene"""
 		return self.sceneAppData.isNameUnique(name)
 
 	def sceneControllerExists(self):
@@ -183,14 +207,14 @@ class DataBundle(object):
 	"""
 	def __init__(self, sceneAppData):
 		#LIST OF ATTRIBUTES
+		self.sceneAppData = sceneAppData
 		self.sceneControl = None
 		self.hostName = None
 		self.node = None
 		self.controllerAttrName = None #The name that the UI Node directional attribute will be associated with
-		self.attributeConnectorX = AttributeConnector()
-		self.attributeConnectorY = AttributeConnector()
+		self.attributeConnectorX = AttributeConnector(self.sceneAppData)
+		self.attributeConnectorY = AttributeConnector(self.sceneAppData)
 		self.attributeConnectors = [self.attributeConnectorX, self.attributeConnectorY]
-		self.sceneAppData = sceneAppData
 
 	def store(self):
 		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load
@@ -227,14 +251,14 @@ class DataBundle(object):
 		attributeConnectorXXml = dataBundleXml.findall('attributeConnectorX')
 		attConX = None
 		for atConXXML in attributeConnectorXXml[0]:
-			attConX = AttributeServoConnector() #Create new X attributeConnector 
+			attConX = AttributeServoConnector(self.sceneAppData) #Create new X attributeConnector 
 			attConX.read(atConXXML) #read in the data
 			self.setAttributeConnectorX(attConX)
 
 		attributeConnectorYXml = dataBundleXml.findall('attributeConnectorY')
 		attConY = None
 		for atConYXml in attributeConnectorYXml[0]:
-			attConY = AttributeServoConnector() #Create new X attributeConnector 
+			attConY = AttributeServoConnector(self.sceneAppData) #Create new X attributeConnector 
 			attConY.read(atConYXml) #read in the data
 			self.setAttributeConnectorY(attConY)
 
@@ -346,8 +370,9 @@ class DataServoBundle(DataBundle):
 	"""
 	def __init__(self, sceneAppData):
 		DataBundle.__init__(self, sceneAppData) 
-		self.attributeConnectorX = AttributeServoConnector()
-		self.attributeConnectorY = AttributeServoConnector()
+		self.sceneAppData = sceneAppData
+		self.attributeConnectorX = AttributeServoConnector(sceneAppData)
+		self.attributeConnectorY = AttributeServoConnector(sceneAppData)
 		self.attributeConnectors = [self.attributeConnectorX, self.attributeConnectorY]
 
 
@@ -356,8 +381,9 @@ class AttributeConnector(object):
 	"""
 
 	"""
-	def __init__(self):
+	def __init__(self, sceneAppData):
 		#LIST OF ATTRIBUTES
+		self.sceneAppData = sceneAppData
 		self.sceneController = None
 		self.node = None
 		self.nodeIndex = None 
@@ -553,9 +579,10 @@ class AttributeServoConnector(AttributeConnector):
 	Servos are bolted on by adding ServoDataConnector objects, each of which describe a relationship out to a different servo
 
 	"""
-	def __init__(self):
-		AttributeConnector.__init__(self)
-		self.servoDataConnectors = [ServoDataConnector(0,self)] #intialise the list of servoDataConnectors with a single connector with ID 0
+	def __init__(self, sceneAppData):
+		AttributeConnector.__init__(self,sceneAppData)
+		self.sceneAppData = sceneAppData
+		self.servoDataConnectors = [ServoDataConnector(sceneAppData,0,self)] #intialise the list of servoDataConnectors with a single connector with ID 0
 
 	def store(self):
 		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load. 
@@ -616,7 +643,7 @@ class AttributeServoConnector(AttributeConnector):
 		"""Function to add a new ServoDataConnector to the end of the ServoDataConnectors list. Adds the appropirate ID from the ServoDataConnectors list length"""
 		self.sortServoDataConnectors() #Sort all the current ServoDataConnectors
 		newIndex = len(self.servoDataConnectors)
-		newServoDataConnector = ServoDataConnector(newIndex,self)
+		newServoDataConnector = ServoDataConnector(self.sceneAppData,newIndex,self)
 		self.servoDataConnectors.append(newServoDataConnector)
 		return newServoDataConnector
 
@@ -645,13 +672,15 @@ class ServoDataConnector(object):
 	"""
 	Class to describe the basic connection between the AttributeServoConnector data and how that maps out from the position of the Node/SuperNode to the correct servoChannel and servo angle etc.
 	"""
-	def __init__(self, index, attributeServoConnector):
-# 		#LIST OF ATTRIBUTES
+	def __init__(self, sceneAppData, index, attributeServoConnector):
+		#LIST OF ATTRIBUTES
+		self.sceneAppData = sceneAppData
 		self.index = index
 		self.attributeServoConnector = attributeServoConnector #Passing the paretn ServoDataConnector down, so it can be identified
 		self.servoChannel = None
 		self.servoMinAngle = None
 		self.servoMaxAngle = None
+		self.servoCurveNode = None
 
 	def store(self):
 		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load 
@@ -719,3 +748,17 @@ class ServoDataConnector(object):
 		else: #ServoChannel has been initialised with an channel number
 			if self.servoMinAngle == None: self.servoMinAngle = 0.0
 			if self.servoMaxAngle == None: self.servoMaxAngle = 180.0
+
+	def getServoCurveNode(self):
+		"""Function to return the string to the 3D app curve Node"""
+		return self.servoCurveNode
+
+	def createServoCurveNode(self):
+		"""Function to create the appropriate curve Node name, using 3D app info"""
+		pass
+
+	def deleteServoCurveNode(self):
+		"""Function to create the appropriate curve Node name, using 3D app info"""
+		#find the 3D app curve Node and delete it
+		self.servoCurveNode = None #set the servoCurveNode back to None
+

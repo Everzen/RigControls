@@ -103,3 +103,7 @@ class MayaData(object):
 	def setAttr(self, node, attribute, data):
 		"""Function to simply set an attribute"""
 		cmds.setAttr((node + "." + attribute), data)
+
+	def createNode(self, name, nodeType):
+		"""Function to create a new Maya Node of the appropriate name and type"""
+		return cmds.createNode(str(nodeType), n=str(name))

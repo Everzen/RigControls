@@ -87,6 +87,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.skinTableWidget = None
         self.styleData = styleData
         self.dataProcessor = dataProcessor
+        self.dataProcessor.setWindow(self) #Ensure that the processor is aware of the window Widget
         imagePath = os.path.dirname(os.path.realpath(__file__))
         self.imagePath = imagePath.replace("\\", "/") #Convert everything across to / for css files. Apparently this is ugly, but cannot get os.path and posixpath to work
         self.initUI()

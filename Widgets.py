@@ -334,6 +334,7 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
         self.headers.append("  Scene Link Node  ")
         self.headers.append("  Scene Link Attribute  ")
         self.headers.append("  Servo Channel ")
+        self.headers.append("  Servo Curve Node ")
         self.headers.append("  Servo Min Angle ")
         self.headers.append("  Servo Max Angle ")
 
@@ -356,7 +357,7 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
     def populate(self):
         """Function to take all the dataProcessor info and write it out in table form"""
         self.clear()
-        self.setColumnCount(10)
+        self.setColumnCount(11)
         self.setHorizontalHeaderLabels(self.headers)
 
         if not self.dataProcessor:
@@ -401,13 +402,14 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
 
                 servoChannelData = QtGui.QTableWidgetItem(str(servoData.getServoChannel()))
                 servoChannelData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                servoCurveNodeData = QtGui.QTableWidgetItem(str(servoData.getServoCurveNode()))
+                servoCurveNodeData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 servoMinAngleData = QtGui.QTableWidgetItem(str(servoData.getServoMinAngle()))
                 servoMinAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
                 servoMaxAngleData = QtGui.QTableWidgetItem(str(servoData.getServoMaxAngle()))
                 servoMaxAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
 
                 self.setItem(index,0,nodeIdData)
-                # self.setItem(index,1,directionData)
                 self.setItem(index,1,groupData)
                 self.setItem(index,2,minScaleData)
                 self.setItem(index,3,maxScaleData)
@@ -415,8 +417,9 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
                 self.setItem(index,5,sceneNodeLinkData)
                 self.setItem(index,6,nodeAttrLinkData)
                 self.setItem(index,7,servoChannelData)
-                self.setItem(index,8,servoMinAngleData)
-                self.setItem(index,9,servoMaxAngleData)
+                self.setItem(index,8,servoCurveNodeData)
+                self.setItem(index,9,servoMinAngleData)
+                self.setItem(index,10,servoMaxAngleData)
 
             self.blockSignals(False) #Enable updating while populating, to allow signals to be emitted.
             self.resizeColumnsToContents()

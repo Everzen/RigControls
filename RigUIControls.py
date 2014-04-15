@@ -252,10 +252,12 @@ class RigGraphicsView(QtGui.QGraphicsView):
         """Function to reflect the given Wiregroup so that a new copy is mirrored to the other side of the reflectionLine"""
         pinsRefPos = []
         pinsRefScale = []
+        pinsConstraintItems = []
         wireGroup.resetNodes() #Reset current wiregroup to rest positions
         for p in wireGroup.getPins(): #grab all the reflected positions from the current Pins
             pinsRefPos.append(self.reflectPos(p.pos()))
             pinsRefScale.append(p.getNode().getScale()) #record the scale of that Node
+            pinsConstraintItems.append(p.getConstraintItem())
         # pinsRefPos.reverse() #reverse both list so the build mirror matchs
         # pinsRefScale.reverse()
 
@@ -266,6 +268,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     self,
                     'Wire Group Name',
                     'The name was not unique. Please Enter a unique mirror Wire Group Name:',
+                    QtGui.QLineEdit.Normal,
                     str(wireGroup.getName())
                     )
         if ok:
@@ -275,7 +278,18 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.wireGroups.append(newWireGroup)
             for index, node in enumerate(newWireGroup.getNodes()): #now cycle through and set the scale of the nodes
                 node.setScale(pinsRefScale[index])
-
+            for index, pin in enumerate(newWireGroup.getPins()): #now cycle through the pins and mirroring the constraint Items
+                if pinsConstraintItems[index]: #then we have a constraint Item so we need to mirror it
+                    pinConstraintItem = pinsConstraintItems[index]
+                    mirrorConstraintItem = (type(pinConstraintItem))() #create a new blank constraintItem
+                    pinConstraintItem.mapAttributes(mirrorConstraintItem)
+                    mirrorConstraintItem.setPin(pin) # Add the constraint Item to the Pin
+                    mirrorConstraintItem.setPos(QtCore.QPointF(0,0))
+                    mirrorConstraintItem.setNode(pin.getNode()) #Add the Node to the ConstraintItem
+                    pin.setConstraintItem(mirrorConstraintItem) #Add the constraint Item to the pin
+                    mirrorConstraintItem.lock() #lock Movement so it cannot be dragged around
+                    mirrorConstraintItem.update()
+                    pin.setRotation(-wireGroup.getPins()[index].rotation())
 
     def reflectSuperNodeGroup(self, superNodeGroup):
         """Function to reflect the given SuperNodeGroup so that a new copy is mirrored to the other side of the reflectionLine"""
@@ -307,7 +321,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 mirrorConstraintItem.lock() #lock Movement so it cannot be dragged around
                 mirrorConstraintItem.update()
                 mirrorSuperNodeGroup.getPin().setRotation(-superNodeGroup.getPin().rotation())
-
+            mirrorSuperNodeGroup.getPin().setLocked(True) #lock off the pin in the new mirrored position
+            
             self.superNodeGroups.append(mirrorSuperNodeGroup)
 
     def processMarkerActiveIndex(self):
@@ -681,7 +696,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
             # print str(type(self.dragItem.getGroup()))
             if type(self.dragItem.getGroup()) == SuperNodeGroup:
                 superName = self.specifySuperNodeGroupName()
-                if superName: self.dragItem.getGroup().setName(superName) #We have a valid Name so set the name
+                if superName: 
+                    self.dragItem.getGroup().setName(superName) #We have a valid Name so set the name
+                    self.dragItem.setLocked(True) #Flock the pin as it drops, so it cannot be dragged around
                 else: #We do not have a valid name, so delete the superNodeGroup
                     self.dragItem.getGroup().clear()
                     self.superNodeGroups.remove(self.dragItem.getGroup())

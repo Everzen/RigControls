@@ -6,6 +6,7 @@ from PySide import QtCore, QtGui
 import numpy as np
 import socket #for sending out UPD signals
 import os
+import copy
 import FileControl
 import xml.etree.ElementTree as xml
 
@@ -281,6 +282,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         superNodeGroup.getSuperNode().goHome() #Reset current superNodeGroup to rest position
         pinsRefPos = self.reflectPos(superNodeGroup.getPin().pos())
         pinsRefScale = superNodeGroup.getSuperNode().getScale()#record the scale of that Node
+        pinConstraintItem = superNodeGroup.getPin().getConstraintItem()
 
         unique = True
         superGroupName, ok = QtGui.QInputDialog.getText(self, 'Super Node Name', 'Enter a unique mirror Super Node Name:',QtGui.QLineEdit.Normal,str(superNodeGroup.getName()))
@@ -295,6 +297,17 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if ok:
             mirrorSuperNodeGroup = SuperNodeGroup(pinsRefPos, superNodeGroup.getForm(), self, self.dataProcessor)
             mirrorSuperNodeGroup.setName(superGroupName)
+            if pinConstraintItem: #we have a Constraint Item, so copy it and apply it to Mirror
+                mirrorConstraintItem = (type(pinConstraintItem))()
+                pinConstraintItem.mapAttributes(mirrorConstraintItem)
+                mirrorConstraintItem.setPin(mirrorSuperNodeGroup.getPin()) # Add the constraint Item to the Pin
+                mirrorConstraintItem.setPos(QtCore.QPointF(0,0))
+                mirrorConstraintItem.setNode(mirrorSuperNodeGroup.getSuperNode()) #Add the Node to the ConstraintItem
+                mirrorSuperNodeGroup.getPin().setConstraintItem(mirrorConstraintItem) #Add the constraint Item to the pin
+                mirrorConstraintItem.lock() #lock Movement so it cannot be dragged around
+                mirrorConstraintItem.update()
+                mirrorSuperNodeGroup.getPin().setRotation(-superNodeGroup.getPin().rotation())
+
             self.superNodeGroups.append(mirrorSuperNodeGroup)
 
     def processMarkerActiveIndex(self):

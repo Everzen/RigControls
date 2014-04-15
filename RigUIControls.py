@@ -553,6 +553,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     self.mainWindow.skinTableWidget.populate()
                     self.mainWindow.nodeLinksTableWidget.populate() #Redraw the nodelink data Table, so that all the data cleared out
             self.processMarkerActiveIndex()
+            self.dataProcessor.manageAttributeConnections() #Run a check through all the attribute Connections to make sure that everything is in place
         return 0 #Not returning the key event stops the shortcut being propagated to the parent (Maya), tidy this up by returning appropriately for each condition
         # return QtGui.QGraphicsView.keyPressEvent(self, event)
 

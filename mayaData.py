@@ -36,11 +36,10 @@ class MayaData(object):
 
 	def isNameUnique(self, name):
 		"""Function to check whether the name already exists in the Maya Scene. This is done by creating a new name, and checking to see if the name is the same as the name provided.
-		Can also be used to determine if the current specified sceneController still exists in the scene, or whether it has been deleted. If its name is considered unique, then it has been deleted! 
-		"""
-		sceneName = cmds.createNode("transform", name = name)
+		Can also be used to determine if the current specified sceneController still exists in the scene, or whether it has been deleted. If its name is considered unique, then it has been deleted"""
+		sceneName = cmds.createNode("transform", n=str(name))
 		cmds.delete(sceneName)
-		return sceneName == name
+		return (sceneName == name)
 
 	def addAttr(self, node, att, isLocked=False, atType='double'):
 		"""Function to add a float attribute to the node specified. No restrictions will be applied to the node, but the default will be 0"""

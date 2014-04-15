@@ -410,6 +410,14 @@ class DataBundle(object):
 			else: 
 				print "SceneController didnt exist for Title"
 
+	def clearData(self):
+		"""Function to clear out all animCurve nodes etc associated with AttributeConnectors
+
+		Normally called when a node is deleted.
+		"""
+		for att in self.attributeConnectors: #Loop through the attributeConnectors stripping out the AnimCurves 
+			att.clearData()
+
 
 class DataServoBundle(DataBundle):
 	"""This class inherits DataBundle, and bolts on to it some functionality for applying servo numbers and angle limits to those servos
@@ -421,7 +429,6 @@ class DataServoBundle(DataBundle):
 		self.attributeConnectorX = AttributeServoConnector(sceneAppData)
 		self.attributeConnectorY = AttributeServoConnector(sceneAppData)
 		self.attributeConnectors = [self.attributeConnectorX, self.attributeConnectorY]
-
 
 
 class AttributeConnector(object):
@@ -639,6 +646,13 @@ class AttributeConnector(object):
 		if self.dataProcessor:
 			self.sceneControl = dataProcessor.getSceneControl()
 
+	def clearData(self):
+		"""Function to clear out the data and animCurves etc from a AttirbuteConnector
+
+		Normally called when a node is deleted.
+		"""
+		pass #Code goes here to strip out the AttributeConnector AnimCurves if they are implemented
+
 
 class AttributeServoConnector(AttributeConnector):
 	"""This class inherits AttributeConnector, and bolts on to it some functionality for applying servo numbers and angle limits to those servos
@@ -758,8 +772,14 @@ class AttributeServoConnector(AttributeConnector):
 		for sDC in self.servoDataConnectors:
 			sDC.setDataProcessor(dataProcessor)
 
+	def clearData(self):
+		"""Function to clear out the data and animCurves etc from a AttirbuteConnector and its ServoDataConnectors
 
-
+		Normally called when a node is deleted.
+		"""
+		#Code goes here to strip out the AttributeConnector AnimCurves if they are implemented
+		for sDC in self.servoDataConnectors: #loop through the servoDataConnectors and delete out any associated AnimCurves
+			sDC.deleteServoCurveNode()
 
 class ServoDataConnector(object):
 	"""

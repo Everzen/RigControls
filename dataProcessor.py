@@ -190,6 +190,10 @@ class DataProcessor(object):
 				attCon.addSceneControlAttr()
 
 	def clearAttributeConnections(self):
+		"""Function to clear out the attributes off the sceneControl, so they can be regenerated. 
+
+		Only removes the attribute itself, so it can be regenerated. Does not remove any associated animCurve Nodes.
+		"""
 		if self.sceneControllerExists():
 			for att in self.sceneAppData.listUserAttrs(self.sceneControl):
 				if att != "HappyFace":
@@ -728,6 +732,20 @@ class AttributeServoConnector(AttributeConnector):
 	def clearServoDataConnectors(self):
 		self.servoDataConnectors = []
 
+	def addSceneControlAttr(self):
+		"""Function to grab the scene control from the dataProcessor and add the appropriate attribute"""
+		if self.dataProcessor:
+			if self.dataProcessor.sceneControllerExists(): #Check the sceneControl Exists
+				if self.sceneAppData.attExists(self.sceneControl , self.controllerAttrName):
+					print "No Action : The following SceneControl attribute already exists - " + str(self.controllerAttrName)
+				else: #Attribute does not already exist so add it: 
+					self.sceneAppData.addAttr(self.sceneControl , self.controllerAttrName)
+				for sDC in self.servoDataConnectors: #Now we have a proper attribute setup, cycle through the servoDataConnectors and setup the animCurves
+					print "Managing ServoDataControl AnimCurve Connections"
+					sDC.manageServoCurveNode()
+			else: 
+				print "SceneController didnt exist"
+
 	def getDataProcessor(self):
 		return self.dataProcessor
 
@@ -834,12 +852,12 @@ class ServoDataConnector(object):
 		return self.servoCurveName
 
 	def setServoAttrName(self):
-		self.servoAttrName = self.attributeConnector.getHostName() + "_Servo" + str(self.index)
+		self.servoAttrName = self.attributeServoConnector.getControllerAttrName()
 		self.setServoCurveName()
 
 	def setServoCurveName(self):
 		"""Function that sets the servoCurveName from the attributeConnector Name and servoDataConnector index"""
-		self.servoCurveName = self.servoAttrName + "_animCurve"
+		self.servoCurveName = self.servoAttrName + "_Servo" + str(self.index) + "_animCurve"
 
 	def createServoCurveNode(self):
 		"""Function to create the appropriate curve Node name, using 3D app info"""
@@ -871,3 +889,29 @@ class ServoDataConnector(object):
 		"""Function make sure the dataProcessor is uptodate"""
 		self.dataProcessor = dataProcessor
 		self.sceneControl = self.dataProcessor.getSceneControl()
+
+	def manageServoCurveNode(self):
+		"""Function to monitor the servoDataConnection to the servo animCurve
+
+		If no animCurve Exists then create one and connect it to the appropriate Attribute
+		If it does exist then find it and make sure that the connection is made.
+		"""
+		if self.dataProcessor:
+			if self.dataProcessor.sceneControllerExists(): #We have a valid sceneControl so lets check the attribute and the sercoCurveNode
+				self.setServoAttrName() #First ensure that the servoAttrName adn servoCurveName are setup correctly.
+				if self.sceneAppData.objExists(self.servoCurveName): #We have a animCurveNode, so just make sure that it is connected to the right attribute
+					inputCon = self.sceneAppData.listInputConnections(self.servoCurveName)
+					print "Input Connection = " + str(inputCon)
+					if not inputCon: #We have no connections so we must make one.
+						self.sceneAppData.connectAttr(self.sceneControl, self.servoAttrName, self.servoCurveName, "input")
+					else:
+						if inputCon[0] == self.sceneControl: #The node is already connected properly
+							print "Node is already properly connected"
+						else: #The node seems to have another input Connection, so we need to break all connnections it and reconnect 
+							for con in inputCon: #Break all input connections
+								self.sceneAppData.disconnectAttr(sourceNode, destNode)
+							self.sceneAppData.connectAttr(self.sceneControl, self.servoAttrName, self.servoCurveName, "input") #Now make correct connection
+				else: #the animCurve does not exist so we need create it and connect it! 
+					newAnimCurve = self.createServoCurveNode()
+					self.sceneAppData.connectAttr(self.sceneControl, self.servoAttrName, self.servoCurveName, "input") 
+

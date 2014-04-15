@@ -89,6 +89,18 @@ class MayaData(object):
 		"""Function to list all the attributes that have been added to a node by a user"""
 		return (cmds.listAttr(str(node), userDefined=True))
 
+	def listInputConnections(self, node):
+		"""Function to list all input connections skipping unitconversions"""
+		return cmds.listConnections( str(node), scn=True, source=True )
+
+	def connectAttr(self, sourceNode, sourceAttr, destNode, destAttr):
+		"""Function to connect the sourcenode.att to the destNode.att"""
+		cmds.connectAttr(sourceNode + "." + sourceAttr, destNode + "." + destAttr)
+	
+	def disconnectAttr(self, sourceNode, destNode):
+		"""Function to disconnect the two nodes from eachother"""
+		cmds.disconnectAttr(sphereR, coneR)
+
 	def returnSelectedObject(self):
 		"""Function to return a single Item from a selection"""
 		currSel = cmds.ls(sl=True)

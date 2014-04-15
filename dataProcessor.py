@@ -182,12 +182,18 @@ class DataProcessor(object):
 	def manageAttributeConnections(self):
 		"""Function to run through all of the attribute Connections and check that their names are represented as attributes on the SceneControl"""
 		self.collectActiveControlNodes() #This updates our dataBundles
+		self.clearAttributeConnections() #Clear out all the current attributes of the sceneControl
 		for bundle in self.dataBundles:
 			bundle.setDataProcessor(self) #Ensure that the data Processor is up to date
 			bundle.addTitleAttr() #First Add a Title 
 			for attCon in bundle.getAttributeConnectors(): #Now loop through and add all the scene Control Attributes
 				attCon.addSceneControlAttr()
 
+	def clearAttributeConnections(self):
+		if self.sceneControllerExists():
+			for att in self.sceneAppData.listUserAttrs(self.sceneControl):
+				if att != "HappyFace":
+					self.sceneAppData.deleteAttr(self.sceneControl, att)
 
 
 
@@ -399,7 +405,7 @@ class DataBundle(object):
 					self.sceneAppData.addTitleAttr(self.sceneControl , self.controllerAttrName)
 			else: 
 				print "SceneController didnt exist for Title"
-		
+
 
 class DataServoBundle(DataBundle):
 	"""This class inherits DataBundle, and bolts on to it some functionality for applying servo numbers and angle limits to those servos

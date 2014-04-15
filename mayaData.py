@@ -51,6 +51,11 @@ class MayaData(object):
 		else: 
 			return False
 
+	def deleteAttr(self, node, att):
+		cmds.setAttr(str(node) + "." + str(att), l=False) #make sure the attribute us unlocked before trying to remove it.
+		cmds.deleteAttr(str(node), at=str(att))
+
+
 	def addTitleAttr(self, node, titleAttr):
 		"""This function just adds a simple name attribute that is a locked off boolean to mark a key point in the Maya Node attribute list"""
 		if not self.attExists(node, titleAttr):
@@ -79,6 +84,10 @@ class MayaData(object):
 	def listLinkAttrs(self, node):
 		"""Function to list all the float connectable, keyable attributes on node"""
 		return cmds.listAttr(node, scalar=True, read=True, write=True, connectable=True, keyable=True)
+
+	def listUserAttrs(self, node):
+		"""Function to list all the attributes that have been added to a node by a user"""
+		return (cmds.listAttr(str(node), userDefined=True))
 
 	def returnSelectedObject(self):
 		"""Function to return a single Item from a selection"""

@@ -371,6 +371,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.messageLogger.error("Not enough guide markers selected to create a wire group")
             return
 
+        self.dataProcessor.isSceneControllerActive() #on the building of a WireGroup we need to check that there is a properly functioning sceneControl. If not we make one.
+
         unique = True
         wireName, ok = QtGui.QInputDialog.getText(self, 'Wire Group Name', 'Enter a unique Wire Group Name:')
         while not self.checkUniqueWireGroup(wireName):
@@ -382,13 +384,14 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if ok:
             posList = []
             for m in self.markerActiveList: posList.append(m.pos())
-            self.dataProcessor.isSceneControllerActive() #on the building of a WireGroup we need to check that there is a properly functioning sceneControl. If not we make one.
             newWireGroup = WireGroup(self, self.dataProcessor)
             newWireGroup.buildFromPositions(posList)
             newWireGroup.setScale(self.markerScale)
             # print "wirename : " + str(wireName) + " This ran"
             newWireGroup.setName(str(wireName))
             self.wireGroups.append(newWireGroup)
+            self.dataProcessor.manageAttributeConnections() #Now that the final wireGroup has been created, we have to align it with the sceneControl Attributes
+
             for m in self.markerActiveList:
                 m.setActive(False)
                 m.setSelected(False) #Deactivate all markers and deselect them
@@ -701,6 +704,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 if superName: 
                     self.dragItem.getGroup().setName(superName) #We have a valid Name so set the name
                     self.dragItem.setLocked(True) #Flock the pin as it drops, so it cannot be dragged around
+                    self.dataProcessor.manageAttributeConnections() #Now update the connections on the main Scene Control, since a new control Item has been added
                 else: #We do not have a valid name, so delete the superNodeGroup
                     self.dragItem.getGroup().clear()
                     self.superNodeGroups.remove(self.dragItem.getGroup())

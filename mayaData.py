@@ -107,3 +107,7 @@ class MayaData(object):
 	def createNode(self, name, nodeType):
 		"""Function to create a new Maya Node of the appropriate name and type"""
 		return cmds.createNode(str(nodeType), n=str(name))
+
+	def deleteNode(self, name):
+		if self.objExists(name): 
+			cmds.delete(name)

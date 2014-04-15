@@ -402,7 +402,7 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
 
                 servoChannelData = QtGui.QTableWidgetItem(str(servoData.getServoChannel()))
                 servoChannelData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                servoCurveNodeData = QtGui.QTableWidgetItem(str(servoData.getServoCurveNode()))
+                servoCurveNodeData = QtGui.QTableWidgetItem(str(servoData.getServoCurveName()))
                 servoCurveNodeData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                 servoMinAngleData = QtGui.QTableWidgetItem(str(servoData.getServoMinAngle()))
                 servoMinAngleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)

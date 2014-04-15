@@ -95,7 +95,9 @@ class DataProcessor(object):
 	def attachBundle(self, item):
 		"""Takes a DataBundle and adds it to the list, assigning the Maya control along the way"""
 		newBundle = copy.deepcopy(self.sampleBundle)
-		newBundle.setSceneControl(self.sceneControl)
+		print "Attaching Bundle - my dataProcessor SceneControl is : " + str(self.getSceneControl()) 
+		newBundle.setDataProcessor(self)
+		# newBundle.setSceneControl(self.sceneControl)
 		item.setDataBundle(newBundle)
 		self.dataBundles.append(newBundle)
 
@@ -131,6 +133,7 @@ class DataProcessor(object):
 		if ok: #We have a Unique Name so continue to build the controller
 			self.createSceneControl(sceneControllerName)
 			self.setSceneControl(sceneControllerName)
+			print "dataProcessor : SceneControlName set to : " + str(self.sceneControl)
 
 	def getAppName(self):
 		"""Returns the 3D application Name which is specified upon creation of the DataProcessor"""
@@ -176,6 +179,16 @@ class DataProcessor(object):
 					if att.getSceneNodeAttr() == attributeConnector.getSceneNodeAttr(): #We have a matching connection so set the attribute to None
 						att.setSceneNodeAttr(None)
 
+	def manageAttributeConnections(self):
+		"""Function to run through all of the attribute Connections and check that their names are represented as attributes on the SceneControl"""
+		self.collectActiveControlNodes() #This updates our dataBundles
+		for bundle in self.dataBundles:
+			bundle.setDataProcessor(self) #Ensure that the data Processor is up to date
+			bundle.addTitleAttr() #First Add a Title 
+			for attCon in bundle.getAttributeConnectors(): #Now loop through and add all the scene Control Attributes
+				attCon.addSceneControlAttr()
+
+
 
 
 class DataServoProcessor(DataProcessor):
@@ -183,7 +196,7 @@ class DataServoProcessor(DataProcessor):
 
 	"""
 	def __init__(self, sceneAppData):
-		DataProcessor.__init__(self, sceneAppData) 
+		DataProcessor.__init__(self, sceneAppData)
 		self.sampleBundle = DataServoBundle(sceneAppData) #Load in  the new DataServoBundle to access extra Servo functionality
 
 	def checkUniqueServoChannels(self, dataServoConnector, channel):
@@ -208,6 +221,7 @@ class DataBundle(object):
 	def __init__(self, sceneAppData):
 		#LIST OF ATTRIBUTES
 		self.sceneAppData = sceneAppData
+		self.dataProcessor = None 
 		self.sceneControl = None
 		self.hostName = None
 		self.node = None
@@ -362,7 +376,30 @@ class DataBundle(object):
 	def setMinY(self, minY):
 		self.attributeConnectorY.setMinValue(float(minY)) 
 
+	def getDataProcessor(self):
+		return self.dataProcessor
 
+	def setDataProcessor(self, dataProcessor):
+		"""Function to set Data Processor and ensure all attributeConnectors have it correctly set too"""
+		self.dataProcessor = dataProcessor
+		self.sceneControl = dataProcessor.getSceneControl()
+		print "In the DataBundle the sceneControl is : " + str(self.sceneControl)
+		for att in self.attributeConnectors:
+			print "Updating DataProcessor in att : " + str(att)
+			att.setDataProcessor(dataProcessor)
+
+	def addTitleAttr(self):
+		"""Function to add a locked off Bool Attribute to represent the DataBundle of AttributeConnector attribtues on the sceneControl"""
+		if self.dataProcessor:
+			if self.dataProcessor.sceneControllerExists(): #Check the sceneControl Exists
+				print "Whn adding Title to DataBundle the sceneControl is : " + str(self.sceneControl)
+				if self.sceneAppData.attExists(self.sceneControl , self.controllerAttrName):
+					print "No Action : The following SceneControl attribute already exists - " + str(self.controllerAttrName)
+				else: #Attribute does not already exist so add it: 
+					self.sceneAppData.addTitleAttr(self.sceneControl , self.controllerAttrName)
+			else: 
+				print "SceneController didnt exist for Title"
+		
 
 class DataServoBundle(DataBundle):
 	"""This class inherits DataBundle, and bolts on to it some functionality for applying servo numbers and angle limits to those servos
@@ -384,7 +421,8 @@ class AttributeConnector(object):
 	def __init__(self, sceneAppData):
 		#LIST OF ATTRIBUTES
 		self.sceneAppData = sceneAppData
-		self.sceneController = None
+		self.dataProcessor = None
+		self.sceneControl = None
 		self.node = None
 		self.nodeIndex = None 
 		self.controllerAttrName = None  #The name that the UI Node directional attribute will be associated with
@@ -450,7 +488,6 @@ class AttributeConnector(object):
 		return self.sceneControl
 
 	def setSceneControl(self, sceneControl):
-		"""Function to take a node selected in the Scene and assign it to the class"""
 		self.sceneControl = sceneControl
 
 	def getValue(self):
@@ -572,6 +609,25 @@ class AttributeConnector(object):
 	def setSceneNodeActive(self, active):
 		self.sceneNodeActive = active
 
+	def addSceneControlAttr(self):
+		"""Function to grab the scene control from the dataProcessor and add the appropriate attribute"""
+		if self.dataProcessor:
+			if self.dataProcessor.sceneControllerExists(): #Check the sceneControl Exists
+				if self.sceneAppData.attExists(self.sceneControl , self.controllerAttrName):
+					print "No Action : The following SceneControl attribute already exists - " + str(self.controllerAttrName)
+				else: #Attribute does not already exist so add it: 
+					self.sceneAppData.addAttr(self.sceneControl , self.controllerAttrName)
+			else: 
+				print "SceneController didnt exist"
+
+	def getDataProcessor(self):
+		return self.dataProcessor
+
+	def setDataProcessor(self, dataProcessor):
+		"""Function to set Data Processor and ensure all attributeConnectors have it correctly set too"""
+		self.dataProcessor = dataProcessor
+		if self.dataProcessor:
+			self.sceneControl = dataProcessor.getSceneControl()
 
 
 class AttributeServoConnector(AttributeConnector):
@@ -666,6 +722,19 @@ class AttributeServoConnector(AttributeConnector):
 	def clearServoDataConnectors(self):
 		self.servoDataConnectors = []
 
+	def getDataProcessor(self):
+		return self.dataProcessor
+
+	def setDataProcessor(self, dataProcessor):
+		"""Function to set Data Processor and ensure all attributeConnectors have it correctly set too"""
+		self.dataProcessor = dataProcessor
+		if self.dataProcessor:
+			self.sceneControl = self.dataProcessor.getSceneControl()
+		print "Setting the Attibute Connector data Processor info : " + str(self.sceneControl)
+		for sDC in self.servoDataConnectors:
+			sDC.setDataProcessor(dataProcessor)
+
+
 
 
 class ServoDataConnector(object):
@@ -675,12 +744,15 @@ class ServoDataConnector(object):
 	def __init__(self, sceneAppData, index, attributeServoConnector):
 		#LIST OF ATTRIBUTES
 		self.sceneAppData = sceneAppData
+		self.dataProcessor = None
+		self.sceneControl = None
 		self.index = index
 		self.attributeServoConnector = attributeServoConnector #Passing the paretn ServoDataConnector down, so it can be identified
 		self.servoChannel = None
 		self.servoMinAngle = None
 		self.servoMaxAngle = None
-		self.servoCurveNode = None
+		self.servoAttrName = None
+		self.servoCurveName = None
 
 	def store(self):
 		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load 
@@ -749,16 +821,47 @@ class ServoDataConnector(object):
 			if self.servoMinAngle == None: self.servoMinAngle = 0.0
 			if self.servoMaxAngle == None: self.servoMaxAngle = 180.0
 
-	def getServoCurveNode(self):
-		"""Function to return the string to the 3D app curve Node"""
-		return self.servoCurveNode
+	def getServoAttrName(self):
+		return self.servoAttrName
+
+	def getServoCurveName(self):
+		return self.servoCurveName
+
+	def setServoAttrName(self):
+		self.servoAttrName = self.attributeConnector.getHostName() + "_Servo" + str(self.index)
+		self.setServoCurveName()
+
+	def setServoCurveName(self):
+		"""Function that sets the servoCurveName from the attributeConnector Name and servoDataConnector index"""
+		self.servoCurveName = self.servoAttrName + "_animCurve"
 
 	def createServoCurveNode(self):
 		"""Function to create the appropriate curve Node name, using 3D app info"""
-		pass
+		if not self.sceneAppData.objExists(self.servoCurveName): #A curveNode of this name does not exist so we can go ahead and create it
+			return self.sceneAppData.createNode(self.servoCurveName,'animCurveUU')
+		else:
+			print "WARNING : animCurveNode called : " + str(self.servoCurveName) + " already exists in the scene"
+		return False
 
 	def deleteServoCurveNode(self):
 		"""Function to create the appropriate curve Node name, using 3D app info"""
 		#find the 3D app curve Node and delete it
-		self.servoCurveNode = None #set the servoCurveNode back to None
+		if self.sceneAppData.objExists(self.servoCurveName):
+			print "Deleting Existing AnimCurveNode : " + self.servoCurveName
+			self.sceneAppData.deleteNode(self.servoCurveName)
 
+	# def addSceneControlAttr(self):
+	# 	"""Function to grab the scene control from the dataProcessor and add the appropriate attribute"""
+	# 	if self.dataProcessor.sceneControllerExists(): #Check the sceneControl Exists
+	# 		if self.sceneAppData.attExists(self.sceneControl , self.servoAttrName):
+	# 			print "No Action : The following SceneControl attribute already exists - " + str(self.servoAttrName)
+	# 		else: #Attribute does not already exist so add it: 
+	# 			self.sceneAppData.addAttr(self.sceneControl , self.servoAttrName)
+
+	def getDataProcessor(self):
+		return self.dataProcessor
+
+	def setDataProcessor(self, dataProcessor):
+		"""Function make sure the dataProcessor is uptodate"""
+		self.dataProcessor = dataProcessor
+		self.sceneControl = self.dataProcessor.getSceneControl()

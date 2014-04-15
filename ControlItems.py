@@ -2167,6 +2167,17 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
             elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
         self.update()
 
+    def mapAttributes(self,constraintItem):
+        """Function to map the attributes across to the input constrainItem"""
+        constraintItem.setScale(self.getScale())
+        constraintItem.setWidth(self.getWidth())
+        constraintItem.setHeight(self.getHeight())
+        constraintItem.setAlpha(self.getAlpha())
+        constraintItem.setGhostArea(self.isGhostArea())
+        constraintItem.opX.setPos(self.opX.pos())
+        constraintItem.redraw(self.opX.pos())
+        constraintItem.setVisible(self.isVisible())
+
     def getScale(self):
         return self.scale
 
@@ -2438,6 +2449,17 @@ class ConstraintRect(QtGui.QGraphicsRectItem):
             if a.attrib['name'] == 'ghostArea': self.setGhostArea(str(a.attrib['value']) == 'True')
             elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
         self.update()
+
+    def mapAttributes(self,constraintItem):
+        """Function to map the attributes across to the input constrainItem"""
+        constraintItem.setScale(self.getScale())
+        constraintItem.setWidth(self.getWidth())
+        constraintItem.setHeight(self.getHeight())
+        constraintItem.setAlpha(self.getAlpha())
+        constraintItem.setGhostArea(self.isGhostArea())
+        constraintItem.opX.setPos(self.opX.pos())
+        constraintItem.redraw(self.opX.pos())
+        constraintItem.setVisible(self.isVisible())
 
     def getScale(self):
         return self.scale
@@ -2722,6 +2744,20 @@ class ConstraintLine(QtGui.QGraphicsItem):
             if a.attrib['name'] == 'ghostArea': self.setGhostArea(str(a.attrib['value']) == 'True')
             elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
         self.update()
+
+
+    def mapAttributes(self,constraintItem):
+        """Function to map the attributes across to the input constrainItem"""
+        constraintItem.setScale(self.getScale())
+        constraintItem.setAlpha(self.getAlpha())
+        constraintItem.setHeadLength(self.getHeadLength())
+        constraintItem.setTailLength(self.getTailLength())        
+        constraintItem.setGhostArea(self.isGhostArea())
+        constraintItem.opXHead.setPos(self.opXHead.pos())
+        constraintItem.opXTail.setPos(self.opXTail.pos())
+        constraintItem.redraw(0) #redraw head and tail postions
+        constraintItem.redraw(1)
+        constraintItem.setVisible(self.isVisible())
 
     def getScale(self):
         return self.scale

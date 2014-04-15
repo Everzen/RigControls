@@ -597,8 +597,8 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
 
     def updateSceneLinkOutputData(self, item):
         """Function to see which tableWidgetItem has been changed and take the appropriate action to update the correct attribute Connector"""
-        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
-        currAttConnector = attConnectors[item.row()]
+        servoDataConnectors = self.dataProcessor.getActiveServoDataConnectors()
+        currAttConnector = servoDataConnectors[item.row()].getAttributeServoConnector()
         isNumber = self.checkDigit(item.text())
         newValue = 1 #Arbitart initialisation
         if isNumber: newValue = float(item.text())

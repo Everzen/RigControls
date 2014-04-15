@@ -6,6 +6,7 @@ from PySide import QtCore, QtGui
 import numpy as np
 import socket #for sending out UPD signals
 import os
+import copy
 import FileControl
 import xml.etree.ElementTree as xml
 
@@ -208,13 +209,17 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # print "Back image is: " + str(self.backgroundImage)
 
     def reflectPos(self, pos):
-        """Function to find the reflected position of a guide"""
+        """Function to find the reflected position of an item"""
         refLine = self.reflectionLine.pos().x()
         return QtCore.QPointF(refLine - (pos.x() - refLine), pos.y())
 
+    def reflectRot(self,rot):
+        """Function to find the reflected position of am item"""
+        pass
+
     def reflectGuides(self):
-        scene = self.scene()
         """Function to find the list of selected Guide Markers and reflect them around the Reflection Line"""
+        scene = self.scene()
         for item in scene.items():
             if type(item) == GuideMarker and item.isSelected() == True: #Find our selected GuideMarkers
                 itemPos = item.pos() #Now build a marker at the reflected position
@@ -225,6 +230,100 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 newMarker.setPos(newGuidePos.x(),newGuidePos.y())
                 self.markerList.append(newMarker)
                 scene.addItem(newMarker)
+
+    def reflectControlItems(self):
+        """Function to find what control Items are selected and mirror copies over to the other side of the reflection line"""
+        scene = self.scene()
+        controlItems = []
+        for item in scene.items(): #collect all the wiregroups and SuperNodeGroups that are selected
+            if (type(item) == Node or type(item) == SuperNode) and item.isSelected() == True:
+                controlItems.append(item.getGroup())
+        controlItems = list(set(controlItems)) #Make the list unique
+        print "My Selected control Items are : " + str(len(controlItems)) + " " + str(controlItems)
+        for controlItem in controlItems:
+            if type(controlItem) == WireGroup:
+                print "Mirroring WireGroup"
+                self.reflectWireGroup(controlItem)
+            elif type(controlItem) == SuperNodeGroup:
+                print "Mirroring SuperNodeGroup"
+                self.reflectSuperNodeGroup(controlItem)
+
+    def reflectWireGroup(self,wireGroup):
+        """Function to reflect the given Wiregroup so that a new copy is mirrored to the other side of the reflectionLine"""
+        pinsRefPos = []
+        pinsRefScale = []
+        pinsConstraintItems = []
+        wireGroup.resetNodes() #Reset current wiregroup to rest positions
+        for p in wireGroup.getPins(): #grab all the reflected positions from the current Pins
+            pinsRefPos.append(self.reflectPos(p.pos()))
+            pinsRefScale.append(p.getNode().getScale()) #record the scale of that Node
+            pinsConstraintItems.append(p.getConstraintItem())
+        # pinsRefPos.reverse() #reverse both list so the build mirror matchs
+        # pinsRefScale.reverse()
+
+        unique = True
+        wireName, ok = QtGui.QInputDialog.getText(self, 'Wire Group Name', 'Enter a unique mirror Wire Group Name:',QtGui.QLineEdit.Normal,str(wireGroup.getName()))
+        while not self.checkUniqueWireGroup(wireName):
+            wireName, ok = QtGui.QInputDialog.getText(
+                    self,
+                    'Wire Group Name',
+                    'The name was not unique. Please Enter a unique mirror Wire Group Name:',
+                    QtGui.QLineEdit.Normal,
+                    str(wireGroup.getName())
+                    )
+        if ok:
+            newWireGroup = WireGroup(self, self.dataProcessor)
+            newWireGroup.buildFromPositions(pinsRefPos)
+            newWireGroup.setName(str(wireName))
+            self.wireGroups.append(newWireGroup)
+            for index, node in enumerate(newWireGroup.getNodes()): #now cycle through and set the scale of the nodes
+                node.setScale(pinsRefScale[index])
+            for index, pin in enumerate(newWireGroup.getPins()): #now cycle through the pins and mirroring the constraint Items
+                if pinsConstraintItems[index]: #then we have a constraint Item so we need to mirror it
+                    pinConstraintItem = pinsConstraintItems[index]
+                    mirrorConstraintItem = (type(pinConstraintItem))() #create a new blank constraintItem
+                    pinConstraintItem.mapAttributes(mirrorConstraintItem)
+                    mirrorConstraintItem.setPin(pin) # Add the constraint Item to the Pin
+                    mirrorConstraintItem.setPos(QtCore.QPointF(0,0))
+                    mirrorConstraintItem.setNode(pin.getNode()) #Add the Node to the ConstraintItem
+                    pin.setConstraintItem(mirrorConstraintItem) #Add the constraint Item to the pin
+                    mirrorConstraintItem.lock() #lock Movement so it cannot be dragged around
+                    mirrorConstraintItem.update()
+                    pin.setRotation(-wireGroup.getPins()[index].rotation())
+
+    def reflectSuperNodeGroup(self, superNodeGroup):
+        """Function to reflect the given SuperNodeGroup so that a new copy is mirrored to the other side of the reflectionLine"""
+        superNodeGroup.getSuperNode().goHome() #Reset current superNodeGroup to rest position
+        pinsRefPos = self.reflectPos(superNodeGroup.getPin().pos())
+        pinsRefScale = superNodeGroup.getSuperNode().getScale()#record the scale of that Node
+        pinConstraintItem = superNodeGroup.getPin().getConstraintItem()
+
+        unique = True
+        superGroupName, ok = QtGui.QInputDialog.getText(self, 'Super Node Name', 'Enter a unique mirror Super Node Name:',QtGui.QLineEdit.Normal,str(superNodeGroup.getName()))
+        while not self.checkUniqueSuperNodeGroup(superGroupName):
+            superGroupName, ok = QtGui.QInputDialog.getText(
+                    self,
+                    'Super Node Name',
+                    'The name was not unique. Please Enter a unique mirror Super Node Name:',
+                    QtGui.QLineEdit.Normal,
+                    str(superNodeGroup.getName())
+                    )
+        if ok:
+            mirrorSuperNodeGroup = SuperNodeGroup(pinsRefPos, superNodeGroup.getForm(), self, self.dataProcessor)
+            mirrorSuperNodeGroup.setName(superGroupName)
+            if pinConstraintItem: #we have a Constraint Item, so copy it and apply it to Mirror
+                mirrorConstraintItem = (type(pinConstraintItem))()
+                pinConstraintItem.mapAttributes(mirrorConstraintItem)
+                mirrorConstraintItem.setPin(mirrorSuperNodeGroup.getPin()) # Add the constraint Item to the Pin
+                mirrorConstraintItem.setPos(QtCore.QPointF(0,0))
+                mirrorConstraintItem.setNode(mirrorSuperNodeGroup.getSuperNode()) #Add the Node to the ConstraintItem
+                mirrorSuperNodeGroup.getPin().setConstraintItem(mirrorConstraintItem) #Add the constraint Item to the pin
+                mirrorConstraintItem.lock() #lock Movement so it cannot be dragged around
+                mirrorConstraintItem.update()
+                mirrorSuperNodeGroup.getPin().setRotation(-superNodeGroup.getPin().rotation())
+            mirrorSuperNodeGroup.getPin().setLocked(True) #lock off the pin in the new mirrored position
+            
+            self.superNodeGroups.append(mirrorSuperNodeGroup)
 
     def processMarkerActiveIndex(self):
         itemPresent = False
@@ -286,7 +385,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             newWireGroup = WireGroup(self, self.dataProcessor)
             newWireGroup.buildFromPositions(posList)
             newWireGroup.setScale(self.markerScale)
-            print "wirename : " + str(wireName) + " This ran"
+            # print "wirename : " + str(wireName) + " This ran"
             newWireGroup.setName(str(wireName))
             self.wireGroups.append(newWireGroup)
             for m in self.markerActiveList:
@@ -597,7 +696,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
             # print str(type(self.dragItem.getGroup()))
             if type(self.dragItem.getGroup()) == SuperNodeGroup:
                 superName = self.specifySuperNodeGroupName()
-                if superName: self.dragItem.getGroup().setName(superName) #We have a valid Name so set the name
+                if superName: 
+                    self.dragItem.getGroup().setName(superName) #We have a valid Name so set the name
+                    self.dragItem.setLocked(True) #Flock the pin as it drops, so it cannot be dragged around
                 else: #We do not have a valid name, so delete the superNodeGroup
                     self.dragItem.getGroup().clear()
                     self.superNodeGroups.remove(self.dragItem.getGroup())

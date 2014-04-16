@@ -41,6 +41,10 @@ class MayaData(object):
 		cmds.delete(sceneName)
 		return (sceneName == name)
 
+	def rename(self, currName, newName):
+		"""Function to rename a Maya sceneNode"""
+		return cmds.rename(currName, newName)
+
 	def addAttr(self, node, att, isLocked=False, atType='double'):
 		"""Function to add a float attribute to the node specified. No restrictions will be applied to the node, but the default will be 0"""
 		if not self.attExists(node, att):

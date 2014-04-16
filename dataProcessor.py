@@ -735,13 +735,32 @@ class AttributeServoConnector(AttributeConnector):
 		for sC in self.servoDataConnectors:
 			if sC.getIndex() != index:
 				servoNewList.append(sC) #If it is not equally to the ID number then we add it to the new servoList
+			else: #This is the servoDataConnector that we are looking to discard, so make sure that its animCurve is cleared up
+				sC.deleteServoCurveNode() 
 		self.servoDataConnectors = servoNewList #This should remove the IDServoConnector from the main list
 		self.sortServoDataConnectors() #Now neatly sort the remaining IDs
 
 	def sortServoDataConnectors(self):
-		"""Function update the IDs of the ServoDataConnector to fall in line with their positions in the servoDataConnectors list"""
-		for index, connector in enumerate(self.servoDataConnectors):
+		"""Function update the IDs of the ServoDataConnector to fall in line with their positions in the servoDataConnectors list
+
+		Also makes sure that associated servoCurveNodes are renamed to match up. This entails renaming all servoCurveNodes to tempory names, so no clashes occur. 
+		Then cycling back through all the servoDataConnectors updating att and servoCurveNode names, and then renaming the old list to new names. Connections should 
+		stay intact
+		"""
+		servoCurveNodes = []
+
+		for index, connector in enumerate(self.servoDataConnectors): #Loop through setting correct Indexes and collecting old animCurve Names
 			connector.setIndex(index)
+			servoCurveNodes.append(connector.getServoCurveName())
+
+		renamedServoCurveNodes = []
+		for sCN in servoCurveNodes: #Rename all the servoCurveNodes and store their new temporary Names
+			renamedServoCurveNodes.append(self.sceneAppData.rename(sCN, (sCN + "_tempRename")))
+
+		for index, connector in enumerate(self.servoDataConnectors): #Finally loop back through all the connectors setting up the new correct name and renaming the animCurve
+			connector.setServoAttrName()
+			self.sceneAppData.rename(renamedServoCurveNodes[index], connector.getServoCurveName())
+
 
 	def clearServoDataConnectors(self):
 		self.servoDataConnectors = []

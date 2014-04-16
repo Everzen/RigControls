@@ -800,6 +800,7 @@ class AttributeServoConnector(AttributeConnector):
 		for sDC in self.servoDataConnectors: #loop through the servoDataConnectors and delete out any associated AnimCurves
 			sDC.deleteServoCurveNode()
 
+
 class ServoDataConnector(object):
 	"""
 	Class to describe the basic connection between the AttributeServoConnector data and how that maps out from the position of the Node/SuperNode to the correct servoChannel and servo angle etc.
@@ -901,7 +902,14 @@ class ServoDataConnector(object):
 	def createServoCurveNode(self):
 		"""Function to create the appropriate curve Node name, using 3D app info"""
 		if not self.sceneAppData.objExists(self.servoCurveName): #A curveNode of this name does not exist so we can go ahead and create it
-			return self.sceneAppData.createNode(self.servoCurveName,'animCurveUU')
+			newServoCurveNode = self.sceneAppData.createNode(self.servoCurveName,'animCurveUU') #Building standardised Anim Curve
+			self.sceneAppData.setAnimCurveKey(self.servoCurveName, -1, 0)
+			self.sceneAppData.setAnimCurveKey(self.servoCurveName, 0, 90)
+			self.sceneAppData.setAnimCurveKey(self.servoCurveName, 1, 180)
+			self.sceneAppData.specifyAnimCurveTangent(newServoCurveNode, -1, 1 , "linear", "linear")
+			self.sceneAppData.setAttr(newServoCurveNode, "preInfinity", 1) #set cycles to extend existing relationships
+			self.sceneAppData.setAttr(newServoCurveNode, "postInfinity", 1)
+
 		else:
 			print "WARNING : animCurveNode called : " + str(self.servoCurveName) + " already exists in the scene"
 		return False

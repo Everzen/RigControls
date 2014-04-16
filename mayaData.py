@@ -135,3 +135,12 @@ class MayaData(object):
 	def deleteNode(self, name):
 		if self.objExists(name): 
 			cmds.delete(name)
+
+	def setAnimCurveKey(self, animCurve, fInput, value):
+		"""Function to set up a graph key on an animCurveUU, maybe extend to other AnimCurves"""
+		cmds.setKeyframe(animCurve , f=fInput, v=value)
+
+	def specifyAnimCurveTangent(self, node, startRange, endRange, inTangent, outTangent):
+		"""Function to select all keys on a node within range and adjust their tangents"""
+		cmds.selectKey(node,f=(startRange,endRange))
+		cmds.keyTangent(itt=str(inTangent), ott=str(outTangent))

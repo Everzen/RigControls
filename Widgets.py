@@ -565,8 +565,11 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
     def sceneNodeContextMenu(self,event):
         """Function to setup a RC menu for a list of specified filtered nodes"""
         menu = QtGui.QMenu()
-        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        servoDataConnectors = self.dataProcessor.getActiveServoDataConnectors()
         index = self.indexAt(event.pos())
+        currServoConnector = servoDataConnectors[self.itemFromIndex(index).row()]
+        currAttConnector = currServoConnector.getAttributeServoConnector()
+
         filteredSceneNodes = self.dataProcessor.returnFilteredObjects(self.nodeSubString) #Return all selected Nodes with specified substring
         
         menu.addAction("Wire to selected scene Node")
@@ -579,32 +582,30 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
         if action: #Check that the menu has been hit at all
             for node in filteredSceneNodes:
                 if action.text() == str(node): 
-                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                     currAttConnector.setSceneNode(str(node))
                     currAttConnector.setSceneNodeAttr(None) 
 
             if action.text() == "Wire to selected scene Node":
                 selObject = self.dataProcessor.returnSelectedObject()
                 if selObject: #Set the scene Node to the Object, and reset the attribute to None, so it can be chosen manually
-                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                     currAttConnector.setSceneNode(selObject)
                     currAttConnector.setSceneNodeAttr(None) 
                 else: #Object does not exist, so reset to None
-                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                     currAttConnector.setSceneNode(None)
                     currAttConnector.setSceneNodeAttr(None) 
             elif action.text() == "Detach Connection": #reset Node and Node Attribute
-                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                     currAttConnector.setSceneNode(None)
                     currAttConnector.setSceneNodeAttr(None) 
         self.populate() #The AttributeConnectors have been updated throughout, but no text change. Calling Populate, will then update the entire Table so text is correct.
 
     def sceneNodeAttrContextMenu(self,event):
         """Function to setup a RC menu for a list of specified filtered nodes"""
+        print "This runs"
         menu = QtGui.QMenu()
-        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        servoDataConnectors = self.dataProcessor.getActiveServoDataConnectors()
         index = self.indexAt(event.pos())
-        currAttConnector = attConnectors[self.itemFromIndex(index).row()]
+        currServoConnector = servoDataConnectors[self.itemFromIndex(index).row()]
+        currAttConnector = currServoConnector.getAttributeServoConnector()
 
         if not self.dataProcessor.objExists(currAttConnector.getSceneNode()): #The registered scene Node Does not exist so reset it to None, set Attribute to None too. 
             currAttConnector.setSceneNode(None)
@@ -613,53 +614,52 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
             menu.addAction("Detach Node and Attribute") 
             menu.addSeparator()
             # print "This item is : " + str(self.item(self.itemFromIndex(index).row(),5).text())
-            linkAttrs = self.dataProcessor.listLinkAttrs(self.item(self.itemFromIndex(index).row(),5).text()) #List all linkable attributes
+            # linkAttrs = self.dataProcessor.listLinkAttrs(self.item(self.itemFromIndex(index).row(),5).text()) #List all linkable attributes
+            linkAttrs = self.dataProcessor.listLinkAttrs(currAttConnector.getSceneNode()) #List all linkable attributes
             for att in linkAttrs: #Loop through list and add approriate actions
                 menu.addAction(att)    
-            
+
             action = menu.exec_(event.globalPos())
             if action: #Check that the menu has been hit at all
                 for att in linkAttrs:
                     if action.text() == str(att): 
-                        currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                         currAttConnector.setSceneNodeAttr(str(att))
                         self.dataProcessor.checkSceneNodeLinks(currAttConnector) #Check all the other attributeConnectors to see if they have teh same node & attribute setup.
                 if action.text() == "Detach Node and Attribute":
-                    currAttConnector = attConnectors[self.itemFromIndex(index).row()]
                     currAttConnector.setSceneNode(None)                
                     currAttConnector.setSceneNodeAttr(None) 
         self.populate() #The AttributeConnectors have been updated throughout, but no text change. Calling Populate, will then update the entire Table so text is correct.
 
 
-    def updateSceneLinkOutputData(self, item):
-        """Function to see which tableWidgetItem has been changed and take the appropriate action to update the correct attribute Connector"""
-        servoDataConnectors = self.dataProcessor.getActiveServoDataConnectors()
-        currAttConnector = servoDataConnectors[item.row()].getAttributeServoConnector()
-        isNumber = self.checkDigit(item.text())
-        newValue = 1 #Arbitart initialisation
-        if isNumber: newValue = float(item.text())
-        if item.column() == 8:
-            if isNumber: 
-                item.setText(newValue)
-            else: 
-                item.setText("0")
-        elif item.column() == 9:
-            newValue = self.checkDigit(item.text())
-            if newValue != "None": 
-                item.setText(self.checkDigit(item.text()))
-            else: 
-                item.setText(self.checkDigit("180"))
-        elif item.column() == 2:
-            if  isNumber: 
-                currAttConnector.setMinScale(newValue)  
-            else: 
-                currAttConnector.setMinScale(1.0)            
-        elif item.column() == 3:
-            if  isNumber: 
-                currAttConnector.setMaxScale(newValue)    
-            else: 
-                currAttConnector.setMaxScale(1.0) 
-        self.populate() #The AttributeConnectors have been updated throughout, but no text change. Calling Populate, will then update the entire Table so text is correct.
+    # def updateSceneLinkOutputData(self, item):
+    #     """Function to see which tableWidgetItem has been changed and take the appropriate action to update the correct attribute Connector"""
+    #     servoDataConnectors = self.dataProcessor.getActiveServoDataConnectors()
+    #     currAttConnector = servoDataConnectors[item.row()].getAttributeServoConnector()
+    #     isNumber = self.checkDigit(item.text())
+    #     newValue = 1 #Arbitart initialisation
+    #     if isNumber: newValue = float(item.text())
+    #     if item.column() == 8:
+    #         if isNumber: 
+    #             item.setText(newValue)
+    #         else: 
+    #             item.setText("0")
+    #     elif item.column() == 9:
+    #         newValue = self.checkDigit(item.text())
+    #         if newValue != "None": 
+    #             item.setText(self.checkDigit(item.text()))
+    #         else: 
+    #             item.setText(self.checkDigit("180"))
+    #     elif item.column() == 2:
+    #         if  isNumber: 
+    #             currAttConnector.setMinScale(newValue)  
+    #         else: 
+    #             currAttConnector.setMinScale(1.0)            
+    #     elif item.column() == 3:
+    #         if  isNumber: 
+    #             currAttConnector.setMaxScale(newValue)    
+    #         else: 
+    #             currAttConnector.setMaxScale(1.0) 
+    #     self.populate() #The AttributeConnectors have been updated throughout, but no text change. Calling Populate, will then update the entire Table so text is correct.
 
 
 class ControlScale():

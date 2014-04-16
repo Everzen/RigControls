@@ -328,15 +328,12 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
         self.headers = []
         self.headers.append("  Node ID  ")
         self.headers.append("  Group  ")
-        self.headers.append("  Scale Minimum  ")
-        self.headers.append("  Scale Maximum  ")
-        self.headers.append("  Flip OutPut  ")
+        self.headers.append("  Attribute Curve Node ")
+        # self.headers.append("  Flip OutPut  ")
         self.headers.append("  Scene Link Node  ")
         self.headers.append("  Scene Link Attribute  ")
         self.headers.append("  Servo Channel ")
         self.headers.append("  Servo Curve Node ")
-        self.headers.append("  Servo Min Angle ")
-        self.headers.append("  Servo Max Angle ")
 
         self.nodeSubString = "hFCtrl" #Initialise the string filter as hFCtrl
 
@@ -357,7 +354,7 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
     def populate(self):
         """Function to take all the dataProcessor info and write it out in table form"""
         self.clear()
-        self.setColumnCount(11)
+        self.setColumnCount(7)
         self.setHorizontalHeaderLabels(self.headers)
 
         if not self.dataProcessor:
@@ -373,12 +370,14 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
                 nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable)               
                 groupData = QtGui.QTableWidgetItem("")
                 groupData.setFlags(QtCore.Qt.ItemIsSelectable)
+                attrCurveNodeData = QtGui.QTableWidgetItem("")
+                attrCurveNodeData.setFlags(QtCore.Qt.ItemIsSelectable)
                 minScaleData = QtGui.QTableWidgetItem("")
                 minScaleData.setFlags(QtCore.Qt.ItemIsSelectable)
                 maxScaleData = QtGui.QTableWidgetItem("")
                 maxScaleData.setFlags(QtCore.Qt.ItemIsSelectable)
-                flipOutPutData = QtGui.QTableWidgetItem("")
-                flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable)        
+                # flipOutPutData = QtGui.QTableWidgetItem("")
+                # flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable)        
                 sceneNodeLinkData = QtGui.QTableWidgetItem("")
                 sceneNodeLinkData.setFlags(QtCore.Qt.ItemIsSelectable)        
                 nodeAttrLinkData = QtGui.QTableWidgetItem("")
@@ -389,12 +388,14 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
                     nodeIdData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled) 
                     groupData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getHostName()))
                     groupData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+                    attrCurveNodeData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getControllerAttrCurveName()))
+                    attrCurveNodeData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                     minScaleData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getMinScale()))
                     minScaleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
                     maxScaleData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getMaxScale()))
                     maxScaleData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
-                    flipOutPutData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().isFlipped()))
-                    flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)        
+                    # flipOutPutData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().isFlipped()))
+                    # flipOutPutData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)        
                     sceneNodeLinkData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getSceneNode()))
                     sceneNodeLinkData.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
                     nodeAttrLinkData = QtGui.QTableWidgetItem(str(servoData.getAttributeServoConnector().getSceneNodeAttr()))
@@ -411,15 +412,13 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
 
                 self.setItem(index,0,nodeIdData)
                 self.setItem(index,1,groupData)
-                self.setItem(index,2,minScaleData)
-                self.setItem(index,3,maxScaleData)
-                self.setItem(index,4,flipOutPutData)
-                self.setItem(index,5,sceneNodeLinkData)
-                self.setItem(index,6,nodeAttrLinkData)
-                self.setItem(index,7,servoChannelData)
-                self.setItem(index,8,servoCurveNodeData)
-                self.setItem(index,9,servoMinAngleData)
-                self.setItem(index,10,servoMaxAngleData)
+                self.setItem(index,2,attrCurveNodeData) 
+                # self.setItem(index,3,flipOutPutData)
+                self.setItem(index,3,sceneNodeLinkData)
+                self.setItem(index,4,nodeAttrLinkData)
+                self.setItem(index,5,servoChannelData)
+                self.setItem(index,6,servoCurveNodeData)
+
 
             self.blockSignals(False) #Enable updating while populating, to allow signals to be emitted.
             self.resizeColumnsToContents()
@@ -464,31 +463,63 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
         menu = QtGui.QMenu()
         menu.setStyleSheet(self.styleData)
         index = self.indexAt(event.pos())
-        if index.column() == 4:
-            self.flipContextMenu(event)
-        elif index.column() == 5:
+        # if index.column() == 4:
+        #     self.flipContextMenu(event)
+        if index.column() == 2:
+            self.attributeCurveContextMenu(event)         
+        elif index.column() == 3:
             self.sceneNodeContextMenu(event)  
-        elif index.column() == 6:
+        elif index.column() == 4:
             self.sceneNodeAttrContextMenu(event)        
-        elif index.column() == 7:
+        elif index.column() == 5:
             self.servoChannelContextMenu(event)
+        elif index.column() == 6:
+            self.servoCurveContextMenu(event)
 
-    def flipContextMenu(self,event):
+    def attributeCurveContextMenu(self,event):
+        """Function for Context menu to directly select an Attribute AnimCurve"""
         menu = QtGui.QMenu()
-        attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+        servoDataConnectors = self.dataProcessor.getActiveServoDataConnectors()
         index = self.indexAt(event.pos())
-        if self.itemFromIndex(index).text() == "True":
-            menu.addAction('False')
-        elif self.itemFromIndex(index).text() == "False":
-            menu.addAction('True')
+        menu.addAction("Select AnimCurve")
+
+        currServoDataConnector = servoDataConnectors[self.itemFromIndex(index).row()]
+        
         action = menu.exec_(event.globalPos())
         if action: #Check that the menu has been hit at all
-            if action.text() == 'False': 
-                self.itemFromIndex(index).setText('False')
-                attConnectors[self.itemFromIndex(index).row()].setFlipped(False)
-            elif action.text() == 'True': 
-                self.itemFromIndex(index).setText('True')
-                attConnectors[self.itemFromIndex(index).row()].setFlipped(True)
+            if action.text() == "Select AnimCurve":
+                currServoDataConnector.getAttributeServoConnector().selectControllerAttrCurveNode()
+
+    def servoCurveContextMenu(self,event):
+        """Function for Context menu to directly select an Servo AnimCurve"""
+        menu = QtGui.QMenu()
+        servoDataConnectors = self.dataProcessor.getActiveServoDataConnectors()
+        index = self.indexAt(event.pos())
+        menu.addAction("Select AnimCurve")
+
+        currServoDataConnector = servoDataConnectors[self.itemFromIndex(index).row()]
+        
+        action = menu.exec_(event.globalPos())
+        if action: #Check that the menu has been hit at all
+            if action.text() == "Select AnimCurve":
+                currServoDataConnector.selectServoCurveNode()
+
+    # def flipContextMenu(self,event):
+    #     menu = QtGui.QMenu()
+    #     attConnectors = self.dataProcessor.getActiveAttributeConnectors()
+    #     index = self.indexAt(event.pos())
+    #     if self.itemFromIndex(index).text() == "True":
+    #         menu.addAction('False')
+    #     elif self.itemFromIndex(index).text() == "False":
+    #         menu.addAction('True')
+    #     action = menu.exec_(event.globalPos())
+    #     if action: #Check that the menu has been hit at all
+    #         if action.text() == 'False': 
+    #             self.itemFromIndex(index).setText('False')
+    #             attConnectors[self.itemFromIndex(index).row()].setFlipped(False)
+    #         elif action.text() == 'True': 
+    #             self.itemFromIndex(index).setText('True')
+    #             attConnectors[self.itemFromIndex(index).row()].setFlipped(True)
 
     def servoChannelContextMenu(self,event):
         """Function for Context menu to directly choose a servo channel"""

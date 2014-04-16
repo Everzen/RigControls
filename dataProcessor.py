@@ -541,7 +541,7 @@ class AttributeConnector(object):
 
 
 	def manageAttrCurveNode(self):
-		"""Function to monitor the connection from the AttirbuteConnector ScentControl Attribute to the ControllerAttrCurveNode
+		"""Function to monitor the connection from the AttirbuteConnector SceneControl Attribute to the ControllerAttrCurveNode
 
 		If no animCurve Exists then create one and connect it to the appropriate Attribute
 		If it does exist then find it and make sure that the connection is made.
@@ -572,6 +572,12 @@ class AttributeConnector(object):
 			print "Deleting Existing AnimCurveNode : " + self.controllerAttrCurveName
 			self.sceneAppData.deleteNode(self.controllerAttrCurveName)
 
+	def selectControllerAttrCurveNode(self):
+		"""Function to select the AnimCurve associated with the attribute"""
+		if self.sceneAppData.objExists(self.controllerAttrCurveName):
+			self.sceneAppData.select(self.controllerAttrCurveName)
+		else:
+			print "WARNING : Cannot select since the following AnimCurve does not exist in the scene - " + str(self.controllerAttrCurveName)
 
 	def getValue(self):
 		"""Function to return the value of the attributeConnector. Flip is used to invert the input if needed"""
@@ -979,6 +985,13 @@ class ServoDataConnector(object):
 		if self.sceneAppData.objExists(self.servoCurveName):
 			print "Deleting Existing AnimCurveNode : " + self.servoCurveName
 			self.sceneAppData.deleteNode(self.servoCurveName)
+
+	def selectServoCurveNode(self):
+		"""Function to select the AnimCurve associated with the attribute"""
+		if self.sceneAppData.objExists(self.servoCurveName):
+			self.sceneAppData.select(self.servoCurveName)
+		else:
+			print "WARNING : Cannot select since the following AnimCurve does not exist in the scene - " + str(self.servoCurveName)
 
 	def getDataProcessor(self):
 		return self.dataProcessor

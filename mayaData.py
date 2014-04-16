@@ -76,6 +76,10 @@ class MayaData(object):
 		else:
 			return False
 
+	def select(self, objName):
+		"""Function to select an object in the scene"""
+		cmds.select(objName)
+
 	def attExists(self, node, att):
 		"""Function to run through the attributes of a Node and check to see if this one exists"""
 		nodeAttr = cmds.listAttr(node, keyable = True)

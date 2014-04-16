@@ -834,6 +834,41 @@ class AttributeServoConnector(AttributeConnector):
 			else: 
 				print "SceneController didnt exist"
 
+	def setValue(self, value):
+		"""Function takes value, runs it through the controllerAttrCurveNode, and returns the output 
+
+		Also cycles through the servoDataConnectors making sure that there servo angles are correctly reported.
+		"""
+		pValue = value
+		if self.maxValue:
+			if pValue > self.maxValue:
+				pValue = self.maxValue
+		if self.minValue:
+			if pValue < self.minValue:
+				pValue = self.minValue
+
+		#Now calculate the proportion from -1 -> 0 -> 1 that we should be returning
+		scaledValue = 0
+		if pValue > 0:
+			if self.maxValue:
+				scaledValue = 10.0 * float(pValue)/float(self.maxValue)
+			else: 
+				scaledValue = 10.0 * float(pValue)/self.standardScale
+		else:
+			if self.minValue:
+				scaledValue = 10.0 * -float(pValue)/float(self.minValue)
+			else: 
+				scaledValue = 10.0 * float(pValue)/self.standardScale
+
+		# print "Scaled value is : " + str(scaledValue)
+		self.sceneAppData.setAttr(self.sceneControl, self.controllerAttrName, scaledValue) #Sets the value, so we can pick up the output from the controllerAttrCurveNode
+		# print "Our Curve name is : " + str(self.controllerAttrCurveName)
+		self.value = self.sceneAppData.getAttr(self.controllerAttrCurveName, "output")
+		# print "Mapped value is : " + str(self.value)
+		for sDC in self.servoDataConnectors: #Loop through each of the servoDataConnectors making sure that their servo is moved to the correct position.
+			sDC.setServo()
+		return self.value
+
 	def getDataProcessor(self):
 		return self.dataProcessor
 
@@ -1016,3 +1051,9 @@ class ServoDataConnector(object):
 					newAnimCurve = self.createServoCurveNode()
 					self.sceneAppData.connectAttr(self.sceneControl, self.servoAttrName, self.servoCurveName, "input") 
 
+	def setServo(self):
+		"""Function to take the incoming value (-10 to 10) that was set in AttributeConnector and map it out through the servoCurveNode to set the physical servo to the correct position""" 
+		if self.servoChannel: #If there is no channel specified, then do not bother evaluating
+			servoAngle = self.sceneAppData.getAttr(self.servoCurveName, "output") #The attribute has already been set, so the servoCurveNode has already update. Just take the value
+			# print "Servo " + str(self.getIndex()) + " : Set to Angle : " + str(servoAngle)
+			#Code goes here to actually move the servo itself for the specific channel

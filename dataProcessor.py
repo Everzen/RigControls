@@ -442,7 +442,8 @@ class AttributeConnector(object):
 		self.sceneControl = None
 		self.node = None
 		self.nodeIndex = None 
-		self.controllerAttrName = None  #The name that the UI Node directional attribute will be associated with
+		self.controllerAttrName = None  #The name of the sceneControl Attribute representing this Control Direction
+		self.controllerAttrCurveNode = None #Name of the Anim curve representing this control direction
 		self.hostName = None #This is the name of the wiregroup or superNodegroup that the associated node belongs to - Do we just pass a reference to the Node itself?
 		self.active = True #check if the attributeConnector is active, or whether it has been deativated by the pin/node being deativated 
 		self.value = 0 #The final value delivered to the 3D app Scene Node. Adjusted and scaled by min/maxScale Values
@@ -507,6 +508,71 @@ class AttributeConnector(object):
 	def setSceneControl(self, sceneControl):
 		self.sceneControl = sceneControl
 
+	def getControllerAttrName(self):
+		"""Function to get name of the attribute that will be setup on the Scene Controller to represent the movement in that attribute of the Node"""
+		return self.controllerAttrName
+
+	def setControllerAttrName(self, name):
+		"""Function to set name of the attribute that will be setup on the Scene Controller to represent the movement in that attribute of the Node"""
+		self.controllerAttrName = str(name)
+		self.setControllerAttrCurveName()
+
+	def getControllerAttrCurveName(self):
+		"""Function to return the name of the AnimCurve associated with this AttributeConnector"""
+		return self.controllerAttrCurveName
+
+	def setControllerAttrCurveName(self):
+		"""Function that sets the servoCurveName from the attributeConnector Name and servoDataConnector index"""
+		self.controllerAttrCurveName = self.controllerAttrName + "_animCurve"
+
+	def createControllerAttrCurveNode(self):
+		"""Function to create the appropriate curve Node name, using 3D app info"""
+		if not self.sceneAppData.objExists(self.controllerAttrCurveName): #A curveNode of this name does not exist so we can go ahead and create it
+			newControllerAttrCurveName = self.sceneAppData.createNode(self.controllerAttrCurveName,'animCurveUU') #Building standardised Anim Curve
+			self.sceneAppData.setAnimCurveKey(newControllerAttrCurveName, -1, -1)
+			self.sceneAppData.setAnimCurveKey(newControllerAttrCurveName, 0, 0)
+			self.sceneAppData.setAnimCurveKey(newControllerAttrCurveName, 1, 1)
+			self.sceneAppData.specifyAnimCurveTangent(newControllerAttrCurveName, -1, 1 , "linear", "linear")
+			self.sceneAppData.setAttr(newControllerAttrCurveName, "preInfinity", 1) #set cycles to extend existing relationships
+			self.sceneAppData.setAttr(newControllerAttrCurveName, "postInfinity", 1)
+		else:
+			print "WARNING : animCurveNode called : " + str(self.controllerAttrCurveName) + " already exists in the scene"
+		return False
+
+
+	def manageAttrCurveNode(self):
+		"""Function to monitor the connection from the AttirbuteConnector ScentControl Attribute to the ControllerAttrCurveNode
+
+		If no animCurve Exists then create one and connect it to the appropriate Attribute
+		If it does exist then find it and make sure that the connection is made.
+		"""
+		if self.dataProcessor:
+			if self.dataProcessor.sceneControllerExists(): #We have a valid sceneControl so lets check the attribute and the sercoCurveNode
+				self.setControllerAttrCurveName() #First ensure that the curveName is setup Properly
+				if self.sceneAppData.objExists(self.controllerAttrCurveName): #We have a animCurveNode, so just make sure that it is connected to the right attribute
+					inputCon = self.sceneAppData.listInputConnections(self.controllerAttrCurveName)
+					print "Input Connection = " + str(inputCon)
+					if not inputCon: #We have no connections so we must make one.
+						self.sceneAppData.connectAttr(self.sceneControl, self.controllerAttrName, self.controllerAttrCurveName, "input")
+					else:
+						if inputCon[0] == self.sceneControl: #The node is already connected properly
+							print "Node is already properly connected"
+						else: #The node seems to have another input Connection, so we need to break all connnections it and reconnect 
+							for con in inputCon: #Break all input connections
+								self.sceneAppData.disconnectAttr(con, self.controllerAttrCurveName)
+							self.sceneAppData.connectAttr(self.sceneControl, self.controllerAttrName, self.controllerAttrCurveName, "input") #Now make correct connection
+				else: #the animCurve does not exist so we need create it and connect it! 
+					newAnimCurve = self.createControllerAttrCurveNode()
+					self.sceneAppData.connectAttr(self.sceneControl, self.controllerAttrName, self.controllerAttrCurveName, "input") 
+
+	def deleteControllerAttrCurveNode(self):
+		"""Function to create the appropriate curve Node name, using 3D app info"""
+		#find the 3D app curve Node and delete it
+		if self.sceneAppData.objExists(self.controllerAttrCurveName):
+			print "Deleting Existing AnimCurveNode : " + self.controllerAttrCurveName
+			self.sceneAppData.deleteNode(self.controllerAttrCurveName)
+
+
 	def getValue(self):
 		"""Function to return the value of the attributeConnector. Flip is used to invert the input if needed"""
 		if self.flipOutput:
@@ -558,14 +624,6 @@ class AttributeConnector(object):
 
 	def setMaxScale(self, maxScale):
 		if maxScale: self.maxScale = maxScale
-
-	def getControllerAttrName(self):
-		"""Function to get name of the attribute that will be setup on the Scene Controller to represent the movement in that attribute of the Node"""
-		return self.controllerAttrName
-
-	def setControllerAttrName(self, name):
-		"""Function to set name of the attribute that will be setup on the Scene Controller to represent the movement in that attribute of the Node"""
-		self.controllerAttrName = str(name)
 
 	def getNode(self):
 		return self.node
@@ -634,6 +692,7 @@ class AttributeConnector(object):
 					print "No Action : The following SceneControl attribute already exists - " + str(self.controllerAttrName)
 				else: #Attribute does not already exist so add it: 
 					self.sceneAppData.addAttr(self.sceneControl , self.controllerAttrName)
+				self.manageAttrCurveNode() #Now the attribute is in place, then make sure that an associated CurveNode exists and is connect
 			else: 
 				print "SceneController didnt exist"
 
@@ -651,8 +710,7 @@ class AttributeConnector(object):
 
 		Normally called when a node is deleted.
 		"""
-		pass #Code goes here to strip out the AttributeConnector AnimCurves if they are implemented
-
+		self.deleteControllerAttrCurveNode() #Clear out the animCurve associated with this SceneControl Attribute
 
 class AttributeServoConnector(AttributeConnector):
 	"""This class inherits AttributeConnector, and bolts on to it some functionality for applying servo numbers and angle limits to those servos
@@ -773,6 +831,7 @@ class AttributeServoConnector(AttributeConnector):
 					print "No Action : The following SceneControl attribute already exists - " + str(self.controllerAttrName)
 				else: #Attribute does not already exist so add it: 
 					self.sceneAppData.addAttr(self.sceneControl , self.controllerAttrName)
+				self.manageAttrCurveNode() #Now the attribute is in place, then make sure that an associated CurveNode exists and is connect
 				for sDC in self.servoDataConnectors: #Now we have a proper attribute setup, cycle through the servoDataConnectors and setup the animCurves
 					print "Managing ServoDataControl AnimCurve Connections"
 					sDC.manageServoCurveNode()
@@ -796,7 +855,7 @@ class AttributeServoConnector(AttributeConnector):
 
 		Normally called when a node is deleted.
 		"""
-		#Code goes here to strip out the AttributeConnector AnimCurves if they are implemented
+		self.deleteControllerAttrCurveNode() #Clear out the animCurve associated with this SceneControl Attribute
 		for sDC in self.servoDataConnectors: #loop through the servoDataConnectors and delete out any associated AnimCurves
 			sDC.deleteServoCurveNode()
 
@@ -903,9 +962,9 @@ class ServoDataConnector(object):
 		"""Function to create the appropriate curve Node name, using 3D app info"""
 		if not self.sceneAppData.objExists(self.servoCurveName): #A curveNode of this name does not exist so we can go ahead and create it
 			newServoCurveNode = self.sceneAppData.createNode(self.servoCurveName,'animCurveUU') #Building standardised Anim Curve
-			self.sceneAppData.setAnimCurveKey(self.servoCurveName, -1, 0)
-			self.sceneAppData.setAnimCurveKey(self.servoCurveName, 0, 90)
-			self.sceneAppData.setAnimCurveKey(self.servoCurveName, 1, 180)
+			self.sceneAppData.setAnimCurveKey(newServoCurveNode, -1, 0)
+			self.sceneAppData.setAnimCurveKey(newServoCurveNode, 0, 90)
+			self.sceneAppData.setAnimCurveKey(newServoCurveNode, 1, 180)
 			self.sceneAppData.specifyAnimCurveTangent(newServoCurveNode, -1, 1 , "linear", "linear")
 			self.sceneAppData.setAttr(newServoCurveNode, "preInfinity", 1) #set cycles to extend existing relationships
 			self.sceneAppData.setAttr(newServoCurveNode, "postInfinity", 1)
@@ -920,14 +979,6 @@ class ServoDataConnector(object):
 		if self.sceneAppData.objExists(self.servoCurveName):
 			print "Deleting Existing AnimCurveNode : " + self.servoCurveName
 			self.sceneAppData.deleteNode(self.servoCurveName)
-
-	# def addSceneControlAttr(self):
-	# 	"""Function to grab the scene control from the dataProcessor and add the appropriate attribute"""
-	# 	if self.dataProcessor.sceneControllerExists(): #Check the sceneControl Exists
-	# 		if self.sceneAppData.attExists(self.sceneControl , self.servoAttrName):
-	# 			print "No Action : The following SceneControl attribute already exists - " + str(self.servoAttrName)
-	# 		else: #Attribute does not already exist so add it: 
-	# 			self.sceneAppData.addAttr(self.sceneControl , self.servoAttrName)
 
 	def getDataProcessor(self):
 		return self.dataProcessor
@@ -956,7 +1007,7 @@ class ServoDataConnector(object):
 							print "Node is already properly connected"
 						else: #The node seems to have another input Connection, so we need to break all connnections it and reconnect 
 							for con in inputCon: #Break all input connections
-								self.sceneAppData.disconnectAttr(sourceNode, destNode)
+								self.sceneAppData.disconnectAttr(con, self.servoCurveName)
 							self.sceneAppData.connectAttr(self.sceneControl, self.servoAttrName, self.servoCurveName, "input") #Now make correct connection
 				else: #the animCurve does not exist so we need create it and connect it! 
 					newAnimCurve = self.createServoCurveNode()

@@ -346,16 +346,14 @@ class DataBundle(object):
 
 	def setX(self, x):
 		"""Function reaches down into the attributeConnectorX to set the X value"""
-		self.attributeConnectorX.setValue(x)
-		attValue = self.attributeConnectorX.getValue()
+		attValue = self.attributeConnectorX.setValue(x) #set Value updates the Attribute Connector value and return the answer
 		if self.attributeConnectorX.isSceneNodeActive(): #If active, then we have a valid scene Node and attribute wired into the Node
 			self.sceneAppData.setAttr(self.attributeConnectorX.getSceneNode(), self.attributeConnectorX.getSceneNodeAttr(), attValue)
 			# print "Moving x to : " + str(attValue)
 
 	def setY(self, y):
 		"""Function reaches down into the attributeConnectorY to set the Y value"""
-		self.attributeConnectorY.setValue(-y)
-		attValue = self.attributeConnectorY.getValue()
+		attValue = self.attributeConnectorY.setValue(-y) #set Value updates the Attribute Connector value and return the answer
 		if self.attributeConnectorY.isSceneNodeActive(): #If active, then we have a valid scene Node and attribute wired into the Node
 			self.sceneAppData.setAttr(self.attributeConnectorY.getSceneNode(), self.attributeConnectorY.getSceneNodeAttr(), attValue)
 			# print "Moving y to : " + str(attValue)
@@ -443,15 +441,13 @@ class AttributeConnector(object):
 		self.node = None
 		self.nodeIndex = None 
 		self.controllerAttrName = None  #The name of the sceneControl Attribute representing this Control Direction
-		self.controllerAttrCurveNode = None #Name of the Anim curve representing this control direction
+		self.controllerAttrCurveName = None #Name of the Anim curve representing this control direction
 		self.hostName = None #This is the name of the wiregroup or superNodegroup that the associated node belongs to - Do we just pass a reference to the Node itself?
 		self.active = True #check if the attributeConnector is active, or whether it has been deativated by the pin/node being deativated 
 		self.value = 0 #The final value delivered to the 3D app Scene Node. Adjusted and scaled by min/maxScale Values
 		self.flipOutput = False
 		self.minValue = None 
 		self.maxValue = None
-		self.minScale = 1.0 #attribute to scale the final Min output that goes to the scene Node - Use to change the output range to be other than -1 to 1
-		self.maxScale = 1.0 #attribute to scale the final Max output that goes to the scene Node
 		self.standardScale = 50.0 #Not currently being stored, since it is not currently being changed at all. Initialise at default
 		self.sceneNode = None #string
 		self.sceneNodeAttr = None #string
@@ -529,12 +525,12 @@ class AttributeConnector(object):
 		"""Function to create the appropriate curve Node name, using 3D app info"""
 		if not self.sceneAppData.objExists(self.controllerAttrCurveName): #A curveNode of this name does not exist so we can go ahead and create it
 			newControllerAttrCurveName = self.sceneAppData.createNode(self.controllerAttrCurveName,'animCurveUU') #Building standardised Anim Curve
-			self.sceneAppData.setAnimCurveKey(newControllerAttrCurveName, -1, -1)
+			self.sceneAppData.setAnimCurveKey(newControllerAttrCurveName, -10, -10)
 			self.sceneAppData.setAnimCurveKey(newControllerAttrCurveName, 0, 0)
-			self.sceneAppData.setAnimCurveKey(newControllerAttrCurveName, 1, 1)
-			self.sceneAppData.specifyAnimCurveTangent(newControllerAttrCurveName, -1, 1 , "linear", "linear")
-			self.sceneAppData.setAttr(newControllerAttrCurveName, "preInfinity", 1) #set cycles to extend existing relationships
-			self.sceneAppData.setAttr(newControllerAttrCurveName, "postInfinity", 1)
+			self.sceneAppData.setAnimCurveKey(newControllerAttrCurveName, 10, 10)
+			self.sceneAppData.specifyAnimCurveTangent(newControllerAttrCurveName, -10, 10 , "linear", "linear")
+			self.sceneAppData.setAttr(newControllerAttrCurveName, "preInfinity", 4) #set cycles to extend existing relationships
+			self.sceneAppData.setAttr(newControllerAttrCurveName, "postInfinity", 4)
 		else:
 			print "WARNING : animCurveNode called : " + str(self.controllerAttrCurveName) + " already exists in the scene"
 		return False
@@ -581,12 +577,10 @@ class AttributeConnector(object):
 
 	def getValue(self):
 		"""Function to return the value of the attributeConnector. Flip is used to invert the input if needed"""
-		if self.flipOutput:
-			return -self.value
-		else:
-			return self.value
+		return self.value
 
 	def setValue(self, value):
+		"""Function takes value, runs it through the controllerAttrCurveNode, and returns the output """
 		pValue = value
 		if self.maxValue:
 			if pValue > self.maxValue:
@@ -596,16 +590,24 @@ class AttributeConnector(object):
 				pValue = self.minValue
 
 		#Now calculate the proportion from -1 -> 0 -> 1 that we should be returning
+		scaledValue = 0
 		if pValue > 0:
 			if self.maxValue:
-				self.value = self.maxScale * round(float(pValue)/float(self.maxValue),3)
+				scaledValue = 10.0 * float(pValue)/float(self.maxValue)
 			else: 
-				self.value = self.maxScale * round(float(pValue)/self.standardScale,3)
+				scaledValue = 10.0 * float(pValue)/self.standardScale
 		else:
 			if self.minValue:
-				self.value = self.minScale * -round(float(pValue)/float(self.minValue),3)
+				scaledValue = 10.0 * -float(pValue)/float(self.minValue)
 			else: 
-				self.value = self.minScale * round(float(pValue)/self.standardScale,3)
+				scaledValue = 10.0 * float(pValue)/self.standardScale
+
+		# print "Scaled value is : " + str(scaledValue)
+		self.sceneAppData.setAttr(self.sceneControl, self.controllerAttrName, scaledValue) #Sets the value, so we can pick up the output from the controllerAttrCurveNode
+		# print "Our Curve name is : " + str(self.controllerAttrCurveName)
+		self.value = self.sceneAppData.getAttr(self.controllerAttrCurveName, "output")
+		# print "Mapped value is : " + str(self.value)
+		return self.value
 
 	def getMaxValue(self):
 		return self.maxValue
@@ -618,18 +620,6 @@ class AttributeConnector(object):
 
 	def setMinValue(self, minValue):
 		if minValue: self.minValue = float(minValue)
-
-	def getMinScale(self):
-		return self.minScale
-
-	def setMinScale(self, minScale):
-		if minScale: self.minScale = minScale
-
-	def getMaxScale(self):
-		return self.maxScale
-
-	def setMaxScale(self, maxScale):
-		if maxScale: self.maxScale = maxScale
 
 	def getNode(self):
 		return self.node
@@ -968,12 +958,12 @@ class ServoDataConnector(object):
 		"""Function to create the appropriate curve Node name, using 3D app info"""
 		if not self.sceneAppData.objExists(self.servoCurveName): #A curveNode of this name does not exist so we can go ahead and create it
 			newServoCurveNode = self.sceneAppData.createNode(self.servoCurveName,'animCurveUU') #Building standardised Anim Curve
-			self.sceneAppData.setAnimCurveKey(newServoCurveNode, -1, 0)
+			self.sceneAppData.setAnimCurveKey(newServoCurveNode, -10, 0)
 			self.sceneAppData.setAnimCurveKey(newServoCurveNode, 0, 90)
-			self.sceneAppData.setAnimCurveKey(newServoCurveNode, 1, 180)
-			self.sceneAppData.specifyAnimCurveTangent(newServoCurveNode, -1, 1 , "linear", "linear")
-			self.sceneAppData.setAttr(newServoCurveNode, "preInfinity", 1) #set cycles to extend existing relationships
-			self.sceneAppData.setAttr(newServoCurveNode, "postInfinity", 1)
+			self.sceneAppData.setAnimCurveKey(newServoCurveNode, 10, 180)
+			self.sceneAppData.specifyAnimCurveTangent(newServoCurveNode, -10, 10 , "linear", "linear")
+			self.sceneAppData.setAttr(newServoCurveNode, "preInfinity", 4) #set cycles to extend existing relationships
+			self.sceneAppData.setAttr(newServoCurveNode, "postInfinity", 4)
 
 		else:
 			print "WARNING : animCurveNode called : " + str(self.servoCurveName) + " already exists in the scene"

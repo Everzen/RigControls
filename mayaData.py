@@ -106,7 +106,7 @@ class MayaData(object):
 	
 	def disconnectAttr(self, sourceNode, destNode):
 		"""Function to disconnect the two nodes from eachother"""
-		cmds.disconnectAttr(sphereR, coneR)
+		cmds.disconnectAttr(sourceNode, destNode)
 
 	def returnSelectedObject(self):
 		"""Function to return a single Item from a selection"""
@@ -128,8 +128,12 @@ class MayaData(object):
 			if filterName in node: filterList.append(node)
 		return filterList
 
+	def getAttr(self, node, attribute):
+		"""Function to simply get an attribute value from a maya scene Node"""
+		return cmds.getAttr((node + "." + attribute))
+
 	def setAttr(self, node, attribute, data):
-		"""Function to simply set an attribute"""
+		"""Function to simply set an attribute to a maya scene Node"""
 		cmds.setAttr((node + "." + attribute), data)
 
 	def createNode(self, name, nodeType):

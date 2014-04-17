@@ -36,11 +36,14 @@ class MayaData(object):
 
 	def isNameUnique(self, name):
 		"""Function to check whether the name already exists in the Maya Scene. This is done by creating a new name, and checking to see if the name is the same as the name provided.
-		Can also be used to determine if the current specified sceneController still exists in the scene, or whether it has been deleted. If its name is considered unique, then it has been deleted! 
-		"""
-		sceneName = cmds.createNode("transform", name = name)
+		Can also be used to determine if the current specified sceneController still exists in the scene, or whether it has been deleted. If its name is considered unique, then it has been deleted"""
+		sceneName = cmds.createNode("transform", n=str(name))
 		cmds.delete(sceneName)
-		return sceneName == name
+		return (sceneName == name)
+
+	def rename(self, currName, newName):
+		"""Function to rename a Maya sceneNode"""
+		return cmds.rename(currName, newName)
 
 	def addAttr(self, node, att, isLocked=False, atType='double'):
 		"""Function to add a float attribute to the node specified. No restrictions will be applied to the node, but the default will be 0"""
@@ -50,6 +53,11 @@ class MayaData(object):
 			return True
 		else: 
 			return False
+
+	def deleteAttr(self, node, att):
+		cmds.setAttr(str(node) + "." + str(att), l=False) #make sure the attribute us unlocked before trying to remove it.
+		cmds.deleteAttr(str(node), at=str(att))
+
 
 	def addTitleAttr(self, node, titleAttr):
 		"""This function just adds a simple name attribute that is a locked off boolean to mark a key point in the Maya Node attribute list"""
@@ -68,6 +76,10 @@ class MayaData(object):
 		else:
 			return False
 
+	def select(self, objName):
+		"""Function to select an object in the scene"""
+		cmds.select(objName)
+
 	def attExists(self, node, att):
 		"""Function to run through the attributes of a Node and check to see if this one exists"""
 		nodeAttr = cmds.listAttr(node, keyable = True)
@@ -79,6 +91,22 @@ class MayaData(object):
 	def listLinkAttrs(self, node):
 		"""Function to list all the float connectable, keyable attributes on node"""
 		return cmds.listAttr(node, scalar=True, read=True, write=True, connectable=True, keyable=True)
+
+	def listUserAttrs(self, node):
+		"""Function to list all the attributes that have been added to a node by a user"""
+		return (cmds.listAttr(str(node), userDefined=True))
+
+	def listInputConnections(self, node):
+		"""Function to list all input connections skipping unitconversions"""
+		return cmds.listConnections( str(node), scn=True, source=True )
+
+	def connectAttr(self, sourceNode, sourceAttr, destNode, destAttr):
+		"""Function to connect the sourcenode.att to the destNode.att"""
+		cmds.connectAttr(sourceNode + "." + sourceAttr, destNode + "." + destAttr)
+	
+	def disconnectAttr(self, sourceNode, destNode):
+		"""Function to disconnect the two nodes from eachother"""
+		cmds.disconnectAttr(sourceNode, destNode)
 
 	def returnSelectedObject(self):
 		"""Function to return a single Item from a selection"""
@@ -100,6 +128,27 @@ class MayaData(object):
 			if filterName in node: filterList.append(node)
 		return filterList
 
+	def getAttr(self, node, attribute):
+		"""Function to simply get an attribute value from a maya scene Node"""
+		return cmds.getAttr((node + "." + attribute))
+
 	def setAttr(self, node, attribute, data):
-		"""Function to simply set an attribute"""
+		"""Function to simply set an attribute to a maya scene Node"""
 		cmds.setAttr((node + "." + attribute), data)
+
+	def createNode(self, name, nodeType):
+		"""Function to create a new Maya Node of the appropriate name and type"""
+		return cmds.createNode(str(nodeType), n=str(name))
+
+	def deleteNode(self, name):
+		if self.objExists(name): 
+			cmds.delete(name)
+
+	def setAnimCurveKey(self, animCurve, fInput, value):
+		"""Function to set up a graph key on an animCurveUU, maybe extend to other AnimCurves"""
+		cmds.setKeyframe(animCurve , f=fInput, v=value)
+
+	def specifyAnimCurveTangent(self, node, startRange, endRange, inTangent, outTangent):
+		"""Function to select all keys on a node within range and adjust their tangents"""
+		cmds.selectKey(node,f=(startRange,endRange))
+		cmds.keyTangent(itt=str(inTangent), ott=str(outTangent))

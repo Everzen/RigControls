@@ -410,6 +410,7 @@ class WireGroup(object):
         """A Function to completely remove all items from Wiregroup"""
         for n in self.nodes:
             n.setSelected(False) #Deselecting the node helps when deleting the Wiregroup, to ensure we are only asked once about deletion
+            n.clearData() #Clear out all the data associated with animCurves etc in the DataBundle
             self.scene.removeItem(n)
             del n
         for p in self.pins:
@@ -425,6 +426,8 @@ class WireGroup(object):
         self.pins = []
         self.pinTies = []
         self.curve = None 
+
+
 
 
 
@@ -611,6 +614,7 @@ class SuperNodeGroup(object):
 
     def clear(self):
         if self.superNode: 
+            self.superNode.clearData() #Clear out the data and AnimCurves associated with this superNode
             self.scene.removeItem(self.superNode)
             del self.superNode
         if self.pin: 
@@ -1333,6 +1337,11 @@ class Node(QtGui.QGraphicsItem):
         """Function to set dataBundle to the Node, but also the pass the node down into the DataBundle, and the associated AttributeConnectors"""
         self.dataBundle = bundle
         self.dataBundle.setNode(self)
+
+    def clearData(self):
+        """Function to loop through the DataBundle and make sure that all data and scene AnimCurve Nodes are cleaned up"""
+        if self.dataBundle: #we Have a valid dataBundle, so clear it out
+            self.dataBundle.clearData()
 
     def resetWireGroup(self):
         if self.group:

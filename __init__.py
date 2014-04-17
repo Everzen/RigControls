@@ -17,7 +17,7 @@ from dataProcessor import DataProcessor, DataServoProcessor, DataBundle, DataSer
 import RigUIControls as rig
 
 from mayaData import MayaData
-
+from MaestroServo import MaestroSerialServo
 #################################################################################################
 #Function to return Mayas main Window QtWidget so we can parent our UI to it.
 
@@ -27,6 +27,9 @@ def maya_main_window():
 
 #################################################################################################
 
+
+
+#################################################################################################
 
 class StatusBarMessageLogger(object):
     """
@@ -87,6 +90,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.skinTableWidget = None
         self.styleData = styleData
         self.dataProcessor = dataProcessor
+        self.dataProcessor.setWindow(self) #Ensure that the processor is aware of the window Widget
         imagePath = os.path.dirname(os.path.realpath(__file__))
         self.imagePath = imagePath.replace("\\", "/") #Convert everything across to / for css files. Apparently this is ugly, but cannot get os.path and posixpath to work
         self.initUI()
@@ -342,7 +346,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.dataTabsWidget.addTab(tabNodeLinks, "Node and Servo Links")
         #Build the Skinning Table
         self.nodeLinksTableWidget = SceneLinkServoTabW(self.styleData) #Replace this when the correct data table is actually written! 
-        self.nodeLinksTableWidget.itemChanged.connect(self.updateSceneLinkOutputData) #Function called to see which Table item has been changed, and adjust the appropriate output
+        # self.nodeLinksTableWidget.itemChanged.connect(self.updateSceneLinkOutputData) #Function called to see which Table item has been changed, and adjust the appropriate output
         self.nodeLinksTableWidget.setDataProcessor(self.dataProcessor)
         self.nodeLinksTableWidget.populate()
         self.updateNodeLinksButton = QtGui.QPushButton("Update")
@@ -488,7 +492,6 @@ class RigFaceSetup(QtGui.QMainWindow):
 # if __name__ == "__main__":
 #     sys.exit(main())
 
-
 def main():
     # stylesheet = 'darkorange.stylesheet'
     stylesheet = (os.path.dirname(os.path.realpath(__file__))) + '/darkorange.stylesheet'
@@ -502,7 +505,7 @@ def main():
 
     #Create DataProcessor for the rig and use the DataBundle Class to determine how it will behave.
     # rigProcessor = DataProcessor(MayaData()) 
-    rigProcessor = DataServoProcessor(MayaData()) 
+    rigProcessor = DataServoProcessor(MayaData(),MaestroSerialServo()) #Setup the data processor for working Maya and the Pololu Maestro Server information 
     happyFaceUI = RigFaceSetup(styleData, rigProcessor, parent = maya_main_window())
     # happyFaceUI = RigFaceSetup(styleData)
     # happyFaceUI.setWindowFlags(QtCore.Qt.Tool)
@@ -523,5 +526,9 @@ def main():
 #         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
 #         return 1
 
+
+
+
 print "launching Happy Face......"
+
 main()

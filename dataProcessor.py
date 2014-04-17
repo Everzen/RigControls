@@ -205,9 +205,10 @@ class DataServoProcessor(DataProcessor):
 	"""This class inherits DataProcessor, and bolts on to it some functionality for processing servos
 
 	"""
-	def __init__(self, sceneAppData):
+	def __init__(self, sceneAppData, servoAppData):
 		DataProcessor.__init__(self, sceneAppData)
 		self.sampleBundle = DataServoBundle(sceneAppData) #Load in  the new DataServoBundle to access extra Servo functionality
+		self.servoAppData = servoAppData
 
 	def checkUniqueServoChannels(self, dataServoConnector, channel):
 		"""A function to cycle through all the dataServoConnectors and check that no other dataServoConnector has the same servoChannel as the input dataServoConnector"""
@@ -215,9 +216,22 @@ class DataServoProcessor(DataProcessor):
 			if sDC != dataServoConnector:
 				if sDC.getServoChannel() == channel: sDC.setServoChannel(None)
 
-	def setupServoMinMaxAngles(self):
-		"""Function to run through all active attributeConnectors and make sure their servo min and max angles are initiated correctly"""
-		for sDC in self.activeServoDataConnectors: sDC.setupServoMinMaxAngles()
+	def attachBundle(self, item):
+		"""Takes a DataBundle and adds it to the list, assigning the Maya control along the way
+
+		Reimplemented in order to be able to pass on the servoAppData upon creation, pass this down to the AttributeConnectors and ServoDataConnectors
+		"""
+		newBundle = copy.deepcopy(self.sampleBundle)
+		print "Attaching Bundle - my dataProcessor SceneControl is : " + str(self.getSceneControl()) 
+		newBundle.setDataProcessor(self)
+		newBundle.setServoAppData(self.servoAppData) 
+		# newBundle.setSceneControl(self.sceneControl)
+		item.setDataBundle(newBundle)
+		self.dataBundles.append(newBundle)
+
+	# def setupServoMinMaxAngles(self):
+	# 	"""Function to run through all active attributeConnectors and make sure their servo min and max angles are initiated correctly"""
+	# 	for sDC in self.activeServoDataConnectors: sDC.setupServoMinMaxAngles()
 
 
 class DataBundle(object):
@@ -424,10 +438,16 @@ class DataServoBundle(DataBundle):
 	def __init__(self, sceneAppData):
 		DataBundle.__init__(self, sceneAppData) 
 		self.sceneAppData = sceneAppData
-		self.attributeConnectorX = AttributeServoConnector(sceneAppData)
-		self.attributeConnectorY = AttributeServoConnector(sceneAppData)
+		self.servoAppData = None
+		self.attributeConnectorX = AttributeServoConnector(self.sceneAppData)
+		self.attributeConnectorY = AttributeServoConnector(self.sceneAppData)
 		self.attributeConnectors = [self.attributeConnectorX, self.attributeConnectorY]
 
+	def setServoAppData(self, servoAppData):
+		"""Function set the servoAppdata for the DataServoBundle, and pass this on to AttributeServoConnectors and ServoDataConnectors"""
+		self.servoAppData = servoAppData
+		for att in self.attributeConnectors: #Loop through and Update the AttributeConnectors
+			att.setServoAppData(self.servoAppData)
 
 class AttributeConnector(object):
 	"""
@@ -708,15 +728,17 @@ class AttributeConnector(object):
 		"""
 		self.deleteControllerAttrCurveNode() #Clear out the animCurve associated with this SceneControl Attribute
 
+
 class AttributeServoConnector(AttributeConnector):
 	"""This class inherits AttributeConnector, and bolts on to it some functionality for applying servo numbers and angle limits to those servos
 	Servos are bolted on by adding ServoDataConnector objects, each of which describe a relationship out to a different servo
 
 	"""
 	def __init__(self, sceneAppData):
-		AttributeConnector.__init__(self,sceneAppData)
+		AttributeConnector.__init__(self, sceneAppData)
 		self.sceneAppData = sceneAppData
-		self.servoDataConnectors = [ServoDataConnector(sceneAppData,0,self)] #intialise the list of servoDataConnectors with a single connector with ID 0
+		self.servoAppData = None
+		self.servoDataConnectors = [ServoDataConnector(self.sceneAppData,0,self)] #intialise the list of servoDataConnectors with a single connector with ID 0
 
 	def store(self):
 		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load. 
@@ -770,6 +792,12 @@ class AttributeServoConnector(AttributeConnector):
 			newServoDataConnector = self.addServoDataConnector() #add a new servoDataConnector, and store to a variable so we can read in data
 			newServoDataConnector.read(sDCXml)
 
+	def setServoAppData(self, servoAppData):
+		"""Function set the servoAppdata for the DataServoBundle, and pass this on to AttributeServoConnectors and ServoDataConnectors"""
+		self.servoAppData = servoAppData
+		for sDC in self.servoDataConnectors: #Loop through and Update the AttributeConnectors
+			sDC.setServoAppData(self.servoAppData)
+
 	def getServoDataConnectors(self):
 		return self.servoDataConnectors
 
@@ -777,7 +805,8 @@ class AttributeServoConnector(AttributeConnector):
 		"""Function to add a new ServoDataConnector to the end of the ServoDataConnectors list. Adds the appropirate ID from the ServoDataConnectors list length"""
 		self.sortServoDataConnectors() #Sort all the current ServoDataConnectors
 		newIndex = len(self.servoDataConnectors)
-		newServoDataConnector = ServoDataConnector(self.sceneAppData,newIndex,self)
+		newServoDataConnector = ServoDataConnector(self.sceneAppData, newIndex, self)
+		newServoDataConnector.setServoAppData(self.servoAppData) #Make sure the new servoDataConnector is instantly supplied with the correct ServoAppData
 		self.servoDataConnectors.append(newServoDataConnector)
 		return newServoDataConnector
 
@@ -898,13 +927,14 @@ class ServoDataConnector(object):
 	def __init__(self, sceneAppData, index, attributeServoConnector):
 		#LIST OF ATTRIBUTES
 		self.sceneAppData = sceneAppData
+		self.servoAppData = None
 		self.dataProcessor = None
 		self.sceneControl = None
 		self.index = index
 		self.attributeServoConnector = attributeServoConnector #Passing the paretn ServoDataConnector down, so it can be identified
 		self.servoChannel = None
-		self.servoMinAngle = None
-		self.servoMaxAngle = None
+		self.servoMinAngle = 0
+		self.servoMaxAngle = 180
 		self.servoAttrName = None
 		self.servoCurveName = None
 
@@ -928,6 +958,10 @@ class ServoDataConnector(object):
 			elif a.attrib['name'] == 'servoChannel': self.setServoChannel(readAttribute(a.attrib['value']))
 			elif a.attrib['name'] == 'servoMinAngle': self.setServoMinAngle(readAttribute(a.attrib['value']))
 			elif a.attrib['name'] == 'servoMaxAngle': self.setServoMaxAngle(readAttribute(a.attrib['value']))
+
+	def setServoAppData(self, servoAppData):
+		"""Function set the servoAppdata for the DataServoBundle, and pass this on to AttributeServoConnectors and ServoDataConnectors"""
+		self.servoAppData = servoAppData
 
 	def getIndex(self):
 		return self.index
@@ -967,13 +1001,13 @@ class ServoDataConnector(object):
 		self.servoMaxAngle = angle
 		return self.servoMaxAngle
 
-	def setupServoMinMaxAngles(self):
-		if self.servoChannel == None: #The servo channel has been shut down, so set Min Max Angles to None
-			self.servoMinAngle = None
-			self.servoMaxAngle = None
-		else: #ServoChannel has been initialised with an channel number
-			if self.servoMinAngle == None: self.servoMinAngle = 0.0
-			if self.servoMaxAngle == None: self.servoMaxAngle = 180.0
+	# def setupServoMinMaxAngles(self):
+	# 	if self.servoChannel == None: #The servo channel has been shut down, so set Min Max Angles to None
+	# 		self.servoMinAngle = None
+	# 		self.servoMaxAngle = None
+	# 	else: #ServoChannel has been initialised with an channel number
+	# 		if self.servoMinAngle == None: self.servoMinAngle = 0.0
+	# 		if self.servoMaxAngle == None: self.servoMaxAngle = 180.0
 
 	def getServoAttrName(self):
 		return self.servoAttrName
@@ -1053,7 +1087,8 @@ class ServoDataConnector(object):
 
 	def setServo(self):
 		"""Function to take the incoming value (-10 to 10) that was set in AttributeConnector and map it out through the servoCurveNode to set the physical servo to the correct position""" 
-		if self.servoChannel: #If there is no channel specified, then do not bother evaluating
+		if self.servoChannel != None: #If there is no channel specified, then do not bother evaluating
 			servoAngle = self.sceneAppData.getAttr(self.servoCurveName, "output") #The attribute has already been set, so the servoCurveNode has already update. Just take the value
 			# print "Servo " + str(self.getIndex()) + " : Set to Angle : " + str(servoAngle)
 			#Code goes here to actually move the servo itself for the specific channel
+			self.servoAppData.setServo(self.servoChannel, servoAngle, self.servoMinAngle, self.servoMaxAngle) #Call to actually move the servo

@@ -17,7 +17,7 @@ from dataProcessor import DataProcessor, DataServoProcessor, DataBundle, DataSer
 import RigUIControls as rig
 
 from mayaData import MayaData
-
+from MaestroServo import MaestroSerialServo
 #################################################################################################
 #Function to return Mayas main Window QtWidget so we can parent our UI to it.
 
@@ -27,6 +27,9 @@ def maya_main_window():
 
 #################################################################################################
 
+
+
+#################################################################################################
 
 class StatusBarMessageLogger(object):
     """
@@ -489,7 +492,6 @@ class RigFaceSetup(QtGui.QMainWindow):
 # if __name__ == "__main__":
 #     sys.exit(main())
 
-
 def main():
     # stylesheet = 'darkorange.stylesheet'
     stylesheet = (os.path.dirname(os.path.realpath(__file__))) + '/darkorange.stylesheet'
@@ -503,7 +505,7 @@ def main():
 
     #Create DataProcessor for the rig and use the DataBundle Class to determine how it will behave.
     # rigProcessor = DataProcessor(MayaData()) 
-    rigProcessor = DataServoProcessor(MayaData()) 
+    rigProcessor = DataServoProcessor(MayaData(),MaestroSerialServo()) #Setup the data processor for working Maya and the Pololu Maestro Server information 
     happyFaceUI = RigFaceSetup(styleData, rigProcessor, parent = maya_main_window())
     # happyFaceUI = RigFaceSetup(styleData)
     # happyFaceUI.setWindowFlags(QtCore.Qt.Tool)
@@ -524,5 +526,9 @@ def main():
 #         sys.stderr.write('Error - Unable to find stylesheet \'%s\'\n' % stylesheet)
 #         return 1
 
+
+
+
 print "launching Happy Face......"
+
 main()

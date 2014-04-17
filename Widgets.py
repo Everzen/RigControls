@@ -547,7 +547,7 @@ class SceneLinkServoTabW(QtGui.QTableWidget):
                 currServoDataConnector.getAttributeServoConnector().removeServoDataConnector(currIndex)
                 self.dataProcessor.manageAttributeConnections() #Run a check through all the attribute Connections to make sure that the extra channel is in place
             
-            self.dataProcessor.setupServoMinMaxAngles() #If an action then run through servo min and Max angles
+            # self.dataProcessor.setupServoMinMaxAngles() #If an action then run through servo min and Max angles
             self.populate() #If an action was taken then repopulate the DataTable, because servoChannels may well have been adjusted
 
     def sceneNodeContextMenu(self,event):

@@ -26,6 +26,19 @@ class DataProcessor(object):
 		self.activeServoDataConnectors = []
 		self.rigGraphicsView = None
 
+	def store(self):
+		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+		dataProcessorRoot = xml.Element('DataProcessor')
+		attributes = xml.SubElement(dataProcessorRoot,'attributes')
+		xml.SubElement(attributes, 'attribute', name = 'sceneControl', value = str(self.getSceneControl()))
+
+		return dataProcessorRoot
+
+	def read(self, dataProcessorXml):
+		"""A function to read in a block of XML and set all major attributes accordingly"""
+		for a in dataProcessorXml.findall( 'attributes/attribute'):
+			if a.attrib['name'] == 'sceneControl': self.setSceneControl(str(a.attrib['value']))        
+
 	def setWindow(self, window):
 		self.mainWindow = window
 
@@ -229,6 +242,16 @@ class DataServoProcessor(DataProcessor):
 		item.setDataBundle(newBundle)
 		self.dataBundles.append(newBundle)
 
+	def setServoAppData(self):
+		"""Function to gather up all the data Bundles and make sure that they have the correct servoAppdata"""
+		self.collectActiveControlNodes() #Run this to collect all the dataBundles
+
+		for bundle in self.dataBundles: #loop through setting the servoAppData for each one
+			bundle.setServoAppData(self.servoAppData)
+
+
+
+
 	# def setupServoMinMaxAngles(self):
 	# 	"""Function to run through all active attributeConnectors and make sure their servo min and max angles are initiated correctly"""
 	# 	for sDC in self.activeServoDataConnectors: sDC.setupServoMinMaxAngles()
@@ -349,6 +372,7 @@ class DataBundle(object):
 	def setNode(self, node):
 		"""Function to set the Node in the dataBundle, but also to pass the node down to the attributeConnectors"""
 		self.node = node
+		print "NODE SET CALLED : " + str(self.node)
 		self.attributeConnectorX.setNode(node)
 		self.attributeConnectorY.setNode(node)
 
@@ -488,8 +512,6 @@ class AttributeConnector(object):
 		xml.SubElement(attributes, 'attribute', name = 'flipOutput', value = str(self.isFlipped()))
 		xml.SubElement(attributes, 'attribute', name = 'minValue', value = (str(self.getMinValue())))
 		xml.SubElement(attributes, 'attribute', name = 'maxValue', value = (str(self.getMaxValue())))
-		xml.SubElement(attributes, 'attribute', name = 'minScale', value = (str(self.getMinScale())))
-		xml.SubElement(attributes, 'attribute', name = 'maxScale', value = (str(self.getMaxScale())))        
 		xml.SubElement(attributes, 'attribute', name = 'sceneNode', value = str(self.getSceneNode()))
 		xml.SubElement(attributes, 'attribute', name = 'sceneNodeAttr', value = str(self.getSceneNodeAttr()))
 		xml.SubElement(attributes, 'attribute', name = 'sceneNodeActive', value = str(self.isSceneNodeActive()))
@@ -511,8 +533,6 @@ class AttributeConnector(object):
 			elif a.attrib['name'] == 'flipOutput': self.setFlipped(str(a.attrib['value']) == 'True')
 			elif a.attrib['name'] == 'minValue': self.setMinValue(readAttribute(a.attrib['value']))
 			elif a.attrib['name'] == 'maxValue': self.setMaxValue(readAttribute(a.attrib['value']))
-			elif a.attrib['name'] == 'minScale': self.setMinScale(readAttribute(a.attrib['value']))
-			elif a.attrib['name'] == 'maxScale': self.setMaxScale(readAttribute(a.attrib['value']))
 			elif a.attrib['name'] == 'sceneNode': self.setSceneNode(str(a.attrib['value']))
 			elif a.attrib['name'] == 'sceneNodeAttr': self.setSceneNodeAttr(str(a.attrib['value']))
 			elif a.attrib['name'] == 'sceneNodeActive': self.setSceneNodeActive(str(a.attrib['value']) == 'True')
@@ -622,11 +642,12 @@ class AttributeConnector(object):
 			else: 
 				scaledValue = 10.0 * float(pValue)/self.standardScale
 
-		# print "Scaled value is : " + str(scaledValue)
-		self.sceneAppData.setAttr(self.sceneControl, self.controllerAttrName, scaledValue) #Sets the value, so we can pick up the output from the controllerAttrCurveNode
-		# print "Our Curve name is : " + str(self.controllerAttrCurveName)
-		self.value = self.sceneAppData.getAttr(self.controllerAttrCurveName, "output")
-		# print "Mapped value is : " + str(self.value)
+		if self.sceneControl and self.controllerAttrName:
+			# print "Scaled value is : " + str(scaledValue)
+			self.sceneAppData.setAttr(self.sceneControl, self.controllerAttrName, scaledValue) #Sets the value, so we can pick up the output from the controllerAttrCurveNode
+			# print "Our Curve name is : " + str(self.controllerAttrCurveName)
+			self.value = self.sceneAppData.getAttr(self.controllerAttrCurveName, "output")
+			# print "Mapped value is : " + str(self.value)
 		return self.value
 
 	def getMaxValue(self):
@@ -752,8 +773,6 @@ class AttributeServoConnector(AttributeConnector):
 		xml.SubElement(attributes, 'attribute', name = 'flipOutput', value = str(self.isFlipped()))
 		xml.SubElement(attributes, 'attribute', name = 'minValue', value = (str(self.getMinValue())))
 		xml.SubElement(attributes, 'attribute', name = 'maxValue', value = (str(self.getMaxValue())))
-		xml.SubElement(attributes, 'attribute', name = 'minScale', value = (str(self.getMinScale())))
-		xml.SubElement(attributes, 'attribute', name = 'maxScale', value = (str(self.getMaxScale())))        
 		xml.SubElement(attributes, 'attribute', name = 'sceneNode', value = str(self.getSceneNode()))
 		xml.SubElement(attributes, 'attribute', name = 'sceneNodeAttr', value = str(self.getSceneNodeAttr()))
 		xml.SubElement(attributes, 'attribute', name = 'sceneNodeActive', value = str(self.isSceneNodeActive()))
@@ -778,8 +797,6 @@ class AttributeServoConnector(AttributeConnector):
 			elif a.attrib['name'] == 'flipOutput': self.setFlipped(str(a.attrib['value']) == 'True')
 			elif a.attrib['name'] == 'minValue': self.setMinValue(readAttribute(a.attrib['value']))
 			elif a.attrib['name'] == 'maxValue': self.setMaxValue(readAttribute(a.attrib['value']))
-			elif a.attrib['name'] == 'minScale': self.setMinScale(readAttribute(a.attrib['value']))
-			elif a.attrib['name'] == 'maxScale': self.setMaxScale(readAttribute(a.attrib['value']))
 			elif a.attrib['name'] == 'sceneNode': self.setSceneNode(str(a.attrib['value']))
 			elif a.attrib['name'] == 'sceneNodeAttr': self.setSceneNodeAttr(str(a.attrib['value']))
 			elif a.attrib['name'] == 'sceneNodeActive': self.setSceneNodeActive(str(a.attrib['value']) == 'True')
@@ -889,13 +906,17 @@ class AttributeServoConnector(AttributeConnector):
 			else: 
 				scaledValue = 10.0 * float(pValue)/self.standardScale
 
+		# print "About to setValue and self.sceneControl: " + str(self.sceneControl)
+		# print "About to setValue and self.controllerAttrName: " + str(self.controllerAttrName)
 		# print "Scaled value is : " + str(scaledValue)
-		self.sceneAppData.setAttr(self.sceneControl, self.controllerAttrName, scaledValue) #Sets the value, so we can pick up the output from the controllerAttrCurveNode
-		# print "Our Curve name is : " + str(self.controllerAttrCurveName)
-		self.value = self.sceneAppData.getAttr(self.controllerAttrCurveName, "output")
-		# print "Mapped value is : " + str(self.value)
-		for sDC in self.servoDataConnectors: #Loop through each of the servoDataConnectors making sure that their servo is moved to the correct position.
-			sDC.setServo()
+		
+		if self.sceneControl and self.controllerAttrName:
+			self.sceneAppData.setAttr(self.sceneControl, self.controllerAttrName, scaledValue) #Sets the value, so we can pick up the output from the controllerAttrCurveNode
+			# print "Our Curve name is : " + str(self.controllerAttrCurveName)
+			self.value = self.sceneAppData.getAttr(self.controllerAttrCurveName, "output")
+			# print "Mapped value is : " + str(self.value)
+			for sDC in self.servoDataConnectors: #Loop through each of the servoDataConnectors making sure that their servo is moved to the correct position.
+				sDC.setServo()
 		return self.value
 
 	def getDataProcessor(self):
@@ -904,8 +925,10 @@ class AttributeServoConnector(AttributeConnector):
 	def setDataProcessor(self, dataProcessor):
 		"""Function to set Data Processor and ensure all attributeConnectors have it correctly set too"""
 		self.dataProcessor = dataProcessor
-		if self.dataProcessor:
-			self.sceneControl = self.dataProcessor.getSceneControl()
+		print "In the Att Con self.sceneControl = " + str(self.sceneControl)
+		self.sceneControl = self.dataProcessor.getSceneControl()
+		print "NOW the Att Con self.sceneControl = " + str(self.sceneControl)
+
 		print "Setting the Attibute Connector data Processor info : " + str(self.sceneControl)
 		for sDC in self.servoDataConnectors:
 			sDC.setDataProcessor(dataProcessor)
@@ -1058,6 +1081,7 @@ class ServoDataConnector(object):
 	def setDataProcessor(self, dataProcessor):
 		"""Function make sure the dataProcessor is uptodate"""
 		self.dataProcessor = dataProcessor
+		print "In the ServoDataConnector the sceneControl is being set to : " + str(self.dataProcessor.getSceneControl())
 		self.sceneControl = self.dataProcessor.getSceneControl()
 
 	def manageServoCurveNode(self):
@@ -1091,4 +1115,5 @@ class ServoDataConnector(object):
 			servoAngle = self.sceneAppData.getAttr(self.servoCurveName, "output") #The attribute has already been set, so the servoCurveNode has already update. Just take the value
 			# print "Servo " + str(self.getIndex()) + " : Set to Angle : " + str(servoAngle)
 			#Code goes here to actually move the servo itself for the specific channel
+			# print "My servo data  is  : " + str(self.servoAppData)
 			self.servoAppData.setServo(self.servoChannel, servoAngle, self.servoMinAngle, self.servoMaxAngle) #Call to actually move the servo

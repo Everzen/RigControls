@@ -47,9 +47,11 @@ class FaceGVCapture():
 
         self.viewXML = FileControl.XMLMan()
         self.viewXML.tree = xml.Element('faceRigGraphicsView')
+        self.dataProcessorSettings = xml.SubElement(self.viewXML.tree,'dataProcessorSettings')
         self.viewSettings = xml.SubElement(self.viewXML.tree,'viewSettings')
         self.sceneItems = xml.SubElement(self.viewXML.tree,'sceneItems')
 
+        self.captureDataProcessor() # Record the main DataProcessor for the scene. This mainly is about capturing what the SceneControl Node is
         self.captureBackgroundImage() #Record the background Image
         self.captureViewSettings() # Capture remainng View settings
         self.captureReflectionLine()
@@ -62,7 +64,7 @@ class FaceGVCapture():
         self.viewXML.save()
 
     def read(self):
-
+        
         if not self.viewXML:
             self.messageLogger.error("Invalid filename for reading: '%s'" % self.viewXML)
             return
@@ -70,6 +72,7 @@ class FaceGVCapture():
         # Clear the entire Graphics View, including reflection Line
         self.view.clear(isReflectionLine = False)
 
+        self.readDataProcessor()
         self.readBackgroundImage()
         self.readViewSettings()
         self.readRelectionLine()
@@ -80,6 +83,21 @@ class FaceGVCapture():
         # Updating a full draw for the whole scene
         scene = self.view.scene()
         scene.update(0,0,self.view.width,self.view.height)
+        self.dataProcessor.manageAttributeConnections() #Now that the final wireGroup has been created, we have to align it with the sceneControl Attributes
+        self.dataProcessor.setServoAppData() #Run through passing down the correct servoAppData to all levels
+
+    def captureDataProcessor(self):
+        """Function to process store the DataProcessor"""
+        dataProcessorXml = self.dataProcessor.store()
+        self.dataProcessorSettings.append(dataProcessorXml)
+
+    def readDataProcessor(self):
+        """A Function to load in the settings for main dataProcessor"""
+        scene = self.view.scene()
+        dataProcessorXML = self.viewXML.findBranch("DataProcessor")
+        self.dataProcessor.read(dataProcessorXML[0]) #Read first element, because there will only ever be one element recorded
+        print "My Processor Name is : " + str(self.dataProcessor.getSceneControl())
+        self.dataProcessor.isSceneControllerActive()
 
     def captureBackgroundImage(self):
         """Function to process background Image into XML"""

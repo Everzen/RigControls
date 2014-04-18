@@ -247,6 +247,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
             elif type(controlItem) == SuperNodeGroup:
                 print "Mirroring SuperNodeGroup"
                 self.reflectSuperNodeGroup(controlItem)
+        self.dataProcessor.manageAttributeConnections() #Now that the control has been mirrored, we have to align it with the sceneControl Attributes
+
 
     def reflectWireGroup(self,wireGroup):
         """Function to reflect the given Wiregroup so that a new copy is mirrored to the other side of the reflectionLine"""
@@ -998,8 +1000,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 newCol = QtGui.QColorDialog.getColor()
                 if newCol.isValid():
                     if type(item) == Node: #If we are a node in a wire group then set all the node colours
-                        if item.wireGroup:
-                            for node in item.wireGroup.nodes: node.setColour(newCol)
+                        if item.getGroup():
+                            for node in item.getGroup().getNodes(): node.setColour(newCol)
                         else: item.setColour(newCol)
                     else: item.setColour(newCol)
             elif action.text() == 'Skin Selected Nodes':

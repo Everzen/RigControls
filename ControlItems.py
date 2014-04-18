@@ -362,7 +362,8 @@ class WireGroup(object):
     def resetNodes(self):
         """Method to send all the nodes in the Wiregroup back to the origins (pins)"""
         for node in self.nodes:
-            node.goHome()
+            if node.getPin().isActive(): #If the pin of the node is active, then we need to send it home.
+                node.goHome()
 
     def mergeNode(self, index, mergeNode, goHome = True):
         """A function to replace the index node in self.nodes with a merged node coming from another Wiregroup
@@ -1209,7 +1210,8 @@ class Node(QtGui.QGraphicsItem):
 
         #Now we have to load in the dataBundle information. The dataBundle will have been created when the Node was created, so just read in the data
         dataBundleXml = nodeXml.findall('DataBundles/DataBundle')[0]
-        self.dataBundle.read(dataBundleXml)       
+        self.dataBundle.read(dataBundleXml)  
+        self.dataBundle.setNode(self) #Finall make sure that the dataBundle that has just been loaded in knows about node     
 
 
     def setIndex(self,value):
@@ -1613,7 +1615,9 @@ class SuperNode(Node):
 
         #Now we have to load in the dataBundle information. The dataBundle will have been created when the Node was created, so just read in the data
         dataBundleXml = superNodeXml.findall('DataBundles/DataBundle')[0]
-        self.dataBundle.read(dataBundleXml) 
+        self.dataBundle.read(dataBundleXml)
+        self.dataBundle.setNode(self) #Finall make sure that the dataBundle that has just been loaded in knows about node     
+
 
     def getName(self):
         return self.name

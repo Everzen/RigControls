@@ -470,6 +470,12 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.skinTableWidget.populate()
 
 
+    def closeEvent(self, event):
+        """Function to close down the Window and clean up connections such as any Servo based connections"""
+        if type(self.dataProcessor) == DataServoProcessor: #We have a servo processor, so shut down any serial ports
+            self.dataProcessor.getServoAppData().close()
+        print "Happy Face is shutting down..... "
+
 # def main():
 
 #     stylesheet = 'darkorange.stylesheet'

@@ -242,6 +242,9 @@ class DataServoProcessor(DataProcessor):
 		item.setDataBundle(newBundle)
 		self.dataBundles.append(newBundle)
 
+	def getServoAppData(self):
+		return self.servoAppData
+
 	def setServoAppData(self):
 		"""Function to gather up all the data Bundles and make sure that they have the correct servoAppdata"""
 		self.collectActiveControlNodes() #Run this to collect all the dataBundles
@@ -961,6 +964,9 @@ class ServoDataConnector(object):
 		self.servoAttrName = None
 		self.servoCurveName = None
 
+		self.errorCount = 0 #Tracks the number of errors spawned
+		self.errorMax = 1000 #The limit to the number of errors before a warning message is printed, and the counter is reset.
+
 	def store(self):
 		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load 
 		"""
@@ -1116,4 +1122,11 @@ class ServoDataConnector(object):
 			# print "Servo " + str(self.getIndex()) + " : Set to Angle : " + str(servoAngle)
 			#Code goes here to actually move the servo itself for the specific channel
 			# print "My servo data  is  : " + str(self.servoAppData)
-			self.servoAppData.setServo(self.servoChannel, servoAngle, self.servoMinAngle, self.servoMaxAngle) #Call to actually move the servo
+			if self.servoAppData.isActive():
+				self.servoAppData.setServo(self.servoChannel, servoAngle, self.servoMinAngle, self.servoMaxAngle) #Call to actually move the servo
+			else: #The Maestro Servo system is not active, so regulate the error to return a warning every errorMax errors. 
+				if self.errorCount < self.errorMax: 
+					self.errorCount += 1
+				else: #We have reached our error count limit so print a warning
+					print "WARNING : No communication with Serial Port. " + self.servoAppData.getServoSystem() + " will not respond."
+					self.errorCount = 0 #Reset the error count after the message has gone out.

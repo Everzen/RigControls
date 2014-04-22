@@ -977,12 +977,6 @@ class GuideMarker(QtGui.QGraphicsItem):
     def setAlpha(self, alpha):
         self.alpha = float(alpha)
 
-    def getShowID(self):
-        return self.showID
-
-    def setShowID(self,state):
-        self.showID = state
-
     def getIndex(self):
         return self.index
 
@@ -1024,22 +1018,6 @@ class GuideMarker(QtGui.QGraphicsItem):
             painter.setBrush(QtGui.QBrush(gradient))
             painter.drawEllipse(self.scale*-18, self.scale*-18, self.scale*36, self.scale*36)        
 
-    def drawID(self, painter):
-        # print "Marker Index : " + str(self.index)
-        # print "Marker guideIndex : " + str(self.guideIndex)
-        # print "Marker showID : " + str(self.showID)
-        if self.showID and self.index: #Conditions met to disply numbers on corners
-            pen = QtGui.QPen(QtGui.QColor(180,180,180,255*self.alpha), 1, QtCore.Qt.SolidLine)
-            painter.setPen(pen)
-            fontsize = 9
-            if self.scale < 1.0:
-                fontsize = int(9*self.scale)
-            painter.setFont(QtGui.QFont('Arial', fontsize))
-            if self.guideIndex != 0: 
-                # print "guide index : " + str(self.guideIndex)
-                painter.drawText(self.scale*12,self.scale*-12, str(self.guideIndex)) #Add in the guide Index if it is not 0
-            painter.drawText(self.scale*12,self.scale*21,str(self.index))
-
     def drawActiveIndex(self,painter):
         if self.active: #Conditions met to disply numbers on corners
             pen = QtGui.QPen(QtGui.QColor(180,180,180,255*self.alpha), 1, QtCore.Qt.SolidLine)
@@ -1071,11 +1049,8 @@ class GuideMarker(QtGui.QGraphicsItem):
         painter.setPen(pen)
         painter.drawLine(self.scale*-12,self.scale*-12,self.scale*12,self.scale*12)
         painter.drawLine(self.scale*-12,self.scale*12,self.scale*12,self.scale*-12)
-        # self.drawID(painter) #Now add in the Marker ID if relevant
         self.drawActiveIndex(painter)
         # painter.drawRect(self.boundingRect())
-
-
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
@@ -1088,7 +1063,245 @@ class GuideMarker(QtGui.QGraphicsItem):
         QtGui.QGraphicsItem.mousePressEvent(self, event)
 
 
-###Nodes for selection in the Graphics View
+
+
+class ExpressionCaptureNode(QtGui.QGraphicsItem):
+    """These are used to capture the entire state of a Happy face
+
+    The current state of the face can be recorded and then you can slide in percentage changes towards the captured state
+    """
+    def __init__(self):
+        super(ExpressionCaptureNode, self).__init__()
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        ####EPRESSIONNODE IDENTIFIERS####################################
+        self.index = None    
+        self.name = "Expression"    
+        self.active = False
+        self.minimumScale = 0.8
+        self.scale = 1.0
+        self.alpha = 1.0
+        self.width = 95
+        self.height = 22
+        self.sliderBoxHeight = 22
+        self.borderRect = QtCore.QRectF(self.scale*(0), self.scale*(0), self.scale*(self.width), self.scale*(self.height + self.sliderBoxHeight))
+        self.colour = QtGui.QColor(255,0,0)
+        self.setZValue(20) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
+
+        self.sliderStartPos = self.setSliderStartPos()
+        self.sliderEndPos = self.setSliderEndPos()
+        self.slider = None
+        self.init()
+
+    def init(self):
+        """Function to setup the item width and height parameters and the ExpressionSlider"""
+        self.update()
+        self.setSliderStartPos()
+        self.setSliderEndPos()
+
+        self.slider = ExpressionSlider(self)
+        self.slider.setParentItem(self)
+        self.slider.setPos(self.sliderStartPos)
+
+        # tempPainter = QtGui.QPainter()
+        # borderRect = tempPainter.drawText(0,0,200,20,0,str(self.name))
+        # self.width = borderRect.width()
+        # self.height = borderRect.height()
+        # print "My dim : " + str(self.width) + " " + str(self.height)
+
+    def store(self):
+        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
+        GuideMarkerRoot = xml.Element('GuideMarker')
+        attributes = xml.SubElement(GuideMarkerRoot,'attributes')
+        xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
+        xml.SubElement(attributes, 'attribute', name = 'active', value = str(self.getActive()))
+        xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
+        xml.SubElement(attributes, 'attribute', name = 'alpha', value = str(self.getAlpha()))
+        xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
+        xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
+        xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
+        # xmlFile = FileControl.XMLMan()
+        # xmlFile.setTree(GuideMarkerRoot)
+        # xmlFile.setFile("faceFiles/test.xml")
+        # xmlFile.save()
+        return GuideMarkerRoot
+
+    def read(self, GuideMarkerXml):
+        """A function to read in a block of XML and set all major attributes accordingly"""
+        # GuideMarkerRoot = GuideMarkerXml.getroot()
+        for a in GuideMarkerXml.findall( 'attributes/attribute'):
+            if a.attrib['name'] == 'index': self.setIndex(int(a.attrib['value']))
+            elif a.attrib['name'] == 'active': self.setActive(str(a.attrib['value']) == 'True')
+            elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
+            elif a.attrib['name'] == 'alpha': self.setAlpha(float(a.attrib['value']))
+            elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
+            elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
+            elif a.attrib['name'] == 'pos': 
+                newPos = a.attrib['value'].split(",")
+                self.setPos(float(newPos[0]), float(newPos[1]))
+
+    def getMinimumScale(self):
+        return self.minimumScale
+
+    def getScale(self):
+        return self.scale
+
+    def setScale(self, scale):
+        self.scale = scale
+
+    def getAlpha(self):
+        return self.alpha
+
+    def setAlpha(self, alpha):
+        self.alpha = float(alpha)
+
+    def getIndex(self):
+        return self.index
+
+    def setIndex(self,index):
+        self.index = index
+
+    def getActive(self):
+        return self.active
+
+    def setActive(self, state):
+        self.active = state
+        self.update()
+
+    def setSliderStartPos(self):
+        """Function to find where the start of the slider line should be sitting"""
+        self.sliderStartPos = QtCore.QPointF(5,self.scale*self.height+(0.5*self.sliderBoxHeight))
+
+    def setSliderEndPos(self):
+        """Function to find where the end of the slider line should be sitting"""
+        self.sliderEndPos = QtCore.QPointF(self.scale*self.width - 5,self.scale*self.height+(0.5*self.sliderBoxHeight))
+
+    def boundingRect(self):
+        adjust = 5
+        # return QtCore.QRectF(self.scale*(0 - adjust), self.scale*(0 - adjust),
+        #                     self.scale*(self.width + adjust), self.scale*(self.height + self.sliderBoxHeight + adjust))
+        return QtCore.QRectF(-adjust, -adjust, self.borderRect.width() + 2*adjust, self.borderRect.height() + 2*adjust + self.sliderBoxHeight)
+
+    def drawName(self,painter):
+        """Function to write the expression name and draw rectangle around it"""
+        pen = QtGui.QPen(QtGui.QColor(180,180,180,255*self.alpha), 1, QtCore.Qt.SolidLine)
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.setPen(pen)
+        fontsize = 14
+        if self.scale < 1.0:
+            fontsize = int(9*self.scale)
+        painter.setFont(QtGui.QFont('Arial', fontsize))
+
+        self.borderRect = painter.drawText(0,0,200,20,0,str(self.name))
+
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        painter.drawRect(self.borderRect)
+
+
+
+    def paint(self, painter, option, widget):
+        """Function to paint the ExpressionCaptureNode, including writing expression name and drawing expression slider line"""
+        self.drawName(painter)
+
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        painter.drawRect(0,self.scale*self.height, self.scale*self.width, self.scale*self.sliderBoxHeight)
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,50*self.alpha), 0.5, QtCore.Qt.DashLine)
+        painter.setPen(pen)
+        painter.drawLine(self.sliderStartPos,self.sliderEndPos) #Draw Slider Line
+
+        painter.setPen(QtCore.Qt.NoPen)
+        gradient = QtGui.QRadialGradient(self.scale*self.width/2,self.scale*self.height/2, self.scale*self.width)
+        gradient.setColorAt(1, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),150*self.alpha))
+        gradient.setColorAt(0, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),20*self.alpha))
+        painter.setBrush(QtGui.QBrush(gradient))
+        painter.drawRect(0,0, self.scale*self.width, self.scale*self.height)
+
+        pen = QtGui.QPen(QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),255*self.alpha), 2*self.scale, QtCore.Qt.SolidLine)
+        self.drawName(painter)
+
+
+    def itemChange(self, change, value):
+        if change == QtGui.QGraphicsItem.ItemPositionChange:
+            pass
+            # print "Marker Move pos : " + str(self.scenePos())  
+        return QtGui.QGraphicsItem.itemChange(self, change, value)
+
+    def mousePressEvent(self, event):
+        pass
+        # self.setPos(self.mapToScene(event.pos())) #Trying to line centre of node to mouse move
+        QtGui.QGraphicsItem.mousePressEvent(self, event)
+
+    def sliderChangedMovement(self, eventPos): 
+        """Function to return the position that the Expression item should be at, on a mouse move"""
+        localPos = eventPos
+        xPos = localPos.x()
+        if xPos < self.sliderStartPos.x(): 
+            xPos = self.sliderStartPos.x()
+        elif xPos > self.sliderEndPos.x(): 
+            xPos = self.sliderEndPos.x()
+        # return self.mapToScene(QtCore.QPointF(xPos,self.sliderStartPos.y()))
+        return (QtCore.QPointF(xPos,self.sliderStartPos.y()))
+
+    def movePercentage(self,currentPos):
+        """Function to calculate the distance that the slider has moved and return as a percentage"""
+        slideRange = self.sliderEndPos.x() - self.sliderStartPos.x()
+        slideDistance = currentPos.x() - self.sliderStartPos.x()
+        movePercentage = 100.0*float(slideDistance)/float(slideRange)
+        return movePercentage
+
+
+
+class ExpressionSlider(QtGui.QGraphicsItem):
+    """Used as the slider handle on the ExpressionCaptureNode
+    """
+    def __init__(self, expressionCaptureNode):
+        super(ExpressionSlider, self).__init__()
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        self.width = 4
+        self.height = 8
+        self.scale = 1.0
+        self.expressionCaptureNode = expressionCaptureNode
+        self.colour = QtGui.QColor(255,0,0)
+        self.alpha = 1.0
+
+    def init(self):
+        """Function to setup the slider on its parent ExpressionCaptureNode"""
+        pass
+
+    def boundingRect(self):
+        adjust = 4
+        return QtCore.QRectF(-0.5 * self.scale*(self.width + adjust), -0.5*self.scale*(self.height + adjust),
+                            self.scale*(self.width + 2*adjust), self.scale*(self.height + 2*adjust))
+
+    def paint(self, painter, option, widget):
+        """Function to paint the ExpressionSlider"""
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        painter.drawRect(-0.5 * self.scale*self.width, -0.5*self.scale*self.height, self.scale*self.width, self.scale*self.height)
+
+        painter.setPen(QtCore.Qt.NoPen)
+        gradient = QtGui.QRadialGradient(self.scale*self.width/2,self.scale*self.height/2, self.scale*self.width)
+        gradient.setColorAt(1, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),150*self.alpha))
+        gradient.setColorAt(0, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),20*self.alpha))
+        painter.setBrush(QtGui.QBrush(gradient))
+        painter.drawRect(-0.5 * self.scale*self.width, -0.5*self.scale*self.height, self.scale*self.width, self.scale*self.height)
+
+    def itemChange(self, change, value):
+        if change == QtGui.QGraphicsItem.ItemPositionChange:
+            newPos = self.expressionCaptureNode.sliderChangedMovement(value)
+            print "My Current Percentage is : " + str(self.expressionCaptureNode.movePercentage(newPos))
+            return newPos  #Origins are the same for both the slider and the ExpressionCaptureNode, so no real mappings are needed
+
+        return QtGui.QGraphicsItem.itemChange(self, change, value)
+
+
+
+
+
 class Node(QtGui.QGraphicsItem):
     """The Node is the main circular item that the user interacts with in the WireGroup
 
@@ -1414,6 +1627,7 @@ class Node(QtGui.QGraphicsItem):
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
             #Item has been moved so report out the data using the dataBundle
+            print "Firing"
             if self.dataBundle:
                 newPos = self.pos()
                 self.dataBundle.setX(newPos.x())
@@ -2099,7 +2313,6 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
     (ConstraintEllipse, ConstraintRect and ConstraintLine)
 
     """
-
     name = "ConstraintEllipse"
 
     def __init__(self):

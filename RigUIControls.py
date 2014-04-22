@@ -629,6 +629,21 @@ class RigGraphicsView(QtGui.QGraphicsView):
         else:
             event.ignore()
 
+    def dragLeaveEvent(self, event):
+        """Function to overider dragLeaveEvent to check that text is being used
+        Finds the item that is being dragged, and makes sure that it is deleted if we have dragged it out of the GraphicsView
+        """   
+        scene = self.scene()
+        print "Our drag Item is : " + str(self.dragItem)
+        if self.dragItem:
+            if type(self.dragItem) == GuideMarker:
+                self.processMarkerDelete(self.dragItem)
+            if type(self.dragItem) == ControlPin: #We have a superNode Group
+                self.dragItem.getGroup().clear() #Grab the Group
+                self.superNodeGroups.remove(self.dragItem.getGroup()) # Make sure the group is removed from the superNodeGroups              
+        scene.removeItem(self.dragItem)
+        self.dragItem = None
+
     def dragMoveEvent(self, event):
         """Function to overider dragMoveEvent to check that text is being used"""
         if event.mimeData().hasFormat("text/plain"):

@@ -99,7 +99,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
         # testSuperNode = SuperNodeGroup(QtCore.QPointF(50,25), "Arrow_4Point" ,self)
         # self.scene().addItem(testSuperNode)
-        testExpression =  ExpressionCaptureNode()
+        testExpression =  ExpressionStateNode()
         testExpression.setPos(QtCore.QPointF(100,100))
         self.scene().addItem(testExpression)
 

@@ -1065,13 +1065,13 @@ class GuideMarker(QtGui.QGraphicsItem):
 
 
 
-class ExpressionCaptureNode(QtGui.QGraphicsItem):
+class ExpressionStateNode(QtGui.QGraphicsItem):
     """These are used to capture the entire state of a Happy face
 
     The current state of the face can be recorded and then you can slide in percentage changes towards the captured state
     """
     def __init__(self):
-        super(ExpressionCaptureNode, self).__init__()
+        super(ExpressionStateNode, self).__init__()
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
         ####EPRESSIONNODE IDENTIFIERS####################################
@@ -1099,7 +1099,7 @@ class ExpressionCaptureNode(QtGui.QGraphicsItem):
         self.setSliderStartPos()
         self.setSliderEndPos()
 
-        self.slider = ExpressionSlider(self)
+        self.slider = ExpressionPercentageSlider(self)
         self.slider.setParentItem(self)
         self.slider.setPos(self.sliderStartPos)
 
@@ -1253,23 +1253,23 @@ class ExpressionCaptureNode(QtGui.QGraphicsItem):
 
 
 
-class ExpressionSlider(QtGui.QGraphicsItem):
+class ExpressionPercentageSlider(QtGui.QGraphicsItem):
     """Used as the slider handle on the ExpressionCaptureNode
     """
-    def __init__(self, expressionCaptureNode):
-        super(ExpressionSlider, self).__init__()
+    def __init__(self, expressionStateNode):
+        super(ExpressionPercentageSlider, self).__init__()
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
         self.width = 4
         self.height = 8
         self.scale = 1.0
-        self.expressionCaptureNode = expressionCaptureNode
+        self.expressionStateNode = expressionStateNode
         self.colour = QtGui.QColor(255,0,0)
         self.alpha = 1.0
 
     def init(self):
-        """Function to setup the slider on its parent ExpressionCaptureNode"""
+        """Function to setup the slider on its parent expressionStateNode"""
         pass
 
     def boundingRect(self):
@@ -1292,9 +1292,9 @@ class ExpressionSlider(QtGui.QGraphicsItem):
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
-            newPos = self.expressionCaptureNode.sliderChangedMovement(value)
-            print "My Current Percentage is : " + str(self.expressionCaptureNode.movePercentage(newPos))
-            return newPos  #Origins are the same for both the slider and the ExpressionCaptureNode, so no real mappings are needed
+            newPos = self.expressionStateNode.sliderChangedMovement(value)
+            print "My Current Percentage is : " + str(self.expressionStateNode.movePercentage(newPos))
+            return newPos  #Origins are the same for both the slider and the ExpressionStateNode, so no real mappings are needed
 
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 

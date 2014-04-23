@@ -1092,6 +1092,7 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         self.slider = None
         self.sliderStartPos = self.setSliderStartPos()
         self.sliderEndPos = self.setSliderEndPos()
+        self.expressionFaceState = None
         self.init()
 
     def init(self):
@@ -1162,12 +1163,28 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
     def setIndex(self,index):
         self.index = index
 
+    def getName(self):
+        return self.name
+
+    def setName(self, name):
+        """Setting the name will require the Node to redraw, so force an update"""
+        self.name = name
+        self.update
+
     def getActive(self):
         return self.active
 
     def setActive(self, state):
         self.active = state
         self.update()
+
+    def getExpressionFaceState(self):
+        """Function to return the data ExpressionFaceState associated with this ExpressionStateNode"""
+        return self.expressionFaceState
+
+    def setExpressionFaceState(self, expressionFaceState):
+        """Function to set the data ExpressionFaceState associated with this ExpressionStateNode"""
+        self.expressionFaceState = expressionFaceState
 
     def setSliderStartPos(self):
         """Function to find where the start of the slider line should be sitting"""

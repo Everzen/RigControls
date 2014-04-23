@@ -33,7 +33,7 @@ class ExpressionCaptureProcessor(object):
   	newExpression = ExpressionFaceState(self.rigGraphicsView) #Create a new ExpressionFaceState, capture the current Face and name it
   	newExpression.setName(name)
   	newExpression.recordState()
-  	self.expressionLibrary.append(newExpreesion)
+  	self.expressionLibrary.append(newExpression)
   	return newExpression
 
   def removeExpression(self, name):
@@ -45,8 +45,12 @@ class ExpressionCaptureProcessor(object):
   	if delExpression:
   		self.expressionLibrary.remove(delExpression)
 
-
-
+  def isNameUnique(self, expressionName):
+  	"""Cycle through all expressions in the Expression Library and check that this name is unique"""
+	unique = True
+	for exp in self.expressionLibrary: 
+		if expressionName == exp.getName(): unique = False
+	return unique
 
 class ExpressionFaceState(object):
 	"""Captures all the data for the Happy Face in a set position

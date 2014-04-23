@@ -157,7 +157,10 @@ class DataProcessor(object):
 		return self.sceneAppData.isNameUnique(name)
 
 	def sceneControllerExists(self):
-		return not self.sceneAppData.isNameUnique(self.sceneControl)
+		if self.sceneControl: #sceneControl Exists so check that its name exists in the 3D scene
+			return not self.sceneAppData.isNameUnique(self.sceneControl)
+		else: #SceneControl is not even assigned so return False
+			return False
 
 	def getRigGraphicsView(self):
 		return self.rigGraphicsView
@@ -208,6 +211,7 @@ class DataProcessor(object):
 		Only removes the attribute itself, so it can be regenerated. Does not remove any associated animCurve Nodes.
 		"""
 		if self.sceneControllerExists():
+			print "Got here in clearAttributeConnections"
 			for att in self.sceneAppData.listUserAttrs(self.sceneControl):
 				if att != "HappyFace":
 					self.sceneAppData.deleteAttr(self.sceneControl, att)

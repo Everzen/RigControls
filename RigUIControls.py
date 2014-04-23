@@ -417,6 +417,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
             if groupName == group.getName(): unique = False
         return unique
 
+    def checkUniqueExpressionName(self, expressionName):
+        return self.expressionCaptureProcessor.isNameUnique(expressionName)
+
     def showItem(self,state,objectType):
         """Function to hide and show markers"""
         scene = self.scene()
@@ -560,6 +563,10 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     self.mainWindow.skinTableWidget.setSuperNode(None) ##Redraw the skin data Table, so that all the data is cleared out
                     self.mainWindow.skinTableWidget.populate()
                     self.mainWindow.nodeLinksTableWidget.populate() #Redraw the nodelink data Table, so that all the data cleared out
+                elif type(item) == ExpressionStateNode and item.isSelected(): #remove the expression from the ExpressionCapture Processor and remove the item from the scene
+                    self.expressionCaptureProcessor.removeExpression(item.getName())
+                    scene.removeItem(item)
+                    del item
             self.processMarkerActiveIndex()
             self.dataProcessor.manageAttributeConnections() #Run a check through all the attribute Connections to make sure that everything is in place
         return 0 #Not returning the key event stops the shortcut being propagated to the parent (Maya), tidy this up by returning appropriately for each condition
@@ -681,6 +688,20 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     )
         return superNodeName
 
+    def specifyExpressionName(self):
+        unique = True
+        expressionName = None
+        expressionName, ok = QtGui.QInputDialog.getText(self, 'Expression Name', 'Enter a unique Expression Name:')
+        while not self.checkUniqueExpressionName(expressionName):
+            expressionName, ok = QtGui.QInputDialog.getText(
+                    self,
+                    'Expression Name',
+                    'The name was not unique. Please Enter a unique Expression Name:'
+                    )
+        return expressionName
+
+
+
     def processDrop(self, event):
         scene = self.scene()
         dropNodes = []
@@ -734,6 +755,16 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 else: #We do not have a valid name, so delete the superNodeGroup
                     self.dragItem.getGroup().clear()
                     self.superNodeGroups.remove(self.dragItem.getGroup())
+        elif type(self.dragItem) == ExpressionStateNode: #We are creating a new expression
+            expressionName = self.specifyExpressionName()
+            if expressionName:
+                self.dragItem.setName(expressionName)
+                newExpressionState = self.expressionCaptureProcessor.addExpression(expressionName)
+                newExpressionState.setExpressionStateNode(self.dragItem) #Now set the current ExpressionStateNode to the ExpressionFaceState
+                self.dragItem.setExpressionFaceState(newExpressionState)
+            else: #Naming has been cancelled so get rid of the ExpressionStateNode
+                scene.removeItem(self.dragItem)
+
 
         if self.dragItem:
             self.dragItem.setAlpha(1.0)

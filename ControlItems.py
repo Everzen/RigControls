@@ -1083,7 +1083,7 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         self.scale = 1.0
         self.alpha = 1.0
         self.width = 95
-        self.height = 22
+        self.height = 24
         self.sliderBoxHeight = 22
         self.borderRect = QtCore.QRectF(self.scale*(0), self.scale*(0), self.scale*(self.width), self.scale*(self.height))
         self.colour = QtGui.QColor(255,0,0)
@@ -1151,6 +1151,13 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
     def setScale(self, scale):
         self.scale = scale
 
+    def getColour(self):
+        return self.colour
+    
+    def setColour(self, colour):
+        self.colour = colour
+        self.slider.setColour()
+
     def getAlpha(self):
         return self.alpha
 
@@ -1194,6 +1201,11 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         """Function to find where the end of the slider line should be sitting"""
         self.sliderEndPos = QtCore.QPointF(self.scale*self.borderRect.width() - 5,self.scale*self.borderRect.height()+(0.5*self.sliderBoxHeight))
 
+    def resetSlider(self):
+        """Function to move the slider back to its starting postion"""
+        self.slider.setPos(self.sliderStartPos)
+        self.percentage = 0.0
+
     def boundingRect(self):
         adjust = 5
         # return QtCore.QRectF(self.scale*(0 - adjust), self.scale*(0 - adjust),
@@ -1210,7 +1222,8 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
             fontsize = int(9*self.scale)
         painter.setFont(QtGui.QFont('Arial', fontsize))
 
-        self.borderRect = painter.drawText(0,0,200,20,0,str(self.name))
+        self.borderRect = painter.drawText(0,0,200,30,0,str(self.name))
+        self.borderRect = QtCore.QRectF(0,0,self.borderRect.width() + 5, self.borderRect.height() + 2)
         self.setSliderStartPos()
         self.setSliderEndPos()
 
@@ -1269,6 +1282,12 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         slideRange = self.sliderEndPos.x() - self.sliderStartPos.x()
         slideDistance = currentPos.x() - self.sliderStartPos.x()
         movePercentage = 100.0*float(slideDistance)/float(slideRange)
+        if self.expressionFaceState:
+            self.expressionFaceState.setPercentage(movePercentage)
+            self.expressionFaceState.processCombinedExpressions() #Now that the percentage has been updated, run through all the expressions updating the total positions
+        else:
+            print "No ExpressionFaceState Linked to this ExpressionStateNode"
+
         return movePercentage
 
 
@@ -1313,12 +1332,17 @@ class ExpressionPercentageSlider(QtGui.QGraphicsItem):
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
             newPos = self.expressionStateNode.sliderChangedMovement(value)
-            print "My Current Percentage is : " + str(self.expressionStateNode.movePercentage(newPos))
+            # print "My Current Percentage is : " + str(self.expressionStateNode.movePercentage(newPos))
+            self.expressionStateNode.movePercentage(newPos)
             return newPos  #Origins are the same for both the slider and the ExpressionStateNode, so no real mappings are needed
 
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
+    def getColour(self):
+        return self.colour
 
+    def setColour(self):
+        self.colour = self.expressionStateNode.getColour()
 
 
 
@@ -1647,7 +1671,6 @@ class Node(QtGui.QGraphicsItem):
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
             #Item has been moved so report out the data using the dataBundle
-            print "Firing"
             if self.dataBundle:
                 newPos = self.pos()
                 self.dataBundle.setX(newPos.x())

@@ -564,9 +564,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     self.mainWindow.skinTableWidget.populate()
                     self.mainWindow.nodeLinksTableWidget.populate() #Redraw the nodelink data Table, so that all the data cleared out
                 elif type(item) == ExpressionStateNode and item.isSelected(): #remove the expression from the ExpressionCapture Processor and remove the item from the scene
-                    self.expressionCaptureProcessor.removeExpression(item.getName())
-                    scene.removeItem(item)
-                    del item
+                    self.deleteExpressionState(item)                   
             self.processMarkerActiveIndex()
             self.dataProcessor.manageAttributeConnections() #Run a check through all the attribute Connections to make sure that everything is in place
         return 0 #Not returning the key event stops the shortcut being propagated to the parent (Maya), tidy this up by returning appropriately for each condition
@@ -597,6 +595,19 @@ class RigGraphicsView(QtGui.QGraphicsView):
             item.goHome()
             item.getGroup().clear()
             self.superNodeGroups.remove(item.getGroup())
+
+    def deleteExpressionState(self, item):
+        delItem = QtGui.QMessageBox()
+        delItem.setStyleSheet(self.styleData)
+        delItem.setWindowTitle("Expression Deletion")
+        delItem.setText("Are you sure you want to delete the Expression:' " + str(item.getName()) + "'?")
+        delItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+        delItem.setDefaultButton(QtGui.QMessageBox.No)
+        response = delItem.exec_()
+        if response == QtGui.QMessageBox.Yes:
+            self.expressionCaptureProcessor.removeExpression(item.getName())
+            self.scene().removeItem(item)
+            del item
 
     def keyReleaseEvent(self, event):
         key = event.key()
@@ -978,6 +989,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 self.pinContextMenu(event,item)
             elif type(item) == ReflectionLine:
                 self.reflectionLineContextMenu(event,item)
+            elif type(item) == ExpressionStateNode:
+                self.ExpressionStateNodeContextMenu(event,item)
             # elif type(item) == SkinningEllipse:
             #     self.skinningEllipseContextMenu(event,item)
                 # menu.addAction('ControlPin')
@@ -1093,6 +1106,28 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.setLocked(False)    
             elif action.text() == 'Lock':
                 item.setLocked(True)
+
+    def ExpressionStateNodeContextMenu(self,event,item):
+        scene = self.scene()
+        menu = QtGui.QMenu()
+        menu.setStyleSheet(self.styleData)
+        menu.addAction('Set ' + item.getName() + ' state')
+        menu.addSeparator()
+        menu.addAction('Set Face Snapshot')
+        menu.addSeparator()
+        menu.addAction('set Colour')
+
+        action = menu.exec_(event.globalPos())
+        if action:
+            if action.text() == ('Set ' + item.getName() + ' state'):
+                item.getExpressionFaceState().recordState()
+            elif action.text() == 'Set Face Snapshot':
+                item.getExpressionFaceState().setFaceSnapShot()
+            elif action.text() == 'set Colour': 
+                newCol = QtGui.QColorDialog.getColor()
+                if newCol.isValid():
+                    item.setColour(newCol)
+
 
     def isNodesSelected(self):
         selectedNodes = []

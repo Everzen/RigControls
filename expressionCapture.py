@@ -1,56 +1,81 @@
+from PySide import QtGui, QtCore
 
 
 class ExpressionCaptureProcessor(object):
-  """Manages the total calculation of all recorded expressions on the Happy Face
+	"""Manages the total calculation of all recorded expressions on the Happy Face
 
-  Takes the current referenceExpression (self.expressionReference) and compares any contributions from the ExpressionFaceStates in the
-  library self.expressionLibrary
-  """
-  def __init__(self):
-  	self.rigGraphicsView = None
-  	self.faceSnapShot = None #This is the state of the HappyFace to which all the expressions are compared
-  	self.expressionLibrary = []
+	Takes the current referenceExpression (self.expressionReference) and compares any contributions from the ExpressionFaceStates in the
+	library self.expressionLibrary
+	"""
+	def __init__(self):
+		self.rigGraphicsView = None
+		self.faceSnapShot = None #This is the state of the HappyFace to which all the expressions are compared
+		self.expressionLibrary = []
 
-  def getRigGraphicsView(self):
-  	return self.rigGraphicsView
+	def getRigGraphicsView(self):
+		return self.rigGraphicsView
 
-  def setRigGraphicsView(self, rigGraphicsView):
-  	self.rigGraphicsView = rigGraphicsView
+	def setRigGraphicsView(self, rigGraphicsView):
+		self.rigGraphicsView = rigGraphicsView
 
-  def getFaceSnapShot(self):
-  	return self.faceSnapShot
+	def getFaceSnapShot(self):
+		return self.faceSnapShot
 
-  def setFaceSnapShot(self):
-  	if self.faceSnapShot: #We already have a snapshot, so update it. 
-  		self.faceSnapShot.recordState()
-  	else:
-  		self.faceSnapShot = ExpressionFaceState(self.rigGraphicsView)
-  		self.faceSnapShot.recordState()
-  	#Also needs to reset all ExpressionStateNode Sliders to ensure that all expressions are initially dialled off
+	def setFaceSnapShot(self):
+		if self.faceSnapShot: #We already have a snapshot, so update it. 
+			self.faceSnapShot.recordState()
+			self.faceSnapShot.clearDeltas()
+		else:
+			self.faceSnapShot = ExpressionFaceState(self.rigGraphicsView)
+			self.faceSnapShot.recordState()
+		self.resetSliders() 
 
-  def addExpression(self, name):
-  	"""Function to create a new ExpressionFaceState and store it, corresponding to the appropirate ExpressionStateNode"""
-  	newExpression = ExpressionFaceState(self.rigGraphicsView) #Create a new ExpressionFaceState, capture the current Face and name it
-  	newExpression.setName(name)
-  	newExpression.recordState()
-  	self.expressionLibrary.append(newExpression)
-  	return newExpression
+	def addExpression(self, name):
+		"""Function to create a new ExpressionFaceState and store it, corresponding to the appropirate ExpressionStateNode"""
+		newExpression = ExpressionFaceState(self.rigGraphicsView) #Create a new ExpressionFaceState, capture the current Face and name it
+		newExpression.setName(name)
+		newExpression.setExpressionCaptureProcessor(self) #Inform the new expression of the ExpressionCaptureProcessor
+		newExpression.recordState()
+		self.expressionLibrary.append(newExpression)
+		return newExpression
 
-  def removeExpression(self, name):
-  	"""Function to search through all the expressionLibrary and remove this ExpressionFaceState if it is found"""
-  	delExpression = None
-  	for exp in self.expressionLibrary:
-  		if exp.getName() == name: #We have found our Expression to be removed
-  			delExpression = exp
-  	if delExpression:
-  		self.expressionLibrary.remove(delExpression)
+	def removeExpression(self, name):
+		"""Function to search through all the expressionLibrary and remove this ExpressionFaceState if it is found"""
+		delExpression = None
+		for exp in self.expressionLibrary:
+			if exp.getName() == name: #We have found our Expression to be removed
+				delExpression = exp
+		if delExpression:
+			self.expressionLibrary.remove(delExpression)
 
-  def isNameUnique(self, expressionName):
-  	"""Cycle through all expressions in the Expression Library and check that this name is unique"""
-	unique = True
-	for exp in self.expressionLibrary: 
-		if expressionName == exp.getName(): unique = False
-	return unique
+	def processCombinedExpressions(self):
+		"""Function to run through all the ExpressionFaceStates, monitor the deltas and calcluate the accumulated delta, and slide the nodes to that position"""
+		if self.faceSnapShot: #Check we have a snapShot to compare things to. Otherwise there is no comparison to make
+			self.faceSnapShot.clearDeltas() #Clear all the deltas out of the faceSnapShot
+			for expression in self.expressionLibrary: #Loop through all expressions comparing them to the faceSnapShot
+				if expression.getPercentage() != 0.0: #First check that there is a percentage contribution from that Expression, if not, then we ignore it!
+					for snapItem in self.faceSnapShot.getExpressionItemsData():
+						matchExpItem = expression.findExpressionItemMatch(snapItem)
+						if matchExpItem: #If, then we have found a match
+							snapItem.addDelta(matchExpItem, expression.getPercentage())
+			#Now that we have calculated all the new deltas, then all we need to do is make the final move for each of the nodes
+			for snapItem in self.faceSnapShot.getExpressionItemsData():
+				snapItem.setDeltaPos()
+		else: 
+			print "No FaceSnapShot: No Action Taken"
+
+	def isNameUnique(self, expressionName):
+		"""Cycle through all expressions in the Expression Library and check that this name is unique"""
+		unique = True
+		for exp in self.expressionLibrary: 
+			if expressionName == exp.getName(): unique = False
+		return unique
+
+	def resetSliders(self):
+		"""Function to loop through all the expressions, find their ExpressionStateNode's and reset their sliders"""
+		for exp in self.expressionLibrary:
+			exp.getExpressionStateNode().resetSlider()
+
 
 class ExpressionFaceState(object):
 	"""Captures all the data for the Happy Face in a set position
@@ -59,6 +84,7 @@ class ExpressionFaceState(object):
 	"""
 	def __init__(self, rigGraphicsView):
 		self.rigGraphicsView = rigGraphicsView
+		self.expressionCaptureProcessor = None
 		self.name = "Expression" #This is the name given to the expression - Take this from the ExpressionStateNode
 		self.expressionItemsData = []
 		self.activeNodes = []
@@ -81,6 +107,15 @@ class ExpressionFaceState(object):
 
 	def setExpressionStateNode(self, expressionStateNode):
 		self.expressionStateNode = expressionStateNode
+
+	def getExpressionItemsData(self):
+		return self.expressionItemsData
+
+	def getExpressionCaptureProcessor(self):
+		return self.expressionCaptureProcessor
+
+	def setExpressionCaptureProcessor(self, expressionCaptureProcessor):
+		self.expressionCaptureProcessor = expressionCaptureProcessor
 
 	def getPercentage(self):
 		"""Function to return the percentage that the expression is dialled in on the ExpressionStateNode"""
@@ -137,6 +172,28 @@ class ExpressionFaceState(object):
 					return True
 		return False
 
+	def clearDeltas(self):
+		"""Function to loop through all of the ExpressionItemStates and reset their Deltas"""
+		for expItem in self.expressionItemsData:
+			expItem.clearDelta()
+
+	def findExpressionItemMatch(self, sampleExpItem):
+		"""Function to loop through ExpressionItems and return the one matching the sample Item"""
+		for expItem in self.expressionItemsData:
+			if sampleExpItem.getGroupName() == expItem.getGroupName(): #If both match then return that Item! 
+				if sampleExpItem.getIndex() == expItem.getIndex():
+					return expItem
+		return None #If there are no matches then return None
+	
+	def processCombinedExpressions(self):
+		"""Function to simply call the same method in the ExpressionCaptureProcessor"""
+		self.expressionCaptureProcessor.processCombinedExpressions()
+
+	def setFaceSnapShot(self):
+		"""Function to set a faceSnap shot in the ExpressionCaptureProcessor"""
+		self.expressionCaptureProcessor.setFaceSnapShot()
+
+
 
 class ExpressionItemState(object):
 	"""Captures the key data for any Node/SuperNode that has its information collected
@@ -150,6 +207,7 @@ class ExpressionItemState(object):
 		self.groupName = None
 		self.refPos = None
 		self.recordState() #Function to record all key information for the Expression State from the Node/SuperNode
+		self.delta = (QtCore.QPointF(0,0)) #This is used by the ExpressionCaptureProcessor.faceSnapShot to calculate the position of the Node
 
 	def getIndex(self):
 		return self.index
@@ -166,7 +224,7 @@ class ExpressionItemState(object):
 		self.group = node.getGroup()
 		self.groupName = node.getGroupName()
 
-	def getGroupName(self,index):
+	def getGroupName(self):
 		"""Function to return the name of the group of the node"""
 		return self.groupName
 
@@ -182,3 +240,22 @@ class ExpressionItemState(object):
 			self.setIndex(self.node)
 			self.setGroup(self.node)
 			self.setRefPos(self.node)
+
+	def getDelta(self):
+		return self.delta
+
+	def addDelta(self, expressionItem, percentage):
+		"""Function to calculate and then add the delta to the current delta, to accumulate the total move for the expressionItem
+		Takes a matching ExpressionItem and a percentage that is meant to be moved towards that emotion
+		"""
+		deltaContribution = percentage*(expressionItem.getRefPos() - self.getRefPos())/100.0
+		self.delta += deltaContribution
+
+
+	def clearDelta(self):
+		"""Function to reset Delta back to 0,0"""
+		self.delta = (QtCore.QPointF(0,0))
+
+	def setDeltaPos(self):
+		"""Function to physically move the control Node to the delta Position"""
+		self.node.setPos(self.refPos + self.delta)

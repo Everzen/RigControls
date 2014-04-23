@@ -13,6 +13,9 @@ import os
 from RigStore import FaceGVCapture
 from Widgets import ControlScale, DragItemButton, SkinTabW, SceneLinkServoTabW
 from dataProcessor import DataProcessor, DataServoProcessor, DataBundle, DataServoBundle
+from expressionCapture import ExpressionCaptureProcessor, ExpressionFaceState, ExpressionItemState
+
+
 
 import RigUIControls as rig
 
@@ -79,7 +82,7 @@ class RigFaceSetup(QtGui.QMainWindow):
     Tabs on the areas that they are allowed to dock.
 
     """
-    def __init__(self, styleData, dataProcessor, parent = None):
+    def __init__(self, styleData, dataProcessor, expressionCaptureProcessor, parent = None):
         super(RigFaceSetup, self).__init__(parent)
 
         self.setWindowTitle("Facial Rig Builder v1.0")
@@ -91,6 +94,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.styleData = styleData
         self.dataProcessor = dataProcessor
         self.dataProcessor.setWindow(self) #Ensure that the processor is aware of the window Widget
+        self.expressionCaptureProcessor = expressionCaptureProcessor #Record the expressionCaptureProcessor
         imagePath = os.path.dirname(os.path.realpath(__file__))
         self.imagePath = imagePath.replace("\\", "/") #Convert everything across to / for css files. Apparently this is ugly, but cannot get os.path and posixpath to work
         self.initUI()
@@ -120,6 +124,7 @@ class RigFaceSetup(QtGui.QMainWindow):
                 self.messageLogger,
                 self.styleData,
                 self.dataProcessor,
+                self.expressionCaptureProcessor,
                 itemFactory,
                 self.controlScale
                 )
@@ -297,6 +302,7 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.createConstraints = QtGui.QLabel("Constraints")
         self.createControls = QtGui.QLabel("   Controls")
         self.createSkinning = QtGui.QLabel("Control Skinning")
+        self.createExpression = QtGui.QLabel("Expression State")
 
         self.ellipseConstraintCreate = rig.DragItemButton(rig.ConstraintEllipse.name)
         self.rectConstraintCreate = rig.DragItemButton(rig.ConstraintRect.name)
@@ -307,6 +313,9 @@ class RigFaceSetup(QtGui.QMainWindow):
         self.arrowControl_upDown = rig.DragSuperNodeButton("Arrow_upDownPoint")
 
         self.skinningEllipseCreate = rig.DragItemButton(rig.SkinningEllipse.name)
+
+        self.expressionCreate = rig.DragItemButton(rig.ExpressionStateNode.name)
+
 
         creationBox.addWidget(self.markerCreate)
         creationBox.addWidget(self.wireGroupCreate)
@@ -319,6 +328,8 @@ class RigFaceSetup(QtGui.QMainWindow):
         creationBox.addWidget(self.arrowControl_upDown)
         creationBox.addWidget(self.createSkinning)
         creationBox.addWidget(self.skinningEllipseCreate)
+        creationBox.addWidget(self.createExpression)
+        creationBox.addWidget(self.expressionCreate)
         creationBox.addStretch(1)
 
         #Skinning DockWidget
@@ -512,7 +523,8 @@ def main():
     #Create DataProcessor for the rig and use the DataBundle Class to determine how it will behave.
     # rigProcessor = DataProcessor(MayaData()) 
     rigProcessor = DataServoProcessor(MayaData(),MaestroSerialServo()) #Setup the data processor for working Maya and the Pololu Maestro Server information 
-    happyFaceUI = RigFaceSetup(styleData, rigProcessor, parent = maya_main_window())
+    expressionCaptureProcessor = ExpressionCaptureProcessor()
+    happyFaceUI = RigFaceSetup(styleData, rigProcessor,expressionCaptureProcessor, parent = maya_main_window())
     # happyFaceUI = RigFaceSetup(styleData)
     # happyFaceUI.setWindowFlags(QtCore.Qt.Tool)
     happyFaceUI.show()

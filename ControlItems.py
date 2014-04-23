@@ -9,7 +9,6 @@ import xml.etree.ElementTree as xml
 
 #######Project python imports################################################
 from SupportItems import *
-
 #################################CLASSES & FUNCTIONS FOR ACTIVE GRAPHICS ITEMS & CONSTRAINTS##################################################################################
 
 
@@ -1070,6 +1069,8 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
 
     The current state of the face can be recorded and then you can slide in percentage changes towards the captured state
     """
+    name = "ExpressionStateNode"
+
     def __init__(self):
         super(ExpressionStateNode, self).__init__()
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
@@ -1084,13 +1085,13 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         self.width = 95
         self.height = 22
         self.sliderBoxHeight = 22
-        self.borderRect = QtCore.QRectF(self.scale*(0), self.scale*(0), self.scale*(self.width), self.scale*(self.height + self.sliderBoxHeight))
+        self.borderRect = QtCore.QRectF(self.scale*(0), self.scale*(0), self.scale*(self.width), self.scale*(self.height))
         self.colour = QtGui.QColor(255,0,0)
         self.setZValue(20) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
+        self.slider = None
         self.sliderStartPos = self.setSliderStartPos()
         self.sliderEndPos = self.setSliderEndPos()
-        self.slider = None
         self.init()
 
     def init(self):
@@ -1170,11 +1171,11 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
 
     def setSliderStartPos(self):
         """Function to find where the start of the slider line should be sitting"""
-        self.sliderStartPos = QtCore.QPointF(5,self.scale*self.height+(0.5*self.sliderBoxHeight))
+        self.sliderStartPos = QtCore.QPointF(5,self.scale*self.borderRect.height()+(0.5*self.sliderBoxHeight))
 
     def setSliderEndPos(self):
         """Function to find where the end of the slider line should be sitting"""
-        self.sliderEndPos = QtCore.QPointF(self.scale*self.width - 5,self.scale*self.height+(0.5*self.sliderBoxHeight))
+        self.sliderEndPos = QtCore.QPointF(self.scale*self.borderRect.width() - 5,self.scale*self.borderRect.height()+(0.5*self.sliderBoxHeight))
 
     def boundingRect(self):
         adjust = 5
@@ -1193,6 +1194,8 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         painter.setFont(QtGui.QFont('Arial', fontsize))
 
         self.borderRect = painter.drawText(0,0,200,20,0,str(self.name))
+        self.setSliderStartPos()
+        self.setSliderEndPos()
 
         pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
         painter.setPen(pen)
@@ -1206,7 +1209,7 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
 
         pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
         painter.setPen(pen)
-        painter.drawRect(0,self.scale*self.height, self.scale*self.width, self.scale*self.sliderBoxHeight)
+        painter.drawRect(0,self.scale*self.borderRect.height(), self.scale*self.borderRect.width(), self.scale*self.sliderBoxHeight)
         pen = QtGui.QPen(QtGui.QColor(0,0,0,50*self.alpha), 0.5, QtCore.Qt.DashLine)
         painter.setPen(pen)
         painter.drawLine(self.sliderStartPos,self.sliderEndPos) #Draw Slider Line
@@ -1216,7 +1219,7 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         gradient.setColorAt(1, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),150*self.alpha))
         gradient.setColorAt(0, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),20*self.alpha))
         painter.setBrush(QtGui.QBrush(gradient))
-        painter.drawRect(0,0, self.scale*self.width, self.scale*self.height)
+        painter.drawRect(0,0, self.scale*self.borderRect.width(), self.scale*self.borderRect.height())
 
         pen = QtGui.QPen(QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),255*self.alpha), 2*self.scale, QtCore.Qt.SolidLine)
         self.drawName(painter)

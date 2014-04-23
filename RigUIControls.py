@@ -21,7 +21,7 @@ from RigStore import *
 
 class RigGraphicsView(QtGui.QGraphicsView):
 
-    def __init__(self, mainWindow, messageLogger, styleData, dataProcessor, itemFactory, controlScaler):
+    def __init__(self, mainWindow, messageLogger, styleData, dataProcessor, expressionCaptureProcessor, itemFactory, controlScaler):
 
         QtGui.QGraphicsView.__init__(self) 
         self.width = 600
@@ -34,6 +34,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
         
         self.dataProcessor = dataProcessor #This passes the movement data of the rigGV nodes and controls out to teh 3D app
         self.dataProcessor.setRigGraphicsView(self) #This ensures the dataProcessor continually can reference which controls are currently active and in use on the HappyFace
+
+        self.expressionCaptureProcessor = expressionCaptureProcessor
+        self.expressionCaptureProcessor.setRigGraphicsView(self)
 
         self.itemFactory = itemFactory
 
@@ -629,6 +632,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 self.dragSuperNode(event,"Arrow_upDownPoint")
             elif data == "SkinningEllipse":
                 self.dragSkinningEllipse(event)
+            elif data == "ExpressionStateNode":
+                self.dragExpressionStateNode(event)
         else:
             event.ignore()
 
@@ -779,6 +784,15 @@ class RigGraphicsView(QtGui.QGraphicsView):
         item.setAlpha(0.5)
         self.dragItem = item #set set the gv DragItem
         self.scene().addItem(item)
+
+    def dragExpressionStateNode(self, event):
+        event.acceptProposedAction()
+        item = ExpressionStateNode()
+        item.setPos(self.mapToScene(event.pos()))
+        item.setAlpha(0.5)
+        self.dragItem = item #set set the gv DragItem
+        self.scene().addItem(item)
+        
 
     def mousePressEvent(self, mouseEvent):
         scene = self.scene()

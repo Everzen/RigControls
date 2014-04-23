@@ -6,10 +6,16 @@ class ExpressionCaptureProcessor(object):
   Takes the current referenceExpression (self.expressionReference) and compares any contributions from the ExpressionFaceStates in the
   library self.expressionLibrary
   """
-  def __init__(self, rigGraphicsView):
-  	self.rigGraphicsView = rigGraphicsView
+  def __init__(self):
+  	self.rigGraphicsView = None
   	self.faceSnapShot = None #This is the state of the HappyFace to which all the expressions are compared
   	self.expressionLibrary = []
+
+  def getRigGraphicsView(self):
+  	return self.rigGraphicsView
+
+  def setRigGraphicsView(self, rigGraphicsView):
+  	self.rigGraphicsView = rigGraphicsView
 
   def getFaceSnapShot(self):
   	return self.faceSnapShot
@@ -53,7 +59,13 @@ class ExpressionFaceState(object):
 		self.expressionItemsData = []
 		self.activeNodes = []
 		self.expressionStateNode = None #This is the rigGraphicsView ExpressionStateNode that this ExpressionFaceState is linked to.
-	
+		self.percentage = 0.0
+		self.init()
+
+	def init(self):
+		"""As soon as the Face State is built then record the position of the current face"""
+		self.recordState()
+
 	def getName(self):
 		return self.name
 
@@ -65,6 +77,14 @@ class ExpressionFaceState(object):
 
 	def setExpressionStateNode(self, expressionStateNode):
 		self.expressionStateNode = expressionStateNode
+
+	def getPercentage(self):
+		"""Function to return the percentage that the expression is dialled in on the ExpressionStateNode"""
+		return self.percentage
+
+	def setPercentage(self, percentage):
+		"""Function to set the percentage, normally driven by the slider on the ExpressionStateNode"""
+		self.percentage = percentage
 
 	def recordState(self):
 		"""Function to loop through all the activeNodes and record each one into an ExpressionItemState"""
@@ -89,6 +109,29 @@ class ExpressionFaceState(object):
 
 		self.activeNodes = activeNodes
 		return activeNodes
+
+	def cleanUp(self):
+		"""Function to loop through all ExpressionItemStates to check that all the corresponding nodes still exist in the happy face, if not then remove them"""
+		self.collectActiveControlNodes() #Create Up to date record of nodes
+
+		newExpressionItemsData = []
+
+		for exp in self.expressionItemsData:
+			if self.nodeExists(exp): #found the node, so keep this ExpressionItemState
+				newExpressionItemsData.append(exp)
+
+		self.expressionItemsData = newExpressionItemsData #set the new list to be our self.expressionItemsData
+
+
+	def nodeExists(self, expressionItem):
+		"""Function check whether the control Item still exists in the Happy Face using the information on the ExpressionItemState"""
+		# self.collectActiveControlNodes() #Update our Node list
+		for node in self.activeNodes:
+			if node.getIndex() == expressionItem.getIndex(): #Check to see if the both the index and group match up. If they do then the node exists
+				if node.getGroupName() == expressionItem.getGroupName():
+					print "Found a Node match"
+					return True
+		return False
 
 
 class ExpressionItemState(object):

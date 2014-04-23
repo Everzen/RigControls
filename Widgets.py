@@ -169,6 +169,7 @@ class DragItemButton(QtGui.QPushButton):
             return
         mimeData = QtCore.QMimeData()
         mimeData.setData("text/plain", str(self.itemName))
+        print "Item Name is : " + self.itemName
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
         drag.setHotSpot(e.pos() - self.rect().topLeft())

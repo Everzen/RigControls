@@ -30,5 +30,8 @@
     <file>images/SkinningEllipse.png</file>
     <file>images/SkinningEllipse_Hover.png</file>
     <file>images/SkinningEllipse_Pressed.png</file>
+    <file>images/ExpressionStateNode.png</file>
+    <file>images/ExpressionStateNode_Hover.png</file>
+    <file>images/ExpressionStateNode_Pressed.png</file>
   </qresource>
 </RCC>

@@ -1244,6 +1244,16 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         painter.setPen(pen)
         painter.drawLine(self.sliderStartPos,self.sliderEndPos) #Draw Slider Line
 
+        if self.isSelected(): # or self.slider.isSelected():
+            painter.setPen(QtCore.Qt.NoPen)
+            gradient = QtGui.QRadialGradient(self.scale*self.width/2,self.scale*self.height/2, self.scale*self.width)
+            # gradient.setColorAt(1, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),150*self.alpha))
+            # gradient.setColorAt(0, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),20*self.alpha))
+            gradient.setColorAt(1, QtGui.QColor(255,255,255,150*self.alpha))
+            gradient.setColorAt(0, QtGui.QColor(255,255,255,20*self.alpha))
+            painter.setBrush(QtGui.QBrush(gradient))
+            painter.drawRect(0,0, self.scale*self.borderRect.width(), self.scale*self.borderRect.height())
+
         painter.setPen(QtCore.Qt.NoPen)
         gradient = QtGui.QRadialGradient(self.scale*self.width/2,self.scale*self.height/2, self.scale*self.width)
         gradient.setColorAt(1, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),150*self.alpha))
@@ -1262,9 +1272,16 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
     def mousePressEvent(self, event):
-        pass
-        # self.setPos(self.mapToScene(event.pos())) #Trying to line centre of node to mouse move
+        """Event used to capture the selection of all items in the RigGV before this selection takes place"""
+        self.scene().views()[0].captureSelectedStore() #Capture which Items are selected in the rigGV
+        #Need to pass these selection conditions on to the ExpressionCaptureProcessor
         QtGui.QGraphicsItem.mousePressEvent(self, event)
+
+    def mouseReleaseEvent(self, event):
+        """Event used to restore the selection of all items in the RigGV before this selection takes place"""
+        self.scene().views()[0].restoreSelectedStore()
+        QtGui.QGraphicsItem.mouseReleaseEvent(self, event) #Now the mouse is released, restore our original selection before the slider was selected
+
 
     def sliderChangedMovement(self, eventPos): 
         """Function to return the position that the Expression item should be at, on a mouse move"""
@@ -1307,6 +1324,9 @@ class ExpressionPercentageSlider(QtGui.QGraphicsItem):
         self.colour = QtGui.QColor(255,0,0)
         self.alpha = 1.0
 
+        self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
+
+
     def init(self):
         """Function to setup the slider on its parent expressionStateNode"""
         pass
@@ -1321,6 +1341,14 @@ class ExpressionPercentageSlider(QtGui.QGraphicsItem):
         pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         painter.drawRect(-0.5 * self.scale*self.width, -0.5*self.scale*self.height, self.scale*self.width, self.scale*self.height)
+
+        if self.expressionStateNode.isSelected() or self.isSelected():
+            painter.setPen(QtCore.Qt.NoPen)
+            gradient = QtGui.QRadialGradient(self.scale*self.width/2,self.scale*self.height/2, self.scale*self.width)
+            gradient.setColorAt(1, QtGui.QColor(255,255,255,150*self.alpha))
+            gradient.setColorAt(0, QtGui.QColor(255,255,255,20*self.alpha))
+            painter.setBrush(QtGui.QBrush(gradient))
+            painter.drawRect(-0.5 * self.scale*self.width, -0.5*self.scale*self.height, self.scale*self.width, self.scale*self.height)
 
         painter.setPen(QtCore.Qt.NoPen)
         gradient = QtGui.QRadialGradient(self.scale*self.width/2,self.scale*self.height/2, self.scale*self.width)
@@ -1343,7 +1371,18 @@ class ExpressionPercentageSlider(QtGui.QGraphicsItem):
 
     def setColour(self):
         self.colour = self.expressionStateNode.getColour()
+    
+    def mousePressEvent(self, event):
+        """Event used to capture the selection of all items in the RigGV before this selection takes place"""
+        self.scene().views()[0].captureSelectedStore() #Capture which Items are selected in the rigGV
+        self.expressionStateNode.getExpressionFaceState().mapSelected()
+        #Need to pass these selection conditions on to the ExpressionCaptureProcessor
+        QtGui.QGraphicsItem.mousePressEvent(self, event)
 
+    def mouseReleaseEvent(self, event):
+        """Event used to restore the selection of all items in the RigGV before this selection takes place"""
+        self.scene().views()[0].restoreSelectedStore()
+        QtGui.QGraphicsItem.mouseReleaseEvent(self, event) #Now the mouse is released, restore our original selection before the slider was selected
 
 
 class Node(QtGui.QGraphicsItem):

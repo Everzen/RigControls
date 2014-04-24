@@ -83,7 +83,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.isSelectableList = [] #list used to store selectable states while panning around 
         self.isMovableList = [] #list used to store selectable states while panning around       
         self.isSelectedList = []
-        
+        self.selectedStore = [] #Here we can store exactly what is selected in the rigGV, so selections can be restored later if needed
+
         self.mainWindow = mainWindow
         self.controlScaler = controlScaler
 
@@ -434,6 +435,22 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.setVisible(state)
                 item.update()
 
+    def captureSelectedStore(self):
+        """A function to loop through and record the selected state of all items in the scene"""
+        scene = self.scene()
+        self.selectedStore = [] #clear currently stored Items
+        for item in scene.items(): #Collect all selection states for all nodes except ExpressionStateNodes
+            if type(item) != ExpressionStateNode:
+                selectionPair = [item, item.isSelected()]
+                self.selectedStore.append(selectionPair)
+
+    def restoreSelectedStore(self):
+        """A function to loop through and set selected state of all items in the scene"""
+        scene = self.scene()
+        for item in self.selectedStore:
+            item[0].setSelected(item[1])
+
+
     def selectFilter(self, state, objectType):
         """A function to control whether items can be selected or not"""
         scene = self.scene()
@@ -567,6 +584,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     self.deleteExpressionState(item)                   
             self.processMarkerActiveIndex()
             self.dataProcessor.manageAttributeConnections() #Run a check through all the attribute Connections to make sure that everything is in place
+            self.expressionCaptureProcessor.cleanUp() #Run the expressionCapture Processor to make sure expressions are up to date to rigGV control Nodes
         return 0 #Not returning the key event stops the shortcut being propagated to the parent (Maya), tidy this up by returning appropriately for each condition
         # return QtGui.QGraphicsView.keyPressEvent(self, event)
 

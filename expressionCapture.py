@@ -49,7 +49,10 @@ class ExpressionCaptureProcessor(object):
 			self.expressionLibrary.remove(delExpression)
 
 	def processCombinedExpressions(self):
-		"""Function to run through all the ExpressionFaceStates, monitor the deltas and calcluate the accumulated delta, and slide the nodes to that position"""
+		"""Function to run through all the ExpressionFaceStates, monitor the deltas and calcluate the accumulated delta, and slide the nodes to that position
+
+		Current version might be a little slow, since it collects all deltas for all items, even if there are only going to be a selection moved. Look at optimising.
+		"""
 		if self.faceSnapShot: #Check we have a snapShot to compare things to. Otherwise there is no comparison to make
 			self.faceSnapShot.clearDeltas() #Clear all the deltas out of the faceSnapShot
 			for expression in self.expressionLibrary: #Loop through all expressions comparing them to the faceSnapShot
@@ -59,8 +62,13 @@ class ExpressionCaptureProcessor(object):
 						if matchExpItem: #If, then we have found a match
 							snapItem.addDelta(matchExpItem, expression.getPercentage())
 			#Now that we have calculated all the new deltas, then all we need to do is make the final move for each of the nodes
-			for snapItem in self.faceSnapShot.getExpressionItemsData():
-				snapItem.setDeltaPos()
+			if self.faceSnapShot.isEffectWholeFace(): #We have no selection of nodes so we will be moving the entire face
+				for snapItem in self.faceSnapShot.getExpressionItemsData():
+					snapItem.setDeltaPos()
+			else: #A selection of nodes exists, so only adjust those nodes
+				for snapItem in self.faceSnapShot.getExpressionItemsData():
+					if snapItem.isSelected(): #The node is part of the selection, so adjust it
+						snapItem.setDeltaPos()
 		else: 
 			print "No FaceSnapShot: No Action Taken"
 
@@ -76,6 +84,37 @@ class ExpressionCaptureProcessor(object):
 		for exp in self.expressionLibrary:
 			exp.getExpressionStateNode().resetSlider()
 
+	def cleanUp(self):
+		"""Function that loops through all expressions in the library and the faceSnapShot,
+		deletes out any unliked ExpressionFaceStates, where their node has been deleted
+		"""
+		if self.faceSnapShot: #If there is a snapShot then clean it up
+			self.faceSnapShot.cleanUp()
+
+		for exp in self.expressionLibrary: #CleaupExpressions
+			exp.cleanUp()
+
+	def mapSelected(self):
+		"""Function to record in each of the ExpressionItemStates of hte faceSnapShot, whether the node was selected or not
+
+		This loop works but feels slow and messy"""
+		effectWholeFace = True #variable to decide whetther the whole face is to be effected by the expression. If a node is found to be selected, then this will be false
+
+		if self.faceSnapShot: #Check we have a snapShot to compare things to. Otherwise there is no comparison to make
+			self.faceSnapShot.collectActiveControlNodes() #Update the activeNodes
+
+			for node in self.faceSnapShot.getActiveNodes():
+				for expItem in self.faceSnapShot.getExpressionItemsData():
+					if node == expItem.getNode(): #We have found the node in question record whether it is selected
+						expItem.setISelected(node.isSelected())
+						if effectWholeFace: #Check to see if effectWholeFace has already been set to false. If it hasn't then check the node selection. If node is selected then we are dealing a partial face move, so set effectWholeFace to False
+							if node.isSelected():
+								effectWholeFace = False
+			#After the Entire loop we decide whether we are effeecting the entire face from the selections that we have processed
+			self.faceSnapShot.setEffectWholeFace(effectWholeFace)
+		else: 
+			print "No FaceSnapShot: No Action Taken"
+
 
 class ExpressionFaceState(object):
 	"""Captures all the data for the Happy Face in a set position
@@ -90,6 +129,7 @@ class ExpressionFaceState(object):
 		self.activeNodes = []
 		self.expressionStateNode = None #This is the rigGraphicsView ExpressionStateNode that this ExpressionFaceState is linked to.
 		self.percentage = 0.0
+		self.effectWholeFace = True #Simple identifier to see if we are updating the entire face with the expression slider, or just the items that are recorded as selected.
 		self.init()
 
 	def init(self):
@@ -117,6 +157,10 @@ class ExpressionFaceState(object):
 	def setExpressionCaptureProcessor(self, expressionCaptureProcessor):
 		self.expressionCaptureProcessor = expressionCaptureProcessor
 
+	def getActiveNodes(self):
+		"""Function just to grab the current ActiveNodes"""
+		return self.activeNodes
+
 	def getPercentage(self):
 		"""Function to return the percentage that the expression is dialled in on the ExpressionStateNode"""
 		return self.percentage
@@ -124,6 +168,12 @@ class ExpressionFaceState(object):
 	def setPercentage(self, percentage):
 		"""Function to set the percentage, normally driven by the slider on the ExpressionStateNode"""
 		self.percentage = percentage
+
+	def isEffectWholeFace(self):
+		return self.effectWholeFace
+
+	def setEffectWholeFace(self, effectWholeFace):
+		self.effectWholeFace = effectWholeFace
 
 	def recordState(self):
 		"""Function to loop through all the activeNodes and record each one into an ExpressionItemState"""
@@ -193,6 +243,9 @@ class ExpressionFaceState(object):
 		"""Function to set a faceSnap shot in the ExpressionCaptureProcessor"""
 		self.expressionCaptureProcessor.setFaceSnapShot()
 
+	def mapSelected(self):
+		"""Function to set a faceSnap shot in the ExpressionCaptureProcessor"""
+		self.expressionCaptureProcessor.mapSelected()
 
 
 class ExpressionItemState(object):
@@ -208,6 +261,14 @@ class ExpressionItemState(object):
 		self.refPos = None
 		self.recordState() #Function to record all key information for the Expression State from the Node/SuperNode
 		self.delta = (QtCore.QPointF(0,0)) #This is used by the ExpressionCaptureProcessor.faceSnapShot to calculate the position of the Node
+		self.selected = False
+
+	def getNode(self):
+		return self.node
+
+	def setNode(self, node):
+		self.node = node
+		self.recordState() #Update the index,group etc for the new Node
 
 	def getIndex(self):
 		return self.index
@@ -251,7 +312,6 @@ class ExpressionItemState(object):
 		deltaContribution = percentage*(expressionItem.getRefPos() - self.getRefPos())/100.0
 		self.delta += deltaContribution
 
-
 	def clearDelta(self):
 		"""Function to reset Delta back to 0,0"""
 		self.delta = (QtCore.QPointF(0,0))
@@ -259,3 +319,10 @@ class ExpressionItemState(object):
 	def setDeltaPos(self):
 		"""Function to physically move the control Node to the delta Position"""
 		self.node.setPos(self.refPos + self.delta)
+
+	def isSelected(self):
+		return self.selected
+
+	def setISelected(self, selected):
+		"""Function to store whether the node was selected"""
+		self.selected = selected

@@ -477,8 +477,9 @@ class RigFaceSetup(QtGui.QMainWindow):
         """A Function to clear the face from the RigGraphicsView, but also reset the dataTables"""
         self.view.clear(query = True)
         self.nodeLinksTableWidget.populate() #Redraw the nodelink data Table, so that all the data cleared out
-        self.skinTableWidget.setSuperNode(None) ##Redraw the skin data Table, so that all the data is cleared out
+        self.skinTableWidget.setSuperNode(None) #Redraw the skin data Table, so that all the data is cleared out
         self.skinTableWidget.populate()
+        self.expressionCaptureProcessor.clearAll() #Make sure that all the expressions are cleared out along with faceSnapShot
 
 
     def closeEvent(self, event):

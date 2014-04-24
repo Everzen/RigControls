@@ -94,6 +94,11 @@ class ExpressionCaptureProcessor(object):
 		for exp in self.expressionLibrary: #CleaupExpressions
 			exp.cleanUp()
 
+	def clearAll(self):
+		"""Function to clear out all faceSnapShot and expressionLibrary data. Called in the event of a RigGV clear All"""
+		self.faceSnapShot = None #This is the state of the HappyFace to which all the expressions are compared
+		self.expressionLibrary = []	
+
 	def mapSelected(self):
 		"""Function to record in each of the ExpressionItemStates of hte faceSnapShot, whether the node was selected or not
 

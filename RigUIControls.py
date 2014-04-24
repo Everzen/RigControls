@@ -103,9 +103,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
         # testSuperNode = SuperNodeGroup(QtCore.QPointF(50,25), "Arrow_4Point" ,self)
         # self.scene().addItem(testSuperNode)
-        testExpression =  ExpressionStateNode()
-        testExpression.setPos(QtCore.QPointF(100,100))
-        self.scene().addItem(testExpression)
+        # testExpression =  ExpressionStateNode()
+        # testExpression.setPos(QtCore.QPointF(100,100))
+        # self.scene().addItem(testExpression)
 
         # self.scene().addItem(el)
         # self.scene().addItem(rect)
@@ -1008,7 +1008,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             elif type(item) == ReflectionLine:
                 self.reflectionLineContextMenu(event,item)
             elif type(item) == ExpressionStateNode:
-                self.ExpressionStateNodeContextMenu(event,item)
+                self.expressionStateNodeContextMenu(event,item)
             # elif type(item) == SkinningEllipse:
             #     self.skinningEllipseContextMenu(event,item)
                 # menu.addAction('ControlPin')
@@ -1125,7 +1125,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             elif action.text() == 'Lock':
                 item.setLocked(True)
 
-    def ExpressionStateNodeContextMenu(self,event,item):
+    def expressionStateNodeContextMenu(self,event,item):
         scene = self.scene()
         menu = QtGui.QMenu()
         menu.setStyleSheet(self.styleData)
@@ -1144,7 +1144,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             elif action.text() == 'set Colour': 
                 newCol = QtGui.QColorDialog.getColor()
                 if newCol.isValid():
-                    item.setColour(newCol)
+                    item.getExpressionFaceState().setColour(newCol)
 
 
     def isNodesSelected(self):

@@ -127,9 +127,14 @@ class ExpressionFaceState(object):
 		self.name = "Expression" #This is the name given to the expression - Take this from the ExpressionStateNode
 		self.expressionItemsData = []
 		self.activeNodes = []
-		self.expressionStateNode = None #This is the rigGraphicsView ExpressionStateNode that this ExpressionFaceState is linked to.
 		self.percentage = 0.0
 		self.effectWholeFace = True #Simple identifier to see if we are updating the entire face with the expression slider, or just the items that are recorded as selected.
+		
+		#Attributes referring to the expressionStateNode - This is done to try and get all data storable from just this ExpressionFaceState - the ExpressionStateNode is then created from this data
+		self.expressionStateNode = None #This is the rigGraphicsView ExpressionStateNode that this ExpressionFaceState is linked to.
+		self.colour = QtGui.QColor(255,0,0)
+		self.pos = QtCore.QPointF(0,0)
+		self.sliderPos = QtCore.QPointF(0,0)
 		self.init()
 
 	def init(self):
@@ -147,6 +152,43 @@ class ExpressionFaceState(object):
 
 	def setExpressionStateNode(self, expressionStateNode):
 		self.expressionStateNode = expressionStateNode
+
+	def getPos(self):
+		"""Returns the position of the linked ExpressionStateNode"""
+		if self.expressionStateNode: 
+			self.pos = self.expressionStateNode.pos()
+			return self.pos
+		return None
+
+	def setPos(self, pos):
+		"""Function to update local pos Attribute and set the ExpressionStateNode to that position"""
+		if self.expressionStateNode: 
+			self.pos = pos
+			self.expressionStateNode.setPos(pos)
+
+	def getSliderPos(self):
+		"""Returns the position of the linked ExpressionStateNode"""
+		if self.expressionStateNode: 
+			self.sliderPos = self.expressionStateNode.getSlider().pos()
+			return self.sliderPos
+		return None
+
+	def setSliderPos(self, pos):
+		"""Function to update local pos Attribute and set the ExpressionStateNode to that position"""
+		if self.expressionStateNode: 
+			self.sliderPos = pos
+			self.expressionStateNode.getSlider().setPos(pos)
+
+	def getColour(self):
+		"""Returns the colour of the linked ExpressionStateNode"""
+		return self.colour
+
+
+	def setColour(self, colour):
+		"""Function to update colour and set the ExpressionStateNode to that colour"""
+		self.colour = colour
+		# if self.expressionStateNode: 
+		# 	self.expressionStateNode.setColour(colour)
 
 	def getExpressionItemsData(self):
 		return self.expressionItemsData

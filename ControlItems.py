@@ -1086,7 +1086,7 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         self.height = 24
         self.sliderBoxHeight = 22
         self.borderRect = QtCore.QRectF(self.scale*(0), self.scale*(0), self.scale*(self.width), self.scale*(self.height))
-        self.colour = QtGui.QColor(255,0,0)
+        self.tempColour = QtGui.QColor(255,0,0) #This is just a holding colour for the drag and drop. The real colour comes from the ExpressionFaceState
         self.setZValue(20) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
 
         self.slider = None
@@ -1152,11 +1152,10 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         self.scale = scale
 
     def getColour(self):
-        return self.colour
-    
-    def setColour(self, colour):
-        self.colour = colour
-        self.slider.setColour()
+        if self.expressionFaceState:
+            return self.expressionFaceState.getColour()
+        else:
+            return self.tempColour
 
     def getAlpha(self):
         return self.alpha
@@ -1192,6 +1191,7 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
     def setExpressionFaceState(self, expressionFaceState):
         """Function to set the data ExpressionFaceState associated with this ExpressionStateNode"""
         self.expressionFaceState = expressionFaceState
+        self.colour = self.expressionFaceState.getColour()
 
     def setSliderStartPos(self):
         """Function to find where the start of the slider line should be sitting"""
@@ -1205,6 +1205,9 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         """Function to move the slider back to its starting postion"""
         self.slider.setPos(self.sliderStartPos)
         self.percentage = 0.0
+
+    def getSlider(self):
+        return self.slider
 
     def boundingRect(self):
         adjust = 5
@@ -1256,12 +1259,12 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
 
         painter.setPen(QtCore.Qt.NoPen)
         gradient = QtGui.QRadialGradient(self.scale*self.width/2,self.scale*self.height/2, self.scale*self.width)
-        gradient.setColorAt(1, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),150*self.alpha))
-        gradient.setColorAt(0, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),20*self.alpha))
+        gradient.setColorAt(1, QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),150*self.alpha))
+        gradient.setColorAt(0, QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),20*self.alpha))
         painter.setBrush(QtGui.QBrush(gradient))
         painter.drawRect(0,0, self.scale*self.borderRect.width(), self.scale*self.borderRect.height())
 
-        pen = QtGui.QPen(QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),255*self.alpha), 2*self.scale, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),255*self.alpha), 2*self.scale, QtCore.Qt.SolidLine)
         self.drawName(painter)
 
 
@@ -1321,7 +1324,6 @@ class ExpressionPercentageSlider(QtGui.QGraphicsItem):
         self.height = 8
         self.scale = 1.0
         self.expressionStateNode = expressionStateNode
-        self.colour = QtGui.QColor(255,0,0)
         self.alpha = 1.0
 
         self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
@@ -1329,6 +1331,7 @@ class ExpressionPercentageSlider(QtGui.QGraphicsItem):
 
     def init(self):
         """Function to setup the slider on its parent expressionStateNode"""
+        # self.colour = self.expressionStateNode.getColour()
         pass
 
     def boundingRect(self):
@@ -1352,8 +1355,8 @@ class ExpressionPercentageSlider(QtGui.QGraphicsItem):
 
         painter.setPen(QtCore.Qt.NoPen)
         gradient = QtGui.QRadialGradient(self.scale*self.width/2,self.scale*self.height/2, self.scale*self.width)
-        gradient.setColorAt(1, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),150*self.alpha))
-        gradient.setColorAt(0, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),20*self.alpha))
+        gradient.setColorAt(1, QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),150*self.alpha))
+        gradient.setColorAt(0, QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),20*self.alpha))
         painter.setBrush(QtGui.QBrush(gradient))
         painter.drawRect(-0.5 * self.scale*self.width, -0.5*self.scale*self.height, self.scale*self.width, self.scale*self.height)
 
@@ -1367,11 +1370,9 @@ class ExpressionPercentageSlider(QtGui.QGraphicsItem):
         return QtGui.QGraphicsItem.itemChange(self, change, value)
 
     def getColour(self):
-        return self.colour
+        """Function to return the same colour as the ExpressionStateNode"""
+        return self.expressionStateNode.getColour()
 
-    def setColour(self):
-        self.colour = self.expressionStateNode.getColour()
-    
     def mousePressEvent(self, event):
         """Event used to capture the selection of all items in the RigGV before this selection takes place"""
         self.scene().views()[0].captureSelectedStore() #Capture which Items are selected in the rigGV

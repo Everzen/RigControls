@@ -1105,43 +1105,6 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         self.slider.setParentItem(self)
         self.slider.setPos(self.sliderStartPos)
 
-        # tempPainter = QtGui.QPainter()
-        # borderRect = tempPainter.drawText(0,0,200,20,0,str(self.name))
-        # self.width = borderRect.width()
-        # self.height = borderRect.height()
-        # print "My dim : " + str(self.width) + " " + str(self.height)
-
-    def store(self):
-        """Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
-        GuideMarkerRoot = xml.Element('GuideMarker')
-        attributes = xml.SubElement(GuideMarkerRoot,'attributes')
-        xml.SubElement(attributes, 'attribute', name = 'index', value = str(self.getIndex()))
-        xml.SubElement(attributes, 'attribute', name = 'active', value = str(self.getActive()))
-        xml.SubElement(attributes, 'attribute', name = 'scale', value = str(self.getScale()))
-        xml.SubElement(attributes, 'attribute', name = 'alpha', value = str(self.getAlpha()))
-        xml.SubElement(attributes, 'attribute', name = 'zValue', value = str(self.zValue()))
-        xml.SubElement(attributes, 'attribute', name = 'visible', value = str(self.isVisible()))
-        xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.pos().x())) + "," + str(self.pos().y()))
-        # xmlFile = FileControl.XMLMan()
-        # xmlFile.setTree(GuideMarkerRoot)
-        # xmlFile.setFile("faceFiles/test.xml")
-        # xmlFile.save()
-        return GuideMarkerRoot
-
-    def read(self, GuideMarkerXml):
-        """A function to read in a block of XML and set all major attributes accordingly"""
-        # GuideMarkerRoot = GuideMarkerXml.getroot()
-        for a in GuideMarkerXml.findall( 'attributes/attribute'):
-            if a.attrib['name'] == 'index': self.setIndex(int(a.attrib['value']))
-            elif a.attrib['name'] == 'active': self.setActive(str(a.attrib['value']) == 'True')
-            elif a.attrib['name'] == 'scale': self.setScale(float(a.attrib['value']))
-            elif a.attrib['name'] == 'alpha': self.setAlpha(float(a.attrib['value']))
-            elif a.attrib['name'] == 'zValue': self.setZValue(float(a.attrib['value']))
-            elif a.attrib['name'] == 'visible': self.setVisible(str(a.attrib['value']) == 'True')
-            elif a.attrib['name'] == 'pos': 
-                newPos = a.attrib['value'].split(",")
-                self.setPos(float(newPos[0]), float(newPos[1]))
-
     def getMinimumScale(self):
         return self.minimumScale
 

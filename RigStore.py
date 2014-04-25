@@ -21,10 +21,11 @@ class FaceGVCapture():
     This data is then saved to a specified XML file and can be loaded back in to rebuild the 
     graphics view by using the "read()" method
     """
-    def __init__(self, faceGView, messageLogger, dataProcessor):
+    def __init__(self, faceGView, messageLogger, dataProcessor, expressionCaptureProcessor):
         """Class to capture all of the information out of the Graphics View"""
         self.view = faceGView
         self.dataProcessor = dataProcessor
+        self.expressionCaptureProcessor = expressionCaptureProcessor
         self.scene = self.view.scene()
         self.viewXML = None
         self.xMLFile = None
@@ -50,6 +51,7 @@ class FaceGVCapture():
         self.dataProcessorSettings = xml.SubElement(self.viewXML.tree,'dataProcessorSettings')
         self.viewSettings = xml.SubElement(self.viewXML.tree,'viewSettings')
         self.sceneItems = xml.SubElement(self.viewXML.tree,'sceneItems')
+        self.expressionCaptureSettings = xml.SubElement(self.viewXML.tree,'expressionCaptureSettings')
 
         self.captureDataProcessor() # Record the main DataProcessor for the scene. This mainly is about capturing what the SceneControl Node is
         self.captureBackgroundImage() #Record the background Image
@@ -58,6 +60,7 @@ class FaceGVCapture():
         self.captureMarkers()
         self.captureWireGroups()
         self.captureSuperNodeGroups()
+        self.captureExpressionSystem()
 
         #Now we have captured everything into a super giant XML tree we need to save this out.
         self.viewXML.setFile(self.xMLFile)
@@ -197,3 +200,8 @@ class FaceGVCapture():
             newSuperNodeGroup = SuperNodeGroup(QtCore.QPointF(0,0), "Arrow_4Point", self.view, self.dataProcessor) # Create SuperGroup with Arbitrary starting values
             newSuperNodeGroup.read(s)
             self.view.superNodeGroups.append(newSuperNodeGroup)
+
+    def captureExpressionSystem(self):
+        """A Function to process Expressions into XML"""
+        expressionCaptureProcessorXml = self.expressionCaptureProcessor.store()
+        self.expressionCaptureSettings.append(expressionCaptureProcessorXml)

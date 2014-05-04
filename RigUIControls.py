@@ -89,6 +89,47 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.controlScaler = controlScaler
 
         #TESTING ADDING NEW ITEMS
+
+        self.mainWidget = QtGui.QWidget(self)
+        
+        myGWiget = QtGui.QGraphicsWidget() 
+
+        myLayout = QtGui.QGraphicsLinearLayout()
+        myLayout.setOrientation(QtCore.Qt.Vertical) 
+        myLabel = QtGui.QLabel("Expression")
+        mySlider = QtGui.QSlider()
+        mySlider.setOrientation(QtCore.Qt.Horizontal)
+        p = self.scene().addWidget(myLabel) 
+        s = self.scene().addWidget(mySlider)
+        myLayout.addItem(p)
+        myLayout.addItem(s)
+
+        # myLabel1 = QtGui.QLabel("Moo")
+        # mySlider = QtGui.QSlider()
+        # mySlider.setOrientation(QtCore.Qt.Horizontal)
+        # myLayout.addWidget(myLabel)
+        # myLayout.addWidget(myLabel1)
+        # myLayout.addWidget(mySlider)
+        # self.mainWidget.setLayout(myLayout)
+        myGWiget.setLayout(myLayout)
+
+        # proxyWidget = QtGui.QGraphicsProxyWidget() 
+        # proxyWidget.graphicsItem().setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        # proxyWidget.graphicsItem().setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        # proxyWidget.setWidget(self.mainWidget)
+
+        # proxyWidget.setParentItem(selfMoveRect)
+        # proxyWidget.setFlag(QtGui.QGraphicsItem.ItemStacksBehindParent,True)         
+        myGWiget.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        myGWiget.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        myGWiget.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+
+
+
+
+        # self.scene().addItem(proxyWidget)
+        self.scene().addItem(myGWiget)
+
         # el = ConstraintEllipse(80,80)
         # el.setPos(200,200)
 
@@ -103,9 +144,6 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
         # testSuperNode = SuperNodeGroup(QtCore.QPointF(50,25), "Arrow_4Point" ,self)
         # self.scene().addItem(testSuperNode)
-        # testExpression =  ExpressionStateNode()
-        # testExpression.setPos(QtCore.QPointF(100,100))
-        # self.scene().addItem(testExpression)
 
         # self.scene().addItem(el)
         # self.scene().addItem(rect)
@@ -852,7 +890,20 @@ class RigGraphicsView(QtGui.QGraphicsView):
         item.setAlpha(0.5)
         self.dragItem = item #set set the gv DragItem
         self.scene().addItem(item)
-        
+
+    # def dragExpressionStateNode(self, event):
+    #     event.acceptProposedAction()
+    #     label = QtGui.QLabel("Expression")
+    #     slider = QtGui.QSlider()
+    #     slider.setOrientation(QtCore.Qt.Horizontal)
+    #     sceneLabel = self.scene().addWidget(label) 
+    #     sceneSlider = self.scene().addWidget(slider) 
+    #     item = ExpressionStateNode(sceneLabel, sceneSlider)
+    #     item.setPos(self.mapToScene(event.pos()))
+    #     item.setAlpha(0.5)
+    #     self.dragItem = item #set set the gv DragItem
+    #     self.scene().addItem(item)
+
 
     def mousePressEvent(self, mouseEvent):
         scene = self.scene()

@@ -82,6 +82,7 @@ class FaceGVCapture():
         self.readMarkers()
         self.readWireGroups()
         self.readSuperNodeGroups()
+        self.readExpressionSystem()
 
         # Updating a full draw for the whole scene
         scene = self.view.scene()
@@ -205,3 +206,11 @@ class FaceGVCapture():
         """A Function to process Expressions into XML"""
         expressionCaptureProcessorXml = self.expressionCaptureProcessor.store()
         self.expressionCaptureSettings.append(expressionCaptureProcessorXml)
+
+    def readExpressionSystem(self):
+        """A function to read in all of the saved Expression system"""
+        scene = self.view.scene()
+        expressionCaptureProcessorXml = self.viewXML.findBranch("ExpressionCaptureProcessor")
+        if len(expressionCaptureProcessorXml) ==1: #We have a single Correct ExpressionCaptureProcessor
+            print "Reading in: Expression Capture Processor"
+            self.expressionCaptureProcessor.read(expressionCaptureProcessorXml[0])

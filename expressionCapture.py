@@ -1,6 +1,8 @@
 from PySide import QtGui, QtCore
 import xml.etree.ElementTree as xml
 
+from ControlItems import ExpressionStateNode, ExpressionPercentageSlider
+
 class ExpressionCaptureProcessor(object):
 	"""Manages the total calculation of all recorded expressions on the Happy Face
 
@@ -19,7 +21,7 @@ class ExpressionCaptureProcessor(object):
 		#Store all the expressionItemsData
 		faceSnapShotTitleXml = xml.SubElement(expressionCaptureProcessorRoot,'FaceSnapShot')
 		if self.faceSnapShot:
-			faceSnapShotXml = self.faceSnapShot.store()
+			faceSnapShotXml = self.faceSnapShot.store(isFaceSnapShot = True)
 			faceSnapShotTitleXml.append(faceSnapShotXml)
 
 		#Store all the expressionFaceStaes in the self.ExpressionLibrary
@@ -32,20 +34,33 @@ class ExpressionCaptureProcessor(object):
 
 	def read(self, expressionCaptureProcessorXml):
 		"""A function to read in a block of XML and set all major attributes accordingly"""
+		self.faceSnapShot = None #Clear out any snapshots and Expression Libraries
+		self.expressionLibrary = []
 		# Read the FaceSnapShot data and then the ExpresionLibrary Data
 		faceSnapShotDataTitleXml = expressionCaptureProcessorXml.findall('FaceSnapShot')
-		faceSnapShotDataXml = expressionItemsDataXml[0].findall('ExpressionFaceState')[0] #There should only be one FaceSnapShot, so take the first in the list
+		faceSnapShotDataXml = faceSnapShotDataTitleXml[0].findall('ExpressionFaceState')[0] #There should only be one FaceSnapShot, so take the first in the list
 		newfaceSnapShot = ExpressionFaceState(self.rigGraphicsView) #Create new ExpressionFaceState, pass it the current rigGraphicsView, which must have already been set! 
-		newfaceSnapShot.read(faceSnapShotDataXml)
+		newfaceSnapShot.read(faceSnapShotDataXml, isFaceSnapShot = True)
 		self.faceSnapShot = newfaceSnapShot
 
 		self.expressionLibrary = [] # Clear Out all the expressionLibrary
 		expressionLibraryXml = expressionCaptureProcessorXml.findall('ExpressionLibrary')
 		for expressionStateXml in expressionLibraryXml[0].findall('ExpressionFaceState'):
 			newExpressionState = ExpressionFaceState(self.rigGraphicsView) #Create new ExpressionFaceState, pass it the current rigGraphicsView, which must have already been set! 
+			newExpressionState.setExpressionCaptureProcessor(self) #Make sure the ExpressionCaptureProcessor is passed to the Expression
 			newExpressionState.read(expressionStateXml)
 			self.expressionLibrary.append(newExpressionState)
-		#After the read, then ExpressionStateNodes need to be generated and matched up to each of the ExpressionFaceStates in the self.expressionLibrary
+			newExpressionStateNode = ExpressionStateNode() #Create the appropriate ExpressionState Node and Pair up the data with ExpressionFaceState
+			self.rigGraphicsView.scene().addItem(newExpressionStateNode) #Add the new Item to the scene with all the data
+			newExpressionState.setExpressionStateNode(newExpressionStateNode) 
+			newExpressionStateNode.setExpressionFaceState(newExpressionState)
+			newExpressionStateNode.setName(newExpressionState.getName())
+			# newExpressionStateNode.update()
+			# self.rigGraphicsView.scene().update(self.rigGraphicsView.scene().sceneRect())
+			# print "About to Match Slider at : " + str(newExpressionState.sliderPos)
+			newExpressionState.matchPos()
+			newExpressionState.matchPercentage() #Moves the sliderPosition to the data read position and updates the expression for that new position.	
+		self.processCombinedExpressions() #Now all expression are in place. Computate the entire Face	
 
 	def getRigGraphicsView(self):
 		return self.rigGraphicsView
@@ -146,7 +161,7 @@ class ExpressionCaptureProcessor(object):
 			for node in self.faceSnapShot.getActiveNodes():
 				for expItem in self.faceSnapShot.getExpressionItemsData():
 					if node == expItem.getNode(): #We have found the node in question record whether it is selected
-						expItem.setISelected(node.isSelected())
+						expItem.setIsSelected(node.isSelected())
 						if effectWholeFace: #Check to see if effectWholeFace has already been set to false. If it hasn't then check the node selection. If node is selected then we are dealing a partial face move, so set effectWholeFace to False
 							if node.isSelected():
 								effectWholeFace = False
@@ -181,15 +196,16 @@ class ExpressionFaceState(object):
 		"""As soon as the Face State is built then record the position of the current face"""
 		self.recordState()
 
-	def store(self):
+	def store(self, isFaceSnapShot = False):
 		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
 		expressionFaceStateRoot = xml.Element('ExpressionFaceState')
 		attributes = xml.SubElement(expressionFaceStateRoot,'attributes')
 		xml.SubElement(attributes, 'attribute', name = 'name', value = str(self.getName()))
 		xml.SubElement(attributes, 'attribute', name = 'percentage', value = str(self.getPercentage()))
-		xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.getColour().red()) + "," + str(self.getColour().green()) + "," + str(self.getColour().blue())))
-		xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.getPos().x())) + "," + str(self.getPos().y()))
-		xml.SubElement(attributes, 'attribute', name = 'sliderPos', value = (str(self.getSliderPos().x())) + "," + str(self.getSliderPos().y()))
+		if not isFaceSnapShot:
+			xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.getColour().red()) + "," + str(self.getColour().green()) + "," + str(self.getColour().blue())))
+			xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.getPos().x())) + "," + str(self.getPos().y()))
+			# xml.SubElement(attributes, 'attribute', name = 'sliderPos', value = (str(self.getSliderPos().x())) + "," + str(self.getSliderPos().y()))
 
 		#Store all the expressionItemsData
 		expressionItemsDataXml = xml.SubElement(expressionFaceStateRoot,'ExpressionItemData')
@@ -198,21 +214,23 @@ class ExpressionFaceState(object):
 			expressionItemsDataXml.append(expItemXml)
 		return expressionFaceStateRoot
 
-	def read(self, expressionFaceStateXml):
+	def read(self, expressionFaceStateXml, isFaceSnapShot = False):
 		"""A function to read in a block of XML and set all major attributes accordingly"""
 		for a in expressionFaceStateXml.findall( 'attributes/attribute'):
-			if a.attrib['name'] == 'name': self.setame(str(a.attrib['value']))
+			if a.attrib['name'] == 'name': self.setName(str(a.attrib['value']))
 			elif a.attrib['name'] == 'percentage': self.setPercentage(float(a.attrib['value']))
-			elif a.attrib['name'] == 'pos':
-				newPos = a.attrib['value'].split(",")
-				self.setPos(QtCore.QPointF(float(newPos[0]), float(newPos[1])))
-			elif a.attrib['name'] == 'sliderPos':
-				newSliderPos = a.attrib['value'].split(",")
-				self.setSliderPos(QtCore.QPointF(float(newSliderPos[0]), float(newSliderPos[1])))
-			elif a.attrib['name'] == 'colour':
-			    newColour = a.attrib['value'].split(",")
-			    self.setColour(QtGui.QColor(float(newColour[0]), float(newColour[1]),float(newColour[2]))) 
+			if not isFaceSnapShot:
+				if a.attrib['name'] == 'pos':
+					newPos = a.attrib['value'].split(",")
+					self.setPos(QtCore.QPointF(float(newPos[0]), float(newPos[1])))
+				# elif a.attrib['name'] == 'sliderPos':
+				# 	newSliderPos = a.attrib['value'].split(",")
+				# 	self.setSliderPos(QtCore.QPointF(float(newSliderPos[0]), float(newSliderPos[1])))
+				elif a.attrib['name'] == 'colour':
+				    newColour = a.attrib['value'].split(",")
+				    self.setColour(QtGui.QColor(float(newColour[0]), float(newColour[1]),float(newColour[2])))
 
+		print "My read Slider Pos is: " + str(self.sliderPos)
 		# Read ExpressionItemsData
 		self.expressionItemsData = [] # Clear Out all the ExpressionItemData
 		expressionItemsDataXml = expressionFaceStateXml.findall('ExpressionItemData')
@@ -242,11 +260,13 @@ class ExpressionFaceState(object):
 			return self.pos
 		return None
 
-	def matchPos(self, pos):
-		"""Function to update local pos Attribute and set the ExpressionStateNode to that position"""
+	def matchPos(self):
+		"""Function to update ExpressionStateNode to that position, and update the Slider to the appropriate position too"""
 		if self.expressionStateNode: 
-			self.pos = pos
-			self.expressionStateNode.setPos(pos)
+			self.expressionStateNode.setPos(self.pos)
+			# print "setting sliderPosition to : " + str(self.sliderPos)
+			# self.expressionStateNode.getSlider().setPos(self.sliderPos)
+			# self.expressionStateNode.movePercentage(self.sliderPos) #Now the position of the slider is in place, then update the expression.
 
 	def setPos(self, pos):
 		"""Function to update local pos Attribute and set the ExpressionStateNode to that position"""
@@ -260,18 +280,11 @@ class ExpressionFaceState(object):
 		return None
 
 	def setSliderPos(self, sliderPos):
-		self.sliderPos = pos
-
-	def matchSliderPos(self, pos):
-		"""Function to update local pos Attribute and set the ExpressionStateNode to that position"""
-		if self.expressionStateNode: 
-			self.sliderPos = pos
-			self.expressionStateNode.getSlider().setPos(pos)
+		self.sliderPos = sliderPos
 
 	def getColour(self):
 		"""Returns the colour of the linked ExpressionStateNode"""
 		return self.colour
-
 
 	def setColour(self, colour):
 		"""Function to update colour and set the ExpressionStateNode to that colour"""
@@ -297,6 +310,11 @@ class ExpressionFaceState(object):
 	def setPercentage(self, percentage):
 		"""Function to set the percentage, normally driven by the slider on the ExpressionStateNode"""
 		self.percentage = percentage
+
+	def matchPercentage(self):
+		"""This takes the current percentage value and makes sure that the slider is moved to the correct position to represent that percentage"""
+		if self.expressionStateNode:
+			self.expressionStateNode.matchPercentagePos(self.percentage)
 
 	def isEffectWholeFace(self):
 		return self.effectWholeFace
@@ -421,7 +439,7 @@ class ExpressionItemState(object):
 		for a in expressionItemStateXml.findall( 'attributes/attribute'):
 			if a.attrib['name'] == 'index': self.setIndex(int(a.attrib['value']))
 			elif a.attrib['name'] == 'groupName': self.setGroupName(str(a.attrib['value']))
-			elif a.attrib['name'] == 'selected': self.setSelected(str(a.attrib['value']) == 'True')
+			elif a.attrib['name'] == 'selected': self.setIsSelected(str(a.attrib['value']) == 'True')
 			elif a.attrib['name'] == 'refPos':
 				newPos = a.attrib['value'].split(",")
 				self.setRefPos(QtCore.QPointF(float(newPos[0]), float(newPos[1])))
@@ -440,7 +458,11 @@ class ExpressionItemState(object):
 	def getIndex(self):
 		return self.index
 
-	def setIndex(self, node):
+	def setIndex(self, index):
+		"""Function to grab the index from the node"""
+		self.index = index
+
+	def setIndexByNode(self, node):
 		"""Function to grab the index from the node"""
 		self.index = node.getIndex()
 
@@ -472,7 +494,7 @@ class ExpressionItemState(object):
 	def recordState(self):
 		"""Function to loop through and grab all the critical information from the Node"""
 		if self.node:
-			self.setIndex(self.node)
+			self.setIndexByNode(self.node)
 			self.setGroup(self.node)
 			self.matchRefPos(self.node)
 
@@ -500,6 +522,6 @@ class ExpressionItemState(object):
 	def isSelected(self):
 		return self.selected
 
-	def setISelected(self, selected):
+	def setIsSelected(self, selected):
 		"""Function to store whether the node was selected"""
 		self.selected = selected

@@ -1062,6 +1062,33 @@ class GuideMarker(QtGui.QGraphicsItem):
         QtGui.QGraphicsItem.mousePressEvent(self, event)
 
 
+# class ExpressionStateNode(QtGui.QGraphicsWidget):
+#     """These are used to capture the entire state of a Happy face
+
+#     The current state of the face can be recorded and then you can slide in percentage changes towards the captured state
+#     Based off the QGraphics Widget to all us to access sliders and labels etc
+#     """
+#     name = "ExpressionStateNode"
+
+#     def __init__(self, expressionLabel, expressionSlider):
+#         super(ExpressionStateNode, self).__init__()
+#         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+#         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+#         self.name = "Expression"
+#         self.label = expressionLabel
+#         self.slider = expressionSlider
+
+
+#         def init(self):
+#             """Function to set up the label and slider to represent the expression"""
+#             self.layout = QtGui.QGraphicsLinearLayout()
+#             self.ayout.setOrientation(QtCore.Qt.Vertical)  
+#             self.addItem(self.label)
+#             self.addItem(self.slider)
+#             self.setLayout(self.layout)
+
+
+
 
 
 class ExpressionStateNode(QtGui.QGraphicsItem):
@@ -1138,7 +1165,7 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
     def setName(self, name):
         """Setting the name will require the Node to redraw, so force an update"""
         self.name = name
-        self.update
+        self.update()
 
     def getActive(self):
         return self.active
@@ -1190,13 +1217,12 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
 
         self.borderRect = painter.drawText(0,0,200,30,0,str(self.name))
         self.borderRect = QtCore.QRectF(0,0,self.borderRect.width() + 5, self.borderRect.height() + 2)
-        self.setSliderStartPos()
-        self.setSliderEndPos()
 
         pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
         painter.setPen(pen)
         painter.drawRect(self.borderRect)
-
+        self.setSliderStartPos()
+        self.setSliderEndPos()
 
 
     def paint(self, painter, option, widget):
@@ -1267,12 +1293,18 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         movePercentage = 100.0*float(slideDistance)/float(slideRange)
         if self.expressionFaceState:
             self.expressionFaceState.setPercentage(movePercentage)
+            print "Processing Combined expression from Expression " + self.getName() + " : SliderPos : " + str(currentPos) 
             self.expressionFaceState.processCombinedExpressions() #Now that the percentage has been updated, run through all the expressions updating the total positions
         else:
             print "No ExpressionFaceState Linked to this ExpressionStateNode"
-
         return movePercentage
 
+    def matchPercentagePos(self, percentage):
+        """Function to take give percentage and use it to position the slider to the appropriate place on the line"""
+        slideRange = self.sliderEndPos.x() - self.sliderStartPos.x()
+        slideDistance = slideRange * percentage/100.0
+        if self.slider:
+            self.slider.setPos(QtCore.QPointF(self.sliderStartPos.x() + slideDistance, self.sliderStartPos.y()))
 
 
 class ExpressionPercentageSlider(QtGui.QGraphicsItem):

@@ -1062,117 +1062,69 @@ class GuideMarker(QtGui.QGraphicsItem):
         QtGui.QGraphicsItem.mousePressEvent(self, event)
 
 
-# class ExpressionStateNode(QtGui.QGraphicsWidget):
-#     """These are used to capture the entire state of a Happy face
-
-#     The current state of the face can be recorded and then you can slide in percentage changes towards the captured state
-#     Based off the QGraphics Widget to all us to access sliders and labels etc
-#     """
-#     name = "ExpressionStateNode"
-
-#     def __init__(self, expressionLabel, expressionSlider):
-#         super(ExpressionStateNode, self).__init__()
-#         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
-#         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
-#         self.name = "Expression"
-#         self.label = expressionLabel
-#         self.slider = expressionSlider
-
-
-#         def init(self):
-#             """Function to set up the label and slider to represent the expression"""
-#             self.layout = QtGui.QGraphicsLinearLayout()
-#             self.ayout.setOrientation(QtCore.Qt.Vertical)  
-#             self.addItem(self.label)
-#             self.addItem(self.slider)
-#             self.setLayout(self.layout)
-
-
-
-
-
-class ExpressionStateNode(QtGui.QGraphicsItem):
+class ExpressionStateNode(QtGui.QGraphicsWidget):
     """These are used to capture the entire state of a Happy face
 
     The current state of the face can be recorded and then you can slide in percentage changes towards the captured state
+    Based off the QGraphics Widget to all us to access sliders and labels etc
     """
     name = "ExpressionStateNode"
 
-    def __init__(self):
+    def __init__(self, expressionLabel, expressionSlider):
         super(ExpressionStateNode, self).__init__()
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
-        ####EPRESSIONNODE IDENTIFIERS####################################
-        self.index = None    
-        self.name = "Expression"    
-        self.active = False
-        self.minimumScale = 0.8
-        self.scale = 1.0
-        self.alpha = 1.0
-        self.width = 95
-        self.height = 24
-        self.sliderBoxHeight = 22
-        self.borderRect = QtCore.QRectF(self.scale*(0), self.scale*(0), self.scale*(self.width), self.scale*(self.height))
+        self.name = "Expression"
+        self.label = expressionLabel
+        self.slider = expressionSlider
+        
         self.tempColour = QtGui.QColor(255,0,0) #This is just a holding colour for the drag and drop. The real colour comes from the ExpressionFaceState
-        self.setZValue(20) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
-
-        self.slider = None
-        self.sliderStartPos = self.setSliderStartPos()
-        self.sliderEndPos = self.setSliderEndPos()
-        self.expressionFaceState = None
+        self.alpha = 1.0
         self.init()
 
+
     def init(self):
-        """Function to setup the item width and height parameters and the ExpressionSlider"""
-        self.update()
-        self.setSliderStartPos()
-        self.setSliderEndPos()
+        """Function to set up the label and slider to represent the expression"""
+        self.layout = QtGui.QGraphicsLinearLayout()
+        self.layout.setOrientation(QtCore.Qt.Vertical)  
+        self.layout.addItem(self.label)
+        self.layout.addItem(self.slider)
+        self.setLayout(self.layout)
+        self.expressionFaceState = None
+        self.slider.widget().valueChanged.connect(lambda: self.movePercentage())
 
-        self.slider = ExpressionPercentageSlider(self)
-        self.slider.setParentItem(self)
-        self.slider.setPos(self.sliderStartPos)
+    def getName(self):
+        return self.name
 
-    def getMinimumScale(self):
-        return self.minimumScale
+    def setName(self, name):
+        self.name = name
+        self.label.widget().setText(name)
 
-    def getScale(self):
-        return self.scale
+    def setAlpha(self, alpha):
+        """Function to set the alpha"""
+        self.alpha = alpha
 
-    def setScale(self, scale):
-        self.scale = scale
+    def paint(self, painter, option, widget):
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
+        if self.isSelected():
+            pen = QtGui.QPen(QtGui.QColor(255,255,255,255*self.alpha), 1, QtCore.Qt.SolidLine)
+
+        painter.setPen(pen)   
+        painter.drawRect(self.boundingRect())
+
+        painter.setPen(QtCore.Qt.NoPen)
+        gradient = QtGui.QRadialGradient(self.boundingRect().width()/2,self.boundingRect().height()/2, self.boundingRect().width())
+        gradient.setColorAt(1, QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),150*self.alpha))
+        gradient.setColorAt(0, QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),20*self.alpha))
+        painter.setBrush(QtGui.QBrush(gradient))
+        painter.drawRect(0,0, self.boundingRect().width(), self.boundingRect().height())
+        return super(ExpressionStateNode, self).paint(painter, option, widget)
 
     def getColour(self):
         if self.expressionFaceState:
             return self.expressionFaceState.getColour()
         else:
             return self.tempColour
-
-    def getAlpha(self):
-        return self.alpha
-
-    def setAlpha(self, alpha):
-        self.alpha = float(alpha)
-
-    def getIndex(self):
-        return self.index
-
-    def setIndex(self,index):
-        self.index = index
-
-    def getName(self):
-        return self.name
-
-    def setName(self, name):
-        """Setting the name will require the Node to redraw, so force an update"""
-        self.name = name
-        self.update()
-
-    def getActive(self):
-        return self.active
-
-    def setActive(self, state):
-        self.active = state
-        self.update()
 
     def getExpressionFaceState(self):
         """Function to return the data ExpressionFaceState associated with this ExpressionStateNode"""
@@ -1183,202 +1135,21 @@ class ExpressionStateNode(QtGui.QGraphicsItem):
         self.expressionFaceState = expressionFaceState
         self.colour = self.expressionFaceState.getColour()
 
-    def setSliderStartPos(self):
-        """Function to find where the start of the slider line should be sitting"""
-        self.sliderStartPos = QtCore.QPointF(5,self.scale*self.borderRect.height()+(0.5*self.sliderBoxHeight))
-
-    def setSliderEndPos(self):
-        """Function to find where the end of the slider line should be sitting"""
-        self.sliderEndPos = QtCore.QPointF(self.scale*self.borderRect.width() - 5,self.scale*self.borderRect.height()+(0.5*self.sliderBoxHeight))
+    def movePercentage(self):
+        print "moo " +str(self.slider.widget().value())
+        if self.expressionFaceState:
+            if self.expressionFaceState.isActive():
+                print "This running?"
+                self.expressionFaceState.setPercentage(self.slider.widget().value())
+                self.expressionFaceState.processCombinedExpressions() #Now that the percentage has been updated, run through all the expressions updating the total positions
+            else:
+                print "Face State " + self.expressionFaceState.getName() + " exists, but is not yet defined"
 
     def resetSlider(self):
         """Function to move the slider back to its starting postion"""
-        self.slider.setPos(self.sliderStartPos)
-        self.percentage = 0.0
-
-    def getSlider(self):
-        return self.slider
-
-    def boundingRect(self):
-        adjust = 5
-        # return QtCore.QRectF(self.scale*(0 - adjust), self.scale*(0 - adjust),
-        #                     self.scale*(self.width + adjust), self.scale*(self.height + self.sliderBoxHeight + adjust))
-        return QtCore.QRectF(-adjust, -adjust, self.borderRect.width() + 2*adjust, self.borderRect.height() + 2*adjust + self.sliderBoxHeight)
-
-    def drawName(self,painter):
-        """Function to write the expression name and draw rectangle around it"""
-        pen = QtGui.QPen(QtGui.QColor(180,180,180,255*self.alpha), 1, QtCore.Qt.SolidLine)
-        painter.setBrush(QtCore.Qt.NoBrush)
-        painter.setPen(pen)
-        fontsize = 14
-        if self.scale < 1.0:
-            fontsize = int(9*self.scale)
-        painter.setFont(QtGui.QFont('Arial', fontsize))
-
-        self.borderRect = painter.drawText(0,0,200,30,0,str(self.name))
-        self.borderRect = QtCore.QRectF(0,0,self.borderRect.width() + 5, self.borderRect.height() + 2)
-
-        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
-        painter.setPen(pen)
-        painter.drawRect(self.borderRect)
-        self.setSliderStartPos()
-        self.setSliderEndPos()
-
-
-    def paint(self, painter, option, widget):
-        """Function to paint the ExpressionCaptureNode, including writing expression name and drawing expression slider line"""
-        self.drawName(painter)
-
-        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
-        painter.setPen(pen)
-        painter.drawRect(0,self.scale*self.borderRect.height(), self.scale*self.borderRect.width(), self.scale*self.sliderBoxHeight)
-        pen = QtGui.QPen(QtGui.QColor(0,0,0,50*self.alpha), 0.5, QtCore.Qt.DashLine)
-        painter.setPen(pen)
-        painter.drawLine(self.sliderStartPos,self.sliderEndPos) #Draw Slider Line
-
-        if self.isSelected(): # or self.slider.isSelected():
-            painter.setPen(QtCore.Qt.NoPen)
-            gradient = QtGui.QRadialGradient(self.scale*self.width/2,self.scale*self.height/2, self.scale*self.width)
-            # gradient.setColorAt(1, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),150*self.alpha))
-            # gradient.setColorAt(0, QtGui.QColor(self.colour.red(),self.colour.green(),self.colour.blue(),20*self.alpha))
-            gradient.setColorAt(1, QtGui.QColor(255,255,255,150*self.alpha))
-            gradient.setColorAt(0, QtGui.QColor(255,255,255,20*self.alpha))
-            painter.setBrush(QtGui.QBrush(gradient))
-            painter.drawRect(0,0, self.scale*self.borderRect.width(), self.scale*self.borderRect.height())
-
-        painter.setPen(QtCore.Qt.NoPen)
-        gradient = QtGui.QRadialGradient(self.scale*self.width/2,self.scale*self.height/2, self.scale*self.width)
-        gradient.setColorAt(1, QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),150*self.alpha))
-        gradient.setColorAt(0, QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),20*self.alpha))
-        painter.setBrush(QtGui.QBrush(gradient))
-        painter.drawRect(0,0, self.scale*self.borderRect.width(), self.scale*self.borderRect.height())
-
-        pen = QtGui.QPen(QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),255*self.alpha), 2*self.scale, QtCore.Qt.SolidLine)
-        self.drawName(painter)
-
-
-    def itemChange(self, change, value):
-        if change == QtGui.QGraphicsItem.ItemPositionChange:
-            pass
-            # print "Marker Move pos : " + str(self.scenePos())  
-        return QtGui.QGraphicsItem.itemChange(self, change, value)
-
-    def mousePressEvent(self, event):
-        """Event used to capture the selection of all items in the RigGV before this selection takes place"""
-        self.scene().views()[0].captureSelectedStore() #Capture which Items are selected in the rigGV
-        #Need to pass these selection conditions on to the ExpressionCaptureProcessor
-        QtGui.QGraphicsItem.mousePressEvent(self, event)
-
-    def mouseReleaseEvent(self, event):
-        """Event used to restore the selection of all items in the RigGV before this selection takes place"""
-        self.scene().views()[0].restoreSelectedStore()
-        QtGui.QGraphicsItem.mouseReleaseEvent(self, event) #Now the mouse is released, restore our original selection before the slider was selected
-
-
-    def sliderChangedMovement(self, eventPos): 
-        """Function to return the position that the Expression item should be at, on a mouse move"""
-        localPos = eventPos
-        xPos = localPos.x()
-        if xPos < self.sliderStartPos.x(): 
-            xPos = self.sliderStartPos.x()
-        elif xPos > self.sliderEndPos.x(): 
-            xPos = self.sliderEndPos.x()
-        # return self.mapToScene(QtCore.QPointF(xPos,self.sliderStartPos.y()))
-        return (QtCore.QPointF(xPos,self.sliderStartPos.y()))
-
-    def movePercentage(self,currentPos):
-        """Function to calculate the distance that the slider has moved and return as a percentage"""
-        slideRange = self.sliderEndPos.x() - self.sliderStartPos.x()
-        slideDistance = currentPos.x() - self.sliderStartPos.x()
-        movePercentage = 100.0*float(slideDistance)/float(slideRange)
         if self.expressionFaceState:
-            self.expressionFaceState.setPercentage(movePercentage)
-            print "Processing Combined expression from Expression " + self.getName() + " : SliderPos : " + str(currentPos) 
-            self.expressionFaceState.processCombinedExpressions() #Now that the percentage has been updated, run through all the expressions updating the total positions
-        else:
-            print "No ExpressionFaceState Linked to this ExpressionStateNode"
-        return movePercentage
+            self.expressionFaceState.setPercentage(0.0)
 
-    def matchPercentagePos(self, percentage):
-        """Function to take give percentage and use it to position the slider to the appropriate place on the line"""
-        slideRange = self.sliderEndPos.x() - self.sliderStartPos.x()
-        slideDistance = slideRange * percentage/100.0
-        if self.slider:
-            self.slider.setPos(QtCore.QPointF(self.sliderStartPos.x() + slideDistance, self.sliderStartPos.y()))
-
-
-class ExpressionPercentageSlider(QtGui.QGraphicsItem):
-    """Used as the slider handle on the ExpressionCaptureNode
-    """
-    def __init__(self, expressionStateNode):
-        super(ExpressionPercentageSlider, self).__init__()
-        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
-        self.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
-        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
-        self.width = 4
-        self.height = 8
-        self.scale = 1.0
-        self.expressionStateNode = expressionStateNode
-        self.alpha = 1.0
-
-        self.setZValue(12) #Set Draw sorting order - 0 is furthest back. Put curves and pins near the back. Nodes and markers nearer the front.
-
-
-    def init(self):
-        """Function to setup the slider on its parent expressionStateNode"""
-        # self.colour = self.expressionStateNode.getColour()
-        pass
-
-    def boundingRect(self):
-        adjust = 4
-        return QtCore.QRectF(-0.5 * self.scale*(self.width + adjust), -0.5*self.scale*(self.height + adjust),
-                            self.scale*(self.width + 2*adjust), self.scale*(self.height + 2*adjust))
-
-    def paint(self, painter, option, widget):
-        """Function to paint the ExpressionSlider"""
-        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
-        painter.setPen(pen)
-        painter.drawRect(-0.5 * self.scale*self.width, -0.5*self.scale*self.height, self.scale*self.width, self.scale*self.height)
-
-        if self.expressionStateNode.isSelected() or self.isSelected():
-            painter.setPen(QtCore.Qt.NoPen)
-            gradient = QtGui.QRadialGradient(self.scale*self.width/2,self.scale*self.height/2, self.scale*self.width)
-            gradient.setColorAt(1, QtGui.QColor(255,255,255,150*self.alpha))
-            gradient.setColorAt(0, QtGui.QColor(255,255,255,20*self.alpha))
-            painter.setBrush(QtGui.QBrush(gradient))
-            painter.drawRect(-0.5 * self.scale*self.width, -0.5*self.scale*self.height, self.scale*self.width, self.scale*self.height)
-
-        painter.setPen(QtCore.Qt.NoPen)
-        gradient = QtGui.QRadialGradient(self.scale*self.width/2,self.scale*self.height/2, self.scale*self.width)
-        gradient.setColorAt(1, QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),150*self.alpha))
-        gradient.setColorAt(0, QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),20*self.alpha))
-        painter.setBrush(QtGui.QBrush(gradient))
-        painter.drawRect(-0.5 * self.scale*self.width, -0.5*self.scale*self.height, self.scale*self.width, self.scale*self.height)
-
-    def itemChange(self, change, value):
-        if change == QtGui.QGraphicsItem.ItemPositionChange:
-            newPos = self.expressionStateNode.sliderChangedMovement(value)
-            # print "My Current Percentage is : " + str(self.expressionStateNode.movePercentage(newPos))
-            self.expressionStateNode.movePercentage(newPos)
-            return newPos  #Origins are the same for both the slider and the ExpressionStateNode, so no real mappings are needed
-
-        return QtGui.QGraphicsItem.itemChange(self, change, value)
-
-    def getColour(self):
-        """Function to return the same colour as the ExpressionStateNode"""
-        return self.expressionStateNode.getColour()
-
-    def mousePressEvent(self, event):
-        """Event used to capture the selection of all items in the RigGV before this selection takes place"""
-        self.scene().views()[0].captureSelectedStore() #Capture which Items are selected in the rigGV
-        self.expressionStateNode.getExpressionFaceState().mapSelected()
-        #Need to pass these selection conditions on to the ExpressionCaptureProcessor
-        QtGui.QGraphicsItem.mousePressEvent(self, event)
-
-    def mouseReleaseEvent(self, event):
-        """Event used to restore the selection of all items in the RigGV before this selection takes place"""
-        self.scene().views()[0].restoreSelectedStore()
-        QtGui.QGraphicsItem.mouseReleaseEvent(self, event) #Now the mouse is released, restore our original selection before the slider was selected
 
 
 class Node(QtGui.QGraphicsItem):

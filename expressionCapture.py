@@ -1,7 +1,7 @@
 from PySide import QtGui, QtCore
 import xml.etree.ElementTree as xml
 
-from ControlItems import ExpressionStateNode, ExpressionPercentageSlider
+from ControlItems import ExpressionStateNode #, ExpressionPercentageSlider
 
 class ExpressionCaptureProcessor(object):
 	"""Manages the total calculation of all recorded expressions on the Happy Face
@@ -85,7 +85,7 @@ class ExpressionCaptureProcessor(object):
 		newExpression = ExpressionFaceState(self.rigGraphicsView) #Create a new ExpressionFaceState, capture the current Face and name it
 		newExpression.setName(name)
 		newExpression.setExpressionCaptureProcessor(self) #Inform the new expression of the ExpressionCaptureProcessor
-		newExpression.recordState()
+		# newExpression.recordState()
 		self.expressionLibrary.append(newExpression)
 		return newExpression
 
@@ -104,6 +104,7 @@ class ExpressionCaptureProcessor(object):
 		Current version might be a little slow, since it collects all deltas for all items, even if there are only going to be a selection moved. Look at optimising.
 		"""
 		if self.faceSnapShot: #Check we have a snapShot to compare things to. Otherwise there is no comparison to make
+			self.mapSelected() #Run to determine whether we are processing a selection, or if we are working acros the entire face.
 			self.faceSnapShot.clearDeltas() #Clear all the deltas out of the faceSnapShot
 			for expression in self.expressionLibrary: #Loop through all expressions comparing them to the faceSnapShot
 				if expression.getPercentage() != 0.0: #First check that there is a percentage contribution from that Expression, if not, then we ignore it!
@@ -150,7 +151,7 @@ class ExpressionCaptureProcessor(object):
 		self.expressionLibrary = []	
 
 	def mapSelected(self):
-		"""Function to record in each of the ExpressionItemStates of hte faceSnapShot, whether the node was selected or not
+		"""Function to record in each of the ExpressionItemStates of the faceSnapShot, whether the node was selected or not
 
 		This loop works but feels slow and messy"""
 		effectWholeFace = True #variable to decide whetther the whole face is to be effected by the expression. If a node is found to be selected, then this will be false
@@ -170,6 +171,18 @@ class ExpressionCaptureProcessor(object):
 		else: 
 			print "No FaceSnapShot: No Action Taken"
 
+	def focusExpression(self, expressionFaceState):
+		"""Function to dial the supplied expression state to full, and turn all the others off (percent 0).
+		This is used when a new expression has been create and is being set. It ensures the current expression that is recorded is dialled in on full, and all other expressions are dialled off
+		"""
+		for exp in self.expressionLibrary:
+			if exp == expressionFaceState:
+				exp.setPercentage(100.0)
+			else:
+				exp.setPercentage(0.0)
+		self.processCombinedExpressions() #Now process the face as a result of the new percentage positions
+
+
 
 class ExpressionFaceState(object):
 	"""Captures all the data for the Happy Face in a set position
@@ -184,17 +197,13 @@ class ExpressionFaceState(object):
 		self.activeNodes = []
 		self.percentage = 0.0
 		self.effectWholeFace = True #Simple identifier to see if we are updating the entire face with the expression slider, or just the items that are recorded as selected.
-		
+		self.active = False
+
 		#Attributes referring to the expressionStateNode - This is done to try and get all data storable from just this ExpressionFaceState - the ExpressionStateNode is then created from this data
 		self.expressionStateNode = None #This is the rigGraphicsView ExpressionStateNode that this ExpressionFaceState is linked to.
 		self.colour = QtGui.QColor(255,0,0)
 		self.pos = QtCore.QPointF(0,0)
 		self.sliderPos = QtCore.QPointF(0,0)
-		self.init()
-
-	def init(self):
-		"""As soon as the Face State is built then record the position of the current face"""
-		self.recordState()
 
 	def store(self, isFaceSnapShot = False):
 		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
@@ -282,6 +291,12 @@ class ExpressionFaceState(object):
 	def setSliderPos(self, sliderPos):
 		self.sliderPos = sliderPos
 
+	def isActive(self):
+		return self.active
+
+	def setActive(self, active):
+		self.active = active
+
 	def getColour(self):
 		"""Returns the colour of the linked ExpressionStateNode"""
 		return self.colour
@@ -310,6 +325,8 @@ class ExpressionFaceState(object):
 	def setPercentage(self, percentage):
 		"""Function to set the percentage, normally driven by the slider on the ExpressionStateNode"""
 		self.percentage = percentage
+		if self.expressionStateNode:
+			self.expressionStateNode.slider.widget().setValue(percentage)
 
 	def matchPercentage(self):
 		"""This takes the current percentage value and makes sure that the slider is moved to the correct position to represent that percentage"""
@@ -330,6 +347,7 @@ class ExpressionFaceState(object):
 		for node in self.activeNodes: #Loop through all activeNodes recording in an ExpressionItem State and append to expressionItems array
 			newExpressionItem = ExpressionItemState(node)
 			self.expressionItemsData.append(newExpressionItem)
+		self.active = True #A state has been recorded so make this expression an Active One
 
 	def collectActiveControlNodes(self):
 		"""Function loops through all wiregroups and superNodegroups in the rigGraphicsView and collects all the appropriate Nodes, and update the dataBundles list"""

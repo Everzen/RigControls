@@ -90,19 +90,19 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
         #TESTING ADDING NEW ITEMS
 
-        self.mainWidget = QtGui.QWidget(self)
+        # self.mainWidget = QtGui.QWidget(self)
         
-        myGWiget = QtGui.QGraphicsWidget() 
+        # myGWiget = QtGui.QGraphicsWidget() 
 
-        myLayout = QtGui.QGraphicsLinearLayout()
-        myLayout.setOrientation(QtCore.Qt.Vertical) 
-        myLabel = QtGui.QLabel("Expression")
-        mySlider = QtGui.QSlider()
-        mySlider.setOrientation(QtCore.Qt.Horizontal)
-        p = self.scene().addWidget(myLabel) 
-        s = self.scene().addWidget(mySlider)
-        myLayout.addItem(p)
-        myLayout.addItem(s)
+        # myLayout = QtGui.QGraphicsLinearLayout()
+        # myLayout.setOrientation(QtCore.Qt.Vertical) 
+        # myLabel = QtGui.QLabel("Expression")
+        # mySlider = QtGui.QSlider()
+        # mySlider.setOrientation(QtCore.Qt.Horizontal)
+        # p = self.scene().addWidget(myLabel) 
+        # s = self.scene().addWidget(mySlider)
+        # myLayout.addItem(p)
+        # myLayout.addItem(s)
 
         # myLabel1 = QtGui.QLabel("Moo")
         # mySlider = QtGui.QSlider()
@@ -111,7 +111,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         # myLayout.addWidget(myLabel1)
         # myLayout.addWidget(mySlider)
         # self.mainWidget.setLayout(myLayout)
-        myGWiget.setLayout(myLayout)
+        # myGWiget.setLayout(myLayout)
 
         # proxyWidget = QtGui.QGraphicsProxyWidget() 
         # proxyWidget.graphicsItem().setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
@@ -120,15 +120,15 @@ class RigGraphicsView(QtGui.QGraphicsView):
 
         # proxyWidget.setParentItem(selfMoveRect)
         # proxyWidget.setFlag(QtGui.QGraphicsItem.ItemStacksBehindParent,True)         
-        myGWiget.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
-        myGWiget.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
-        myGWiget.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        # myGWiget.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        # myGWiget.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        # myGWiget.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
 
 
 
 
         # self.scene().addItem(proxyWidget)
-        self.scene().addItem(myGWiget)
+        # self.scene().addItem(myGWiget)
 
         # el = ConstraintEllipse(80,80)
         # el.setPos(200,200)
@@ -883,26 +883,28 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.dragItem = item #set set the gv DragItem
         self.scene().addItem(item)
 
-    def dragExpressionStateNode(self, event):
-        event.acceptProposedAction()
-        item = ExpressionStateNode()
-        item.setPos(self.mapToScene(event.pos()))
-        item.setAlpha(0.5)
-        self.dragItem = item #set set the gv DragItem
-        self.scene().addItem(item)
-
     # def dragExpressionStateNode(self, event):
     #     event.acceptProposedAction()
-    #     label = QtGui.QLabel("Expression")
-    #     slider = QtGui.QSlider()
-    #     slider.setOrientation(QtCore.Qt.Horizontal)
-    #     sceneLabel = self.scene().addWidget(label) 
-    #     sceneSlider = self.scene().addWidget(slider) 
-    #     item = ExpressionStateNode(sceneLabel, sceneSlider)
+    #     item = ExpressionStateNode()
     #     item.setPos(self.mapToScene(event.pos()))
     #     item.setAlpha(0.5)
     #     self.dragItem = item #set set the gv DragItem
     #     self.scene().addItem(item)
+
+    def dragExpressionStateNode(self, event):
+        event.acceptProposedAction()
+        label = QtGui.QLabel("Expression")
+        label.setStyleSheet("background-color: rgba(255, 255, 255, 10);")
+        slider = QtGui.QSlider()
+        slider.setMaximum(100)
+        slider.setOrientation(QtCore.Qt.Horizontal)
+        sceneLabel = self.scene().addWidget(label) 
+        sceneSlider = self.scene().addWidget(slider) 
+        item = ExpressionStateNode(sceneLabel, sceneSlider)
+        item.setPos(self.mapToScene(event.pos()))
+        # item.setAlpha(0.5)
+        self.dragItem = item #set set the gv DragItem
+        self.scene().addItem(item)
 
 
     def mousePressEvent(self, mouseEvent):
@@ -1190,6 +1192,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
         if action:
             if action.text() == ('Set ' + item.getName() + ' state'):
                 item.getExpressionFaceState().recordState()
+                self.expressionCaptureProcessor.focusExpression(item.getExpressionFaceState())
             elif action.text() == 'Set Face Snapshot':
                 item.getExpressionFaceState().setFaceSnapShot()
             elif action.text() == 'set Colour': 

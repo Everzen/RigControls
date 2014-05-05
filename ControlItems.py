@@ -9,7 +9,6 @@ import xml.etree.ElementTree as xml
 
 #######Project python imports################################################
 from SupportItems import *
-
 #################################CLASSES & FUNCTIONS FOR ACTIVE GRAPHICS ITEMS & CONSTRAINTS##################################################################################
 
 
@@ -977,12 +976,6 @@ class GuideMarker(QtGui.QGraphicsItem):
     def setAlpha(self, alpha):
         self.alpha = float(alpha)
 
-    def getShowID(self):
-        return self.showID
-
-    def setShowID(self,state):
-        self.showID = state
-
     def getIndex(self):
         return self.index
 
@@ -1024,22 +1017,6 @@ class GuideMarker(QtGui.QGraphicsItem):
             painter.setBrush(QtGui.QBrush(gradient))
             painter.drawEllipse(self.scale*-18, self.scale*-18, self.scale*36, self.scale*36)        
 
-    def drawID(self, painter):
-        # print "Marker Index : " + str(self.index)
-        # print "Marker guideIndex : " + str(self.guideIndex)
-        # print "Marker showID : " + str(self.showID)
-        if self.showID and self.index: #Conditions met to disply numbers on corners
-            pen = QtGui.QPen(QtGui.QColor(180,180,180,255*self.alpha), 1, QtCore.Qt.SolidLine)
-            painter.setPen(pen)
-            fontsize = 9
-            if self.scale < 1.0:
-                fontsize = int(9*self.scale)
-            painter.setFont(QtGui.QFont('Arial', fontsize))
-            if self.guideIndex != 0: 
-                # print "guide index : " + str(self.guideIndex)
-                painter.drawText(self.scale*12,self.scale*-12, str(self.guideIndex)) #Add in the guide Index if it is not 0
-            painter.drawText(self.scale*12,self.scale*21,str(self.index))
-
     def drawActiveIndex(self,painter):
         if self.active: #Conditions met to disply numbers on corners
             pen = QtGui.QPen(QtGui.QColor(180,180,180,255*self.alpha), 1, QtCore.Qt.SolidLine)
@@ -1071,11 +1048,8 @@ class GuideMarker(QtGui.QGraphicsItem):
         painter.setPen(pen)
         painter.drawLine(self.scale*-12,self.scale*-12,self.scale*12,self.scale*12)
         painter.drawLine(self.scale*-12,self.scale*12,self.scale*12,self.scale*-12)
-        # self.drawID(painter) #Now add in the Marker ID if relevant
         self.drawActiveIndex(painter)
         # painter.drawRect(self.boundingRect())
-
-
 
     def itemChange(self, change, value):
         if change == QtGui.QGraphicsItem.ItemPositionChange:
@@ -1088,7 +1062,100 @@ class GuideMarker(QtGui.QGraphicsItem):
         QtGui.QGraphicsItem.mousePressEvent(self, event)
 
 
-###Nodes for selection in the Graphics View
+class ExpressionStateNode(QtGui.QGraphicsWidget):
+    """These are used to capture the entire state of a Happy face
+
+    The current state of the face can be recorded and then you can slide in percentage changes towards the captured state
+    Based off the QGraphics Widget to all us to access sliders and labels etc
+    """
+    name = "ExpressionStateNode"
+
+    def __init__(self, expressionLabel, expressionSlider):
+        super(ExpressionStateNode, self).__init__()
+        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        self.name = "Expression"
+        self.label = expressionLabel
+        self.slider = expressionSlider
+        
+        self.tempColour = QtGui.QColor(255,0,0) #This is just a holding colour for the drag and drop. The real colour comes from the ExpressionFaceState
+        self.alpha = 1.0
+        self.init()
+
+
+    def init(self):
+        """Function to set up the label and slider to represent the expression"""
+        self.layout = QtGui.QGraphicsLinearLayout()
+        self.layout.setOrientation(QtCore.Qt.Vertical)  
+        self.layout.addItem(self.label)
+        self.layout.addItem(self.slider)
+        self.setLayout(self.layout)
+        self.expressionFaceState = None
+        self.slider.widget().valueChanged.connect(lambda: self.movePercentage())
+
+    def getName(self):
+        return self.name
+
+    def setName(self, name):
+        self.name = name
+        self.label.widget().setText(name)
+
+    def setAlpha(self, alpha):
+        """Function to set the alpha"""
+        self.alpha = alpha
+
+    def paint(self, painter, option, widget):
+        pen = QtGui.QPen(QtGui.QColor(0,0,0,255*self.alpha), 0.5, QtCore.Qt.SolidLine)
+        if self.isSelected():
+            pen = QtGui.QPen(QtGui.QColor(255,255,255,255*self.alpha), 1, QtCore.Qt.SolidLine)
+
+        painter.setPen(pen)   
+        painter.drawRect(self.boundingRect())
+
+        painter.setPen(QtCore.Qt.NoPen)
+        gradient = QtGui.QRadialGradient(self.boundingRect().width()/2,self.boundingRect().height()/2, self.boundingRect().width())
+        gradient.setColorAt(1, QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),150*self.alpha))
+        gradient.setColorAt(0, QtGui.QColor(self.getColour().red(),self.getColour().green(),self.getColour().blue(),20*self.alpha))
+        painter.setBrush(QtGui.QBrush(gradient))
+        painter.drawRect(0,0, self.boundingRect().width(), self.boundingRect().height())
+        return super(ExpressionStateNode, self).paint(painter, option, widget)
+
+    def getColour(self):
+        if self.expressionFaceState:
+            return self.expressionFaceState.getColour()
+        else:
+            return self.tempColour
+
+    def getExpressionFaceState(self):
+        """Function to return the data ExpressionFaceState associated with this ExpressionStateNode"""
+        return self.expressionFaceState
+
+    def setExpressionFaceState(self, expressionFaceState):
+        """Function to set the data ExpressionFaceState associated with this ExpressionStateNode"""
+        self.expressionFaceState = expressionFaceState
+        self.colour = self.expressionFaceState.getColour()
+
+    def movePercentage(self):
+        if self.expressionFaceState:
+            if self.expressionFaceState.isActive():
+                self.expressionFaceState.setPercentage(self.slider.widget().value())
+                self.expressionFaceState.processCombinedExpressions() #Now that the percentage has been updated, run through all the expressions updating the total positions
+            else:
+                print "Face State " + self.expressionFaceState.getName() + " exists, but is not yet defined"
+
+    def resetSlider(self):
+        """Function to move the slider back to its starting postion"""
+        if self.expressionFaceState:
+            self.expressionFaceState.setPercentage(0.0)
+
+
+    def matchPercentagePos(self, percentage):
+        """Function to move the slider to appropriate percentage"""
+        if self.expressionFaceState:
+            self.slider.widget().setValue(percentage)
+
+
+
 class Node(QtGui.QGraphicsItem):
     """The Node is the main circular item that the user interacts with in the WireGroup
 
@@ -2099,7 +2166,6 @@ class ConstraintEllipse(QtGui.QGraphicsEllipseItem):
     (ConstraintEllipse, ConstraintRect and ConstraintLine)
 
     """
-
     name = "ConstraintEllipse"
 
     def __init__(self):

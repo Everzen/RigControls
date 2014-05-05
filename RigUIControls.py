@@ -21,7 +21,7 @@ from RigStore import *
 
 class RigGraphicsView(QtGui.QGraphicsView):
 
-    def __init__(self, mainWindow, messageLogger, styleData, dataProcessor, itemFactory, controlScaler):
+    def __init__(self, mainWindow, messageLogger, styleData, dataProcessor, expressionCaptureProcessor, itemFactory, controlScaler):
 
         QtGui.QGraphicsView.__init__(self) 
         self.width = 600
@@ -34,6 +34,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
         
         self.dataProcessor = dataProcessor #This passes the movement data of the rigGV nodes and controls out to teh 3D app
         self.dataProcessor.setRigGraphicsView(self) #This ensures the dataProcessor continually can reference which controls are currently active and in use on the HappyFace
+
+        self.expressionCaptureProcessor = expressionCaptureProcessor
+        self.expressionCaptureProcessor.setRigGraphicsView(self)
 
         self.itemFactory = itemFactory
 
@@ -80,11 +83,53 @@ class RigGraphicsView(QtGui.QGraphicsView):
         self.isSelectableList = [] #list used to store selectable states while panning around 
         self.isMovableList = [] #list used to store selectable states while panning around       
         self.isSelectedList = []
-        
+        self.selectedStore = [] #Here we can store exactly what is selected in the rigGV, so selections can be restored later if needed
+
         self.mainWindow = mainWindow
         self.controlScaler = controlScaler
 
         #TESTING ADDING NEW ITEMS
+
+        # self.mainWidget = QtGui.QWidget(self)
+        
+        # myGWiget = QtGui.QGraphicsWidget() 
+
+        # myLayout = QtGui.QGraphicsLinearLayout()
+        # myLayout.setOrientation(QtCore.Qt.Vertical) 
+        # myLabel = QtGui.QLabel("Expression")
+        # mySlider = QtGui.QSlider()
+        # mySlider.setOrientation(QtCore.Qt.Horizontal)
+        # p = self.scene().addWidget(myLabel) 
+        # s = self.scene().addWidget(mySlider)
+        # myLayout.addItem(p)
+        # myLayout.addItem(s)
+
+        # myLabel1 = QtGui.QLabel("Moo")
+        # mySlider = QtGui.QSlider()
+        # mySlider.setOrientation(QtCore.Qt.Horizontal)
+        # myLayout.addWidget(myLabel)
+        # myLayout.addWidget(myLabel1)
+        # myLayout.addWidget(mySlider)
+        # self.mainWidget.setLayout(myLayout)
+        # myGWiget.setLayout(myLayout)
+
+        # proxyWidget = QtGui.QGraphicsProxyWidget() 
+        # proxyWidget.graphicsItem().setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        # proxyWidget.graphicsItem().setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+        # proxyWidget.setWidget(self.mainWidget)
+
+        # proxyWidget.setParentItem(selfMoveRect)
+        # proxyWidget.setFlag(QtGui.QGraphicsItem.ItemStacksBehindParent,True)         
+        # myGWiget.setFlag(QtGui.QGraphicsItem.ItemIsMovable,True)
+        # myGWiget.setFlag(QtGui.QGraphicsItem.ItemSendsGeometryChanges,True)
+        # myGWiget.setFlag(QtGui.QGraphicsItem.ItemIsSelectable,True)
+
+
+
+
+        # self.scene().addItem(proxyWidget)
+        # self.scene().addItem(myGWiget)
+
         # el = ConstraintEllipse(80,80)
         # el.setPos(200,200)
 
@@ -411,6 +456,9 @@ class RigGraphicsView(QtGui.QGraphicsView):
             if groupName == group.getName(): unique = False
         return unique
 
+    def checkUniqueExpressionName(self, expressionName):
+        return self.expressionCaptureProcessor.isNameUnique(expressionName)
+
     def showItem(self,state,objectType):
         """Function to hide and show markers"""
         scene = self.scene()
@@ -424,6 +472,22 @@ class RigGraphicsView(QtGui.QGraphicsView):
             if objectType == ControlPin and type(item) == PinTie:
                 item.setVisible(state)
                 item.update()
+
+    def captureSelectedStore(self):
+        """A function to loop through and record the selected state of all items in the scene"""
+        scene = self.scene()
+        self.selectedStore = [] #clear currently stored Items
+        for item in scene.items(): #Collect all selection states for all nodes except ExpressionStateNodes
+            if type(item) != ExpressionStateNode:
+                selectionPair = [item, item.isSelected()]
+                self.selectedStore.append(selectionPair)
+
+    def restoreSelectedStore(self):
+        """A function to loop through and set selected state of all items in the scene"""
+        scene = self.scene()
+        for item in self.selectedStore:
+            item[0].setSelected(item[1])
+
 
     def selectFilter(self, state, objectType):
         """A function to control whether items can be selected or not"""
@@ -554,8 +618,11 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     self.mainWindow.skinTableWidget.setSuperNode(None) ##Redraw the skin data Table, so that all the data is cleared out
                     self.mainWindow.skinTableWidget.populate()
                     self.mainWindow.nodeLinksTableWidget.populate() #Redraw the nodelink data Table, so that all the data cleared out
+                elif type(item) == ExpressionStateNode and item.isSelected(): #remove the expression from the ExpressionCapture Processor and remove the item from the scene
+                    self.deleteExpressionState(item)                   
             self.processMarkerActiveIndex()
             self.dataProcessor.manageAttributeConnections() #Run a check through all the attribute Connections to make sure that everything is in place
+            self.expressionCaptureProcessor.cleanUp() #Run the expressionCapture Processor to make sure expressions are up to date to rigGV control Nodes
         return 0 #Not returning the key event stops the shortcut being propagated to the parent (Maya), tidy this up by returning appropriately for each condition
         # return QtGui.QGraphicsView.keyPressEvent(self, event)
 
@@ -584,6 +651,19 @@ class RigGraphicsView(QtGui.QGraphicsView):
             item.goHome()
             item.getGroup().clear()
             self.superNodeGroups.remove(item.getGroup())
+
+    def deleteExpressionState(self, item):
+        delItem = QtGui.QMessageBox()
+        delItem.setStyleSheet(self.styleData)
+        delItem.setWindowTitle("Expression Deletion")
+        delItem.setText("Are you sure you want to delete the Expression:' " + str(item.getName()) + "'?")
+        delItem.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+        delItem.setDefaultButton(QtGui.QMessageBox.No)
+        response = delItem.exec_()
+        if response == QtGui.QMessageBox.Yes:
+            self.expressionCaptureProcessor.removeExpression(item.getName())
+            self.scene().removeItem(item)
+            del item
 
     def keyReleaseEvent(self, event):
         key = event.key()
@@ -626,6 +706,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 self.dragSuperNode(event,"Arrow_upDownPoint")
             elif data == "SkinningEllipse":
                 self.dragSkinningEllipse(event)
+            elif data == "ExpressionStateNode":
+                self.dragExpressionStateNode(event)
         else:
             event.ignore()
 
@@ -672,6 +754,20 @@ class RigGraphicsView(QtGui.QGraphicsView):
                     'The name was not unique. Please Enter a unique Super Node Name:'
                     )
         return superNodeName
+
+    def specifyExpressionName(self):
+        unique = True
+        expressionName = None
+        expressionName, ok = QtGui.QInputDialog.getText(self, 'Expression Name', 'Enter a unique Expression Name:')
+        while not self.checkUniqueExpressionName(expressionName):
+            expressionName, ok = QtGui.QInputDialog.getText(
+                    self,
+                    'Expression Name',
+                    'The name was not unique. Please Enter a unique Expression Name:'
+                    )
+        return expressionName
+
+
 
     def processDrop(self, event):
         scene = self.scene()
@@ -726,6 +822,16 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 else: #We do not have a valid name, so delete the superNodeGroup
                     self.dragItem.getGroup().clear()
                     self.superNodeGroups.remove(self.dragItem.getGroup())
+        elif type(self.dragItem) == ExpressionStateNode: #We are creating a new expression
+            expressionName = self.specifyExpressionName()
+            if expressionName:
+                self.dragItem.setName(expressionName)
+                newExpressionState = self.expressionCaptureProcessor.addExpression(expressionName)
+                newExpressionState.setExpressionStateNode(self.dragItem) #Now set the current ExpressionStateNode to the ExpressionFaceState
+                self.dragItem.setExpressionFaceState(newExpressionState)
+            else: #Naming has been cancelled so get rid of the ExpressionStateNode
+                scene.removeItem(self.dragItem)
+
 
         if self.dragItem:
             self.dragItem.setAlpha(1.0)
@@ -776,6 +882,30 @@ class RigGraphicsView(QtGui.QGraphicsView):
         item.setAlpha(0.5)
         self.dragItem = item #set set the gv DragItem
         self.scene().addItem(item)
+
+    # def dragExpressionStateNode(self, event):
+    #     event.acceptProposedAction()
+    #     item = ExpressionStateNode()
+    #     item.setPos(self.mapToScene(event.pos()))
+    #     item.setAlpha(0.5)
+    #     self.dragItem = item #set set the gv DragItem
+    #     self.scene().addItem(item)
+
+    def dragExpressionStateNode(self, event):
+        event.acceptProposedAction()
+        label = QtGui.QLabel("Expression")
+        label.setStyleSheet("background-color: rgba(255, 255, 255, 10);")
+        slider = QtGui.QSlider()
+        slider.setMaximum(100)
+        slider.setOrientation(QtCore.Qt.Horizontal)
+        sceneLabel = self.scene().addWidget(label) 
+        sceneSlider = self.scene().addWidget(slider) 
+        item = ExpressionStateNode(sceneLabel, sceneSlider)
+        item.setPos(self.mapToScene(event.pos()))
+        # item.setAlpha(0.5)
+        self.dragItem = item #set set the gv DragItem
+        self.scene().addItem(item)
+
 
     def mousePressEvent(self, mouseEvent):
         scene = self.scene()
@@ -930,6 +1060,8 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 self.pinContextMenu(event,item)
             elif type(item) == ReflectionLine:
                 self.reflectionLineContextMenu(event,item)
+            elif type(item) == ExpressionStateNode:
+                self.expressionStateNodeContextMenu(event,item)
             # elif type(item) == SkinningEllipse:
             #     self.skinningEllipseContextMenu(event,item)
                 # menu.addAction('ControlPin')
@@ -1045,6 +1177,29 @@ class RigGraphicsView(QtGui.QGraphicsView):
                 item.setLocked(False)    
             elif action.text() == 'Lock':
                 item.setLocked(True)
+
+    def expressionStateNodeContextMenu(self,event,item):
+        scene = self.scene()
+        menu = QtGui.QMenu()
+        menu.setStyleSheet(self.styleData)
+        menu.addAction('Set ' + item.getName() + ' state')
+        menu.addSeparator()
+        menu.addAction('Set Face Snapshot')
+        menu.addSeparator()
+        menu.addAction('set Colour')
+
+        action = menu.exec_(event.globalPos())
+        if action:
+            if action.text() == ('Set ' + item.getName() + ' state'):
+                item.getExpressionFaceState().recordState()
+                self.expressionCaptureProcessor.focusExpression(item.getExpressionFaceState())
+            elif action.text() == 'Set Face Snapshot':
+                item.getExpressionFaceState().setFaceSnapShot()
+            elif action.text() == 'set Colour': 
+                newCol = QtGui.QColorDialog.getColor()
+                if newCol.isValid():
+                    item.getExpressionFaceState().setColour(newCol)
+
 
     def isNodesSelected(self):
         selectedNodes = []

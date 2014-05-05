@@ -38,10 +38,12 @@ class ExpressionCaptureProcessor(object):
 		self.expressionLibrary = []
 		# Read the FaceSnapShot data and then the ExpresionLibrary Data
 		faceSnapShotDataTitleXml = expressionCaptureProcessorXml.findall('FaceSnapShot')
-		faceSnapShotDataXml = faceSnapShotDataTitleXml[0].findall('ExpressionFaceState')[0] #There should only be one FaceSnapShot, so take the first in the list
-		newfaceSnapShot = ExpressionFaceState(self.rigGraphicsView) #Create new ExpressionFaceState, pass it the current rigGraphicsView, which must have already been set! 
-		newfaceSnapShot.read(faceSnapShotDataXml, isFaceSnapShot = True)
-		self.faceSnapShot = newfaceSnapShot
+		if len(faceSnapShotDataTitleXml) != 0:
+			faceSnapShotDataXml = faceSnapShotDataTitleXml[0].findall('ExpressionFaceState') #There should only be one FaceSnapShot, so take the first in the list
+			if len(faceSnapShotDataXml) !=0:
+				newfaceSnapShot = ExpressionFaceState(self.rigGraphicsView) #Create new ExpressionFaceState, pass it the current rigGraphicsView, which must have already been set! 
+				newfaceSnapShot.read(faceSnapShotDataXml[0], isFaceSnapShot = True) #There should be only one, so take the first element in the list
+				self.faceSnapShot = newfaceSnapShot
 
 		self.expressionLibrary = [] # Clear Out all the expressionLibrary
 		expressionLibraryXml = expressionCaptureProcessorXml.findall('ExpressionLibrary')

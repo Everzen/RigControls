@@ -440,6 +440,7 @@ class RigGraphicsView(QtGui.QGraphicsView):
             self.dataProcessor.manageAttributeConnections() #Now that the final wireGroup has been created, we have to align it with the sceneControl Attributes
 
             for m in self.markerActiveList: #Now run through and delete these markers because they are annoying after Wiregroup generation
+                self.markerList.remove(m)
                 self.scene().removeItem(m)
                 del m
             self.markerActiveList = [] #Reset the Marker List

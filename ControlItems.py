@@ -1534,7 +1534,7 @@ class NodePinReference():
 
     def __init__(self):
         self.index = None
-        self.wireName = None
+        self.groupName = None
 
     def getIndex(self):
         return self.index
@@ -1542,17 +1542,17 @@ class NodePinReference():
     def setIndex(self, index):
         self.index = int(index)
 
-    def getWireName(self):
-        return self.wireName
+    def getGroupName(self):
+        return self.groupName
 
-    def setWireName(self, wireName):
-        self.wireName = str(wireName)
+    def setGroupName(self, groupName):
+        self.groupName = str(groupName)
 
     def read(self, nodePinXml):
         """Function to read in some simple data into the reference Object so later we can locate the required Pin/Node"""
         for a in nodePinXml.findall( 'attributes/attribute'):
             if a.attrib['name'] == 'index': self.setIndex(int(a.attrib['value']))
-            elif a.attrib['name'] == 'wireName': self.setWireName(str(a.attrib['value']))
+            elif a.attrib['name'] == 'groupName': self.setGroupName(str(a.attrib['value']))
 
 
 class SuperNode(Node):

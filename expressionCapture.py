@@ -50,16 +50,23 @@ class ExpressionCaptureProcessor(object):
 			newExpressionState.setExpressionCaptureProcessor(self) #Make sure the ExpressionCaptureProcessor is passed to the Expression
 			newExpressionState.read(expressionStateXml)
 			self.expressionLibrary.append(newExpressionState)
-			newExpressionStateNode = ExpressionStateNode() #Create the appropriate ExpressionState Node and Pair up the data with ExpressionFaceState
+			#Create new label and a new Slider for the ExpressionStateNode
+			label = QtGui.QLabel("Expression")
+			label.setStyleSheet("background-color: rgba(255, 255, 255, 10);")
+			slider = QtGui.QSlider()
+			slider.setMaximum(100)
+			slider.setOrientation(QtCore.Qt.Horizontal)
+			sceneLabel = self.rigGraphicsView.scene().addWidget(label) 
+			sceneSlider = self.rigGraphicsView.scene().addWidget(slider) 
+			newExpressionStateNode = ExpressionStateNode(sceneLabel, sceneSlider) #Create the appropriate ExpressionState Node and Pair up the data with ExpressionFaceState
 			self.rigGraphicsView.scene().addItem(newExpressionStateNode) #Add the new Item to the scene with all the data
 			newExpressionState.setExpressionStateNode(newExpressionStateNode) 
 			newExpressionStateNode.setExpressionFaceState(newExpressionState)
 			newExpressionStateNode.setName(newExpressionState.getName())
 			# newExpressionStateNode.update()
 			# self.rigGraphicsView.scene().update(self.rigGraphicsView.scene().sceneRect())
-			# print "About to Match Slider at : " + str(newExpressionState.sliderPos)
 			newExpressionState.matchPos()
-			newExpressionState.matchPercentage() #Moves the sliderPosition to the data read position and updates the expression for that new position.	
+			newExpressionState.matchPercentage() #Moves the slider to the data read position and updates the expression for that new position.	
 		self.processCombinedExpressions() #Now all expression are in place. Computate the entire Face	
 
 	def getRigGraphicsView(self):
@@ -203,7 +210,6 @@ class ExpressionFaceState(object):
 		self.expressionStateNode = None #This is the rigGraphicsView ExpressionStateNode that this ExpressionFaceState is linked to.
 		self.colour = QtGui.QColor(255,0,0)
 		self.pos = QtCore.QPointF(0,0)
-		self.sliderPos = QtCore.QPointF(0,0)
 
 	def store(self, isFaceSnapShot = False):
 		"""Function to write out a block of XML that records all the major attributes that will be needed for save/load"""
@@ -212,9 +218,9 @@ class ExpressionFaceState(object):
 		xml.SubElement(attributes, 'attribute', name = 'name', value = str(self.getName()))
 		xml.SubElement(attributes, 'attribute', name = 'percentage', value = str(self.getPercentage()))
 		if not isFaceSnapShot:
+			xml.SubElement(attributes, 'attribute', name = 'active', value = str(self.isActive()))
 			xml.SubElement(attributes, 'attribute', name = 'colour', value = (str(self.getColour().red()) + "," + str(self.getColour().green()) + "," + str(self.getColour().blue())))
 			xml.SubElement(attributes, 'attribute', name = 'pos', value = (str(self.getPos().x())) + "," + str(self.getPos().y()))
-			# xml.SubElement(attributes, 'attribute', name = 'sliderPos', value = (str(self.getSliderPos().x())) + "," + str(self.getSliderPos().y()))
 
 		#Store all the expressionItemsData
 		expressionItemsDataXml = xml.SubElement(expressionFaceStateRoot,'ExpressionItemData')
@@ -229,17 +235,14 @@ class ExpressionFaceState(object):
 			if a.attrib['name'] == 'name': self.setName(str(a.attrib['value']))
 			elif a.attrib['name'] == 'percentage': self.setPercentage(float(a.attrib['value']))
 			if not isFaceSnapShot:
-				if a.attrib['name'] == 'pos':
+				if a.attrib['name'] == 'active': self.setActive(str(a.attrib['value']) == 'True')
+				elif a.attrib['name'] == 'pos':
 					newPos = a.attrib['value'].split(",")
 					self.setPos(QtCore.QPointF(float(newPos[0]), float(newPos[1])))
-				# elif a.attrib['name'] == 'sliderPos':
-				# 	newSliderPos = a.attrib['value'].split(",")
-				# 	self.setSliderPos(QtCore.QPointF(float(newSliderPos[0]), float(newSliderPos[1])))
 				elif a.attrib['name'] == 'colour':
 				    newColour = a.attrib['value'].split(",")
 				    self.setColour(QtGui.QColor(float(newColour[0]), float(newColour[1]),float(newColour[2])))
 
-		print "My read Slider Pos is: " + str(self.sliderPos)
 		# Read ExpressionItemsData
 		self.expressionItemsData = [] # Clear Out all the ExpressionItemData
 		expressionItemsDataXml = expressionFaceStateXml.findall('ExpressionItemData')
@@ -273,23 +276,10 @@ class ExpressionFaceState(object):
 		"""Function to update ExpressionStateNode to that position, and update the Slider to the appropriate position too"""
 		if self.expressionStateNode: 
 			self.expressionStateNode.setPos(self.pos)
-			# print "setting sliderPosition to : " + str(self.sliderPos)
-			# self.expressionStateNode.getSlider().setPos(self.sliderPos)
-			# self.expressionStateNode.movePercentage(self.sliderPos) #Now the position of the slider is in place, then update the expression.
 
 	def setPos(self, pos):
 		"""Function to update local pos Attribute and set the ExpressionStateNode to that position"""
 		self.pos = pos
-
-	def getSliderPos(self):
-		"""Returns the position of the linked ExpressionStateNode"""
-		if self.expressionStateNode: 
-			self.sliderPos = self.expressionStateNode.getSlider().pos()
-			return self.sliderPos
-		return None
-
-	def setSliderPos(self, sliderPos):
-		self.sliderPos = sliderPos
 
 	def isActive(self):
 		return self.active

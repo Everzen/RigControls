@@ -1136,10 +1136,8 @@ class ExpressionStateNode(QtGui.QGraphicsWidget):
         self.colour = self.expressionFaceState.getColour()
 
     def movePercentage(self):
-        print "moo " +str(self.slider.widget().value())
         if self.expressionFaceState:
             if self.expressionFaceState.isActive():
-                print "This running?"
                 self.expressionFaceState.setPercentage(self.slider.widget().value())
                 self.expressionFaceState.processCombinedExpressions() #Now that the percentage has been updated, run through all the expressions updating the total positions
             else:
@@ -1149,6 +1147,12 @@ class ExpressionStateNode(QtGui.QGraphicsWidget):
         """Function to move the slider back to its starting postion"""
         if self.expressionFaceState:
             self.expressionFaceState.setPercentage(0.0)
+
+
+    def matchPercentagePos(self, percentage):
+        """Function to move the slider to appropriate percentage"""
+        if self.expressionFaceState:
+            self.slider.widget().setValue(percentage)
 
 
 
